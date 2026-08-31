@@ -295,4 +295,5 @@ builder.add_edge(FINAL_ANSWER_NODE, END)
 # 编译图
 graph = builder.compile(name="pro-research-agent")
 
-display(Image(graph.get_graph().draw_mermaid_png(output_file_path='./基础图.png')))
+if __name__ == '__main__':
+    display(Image(graph.get_graph().draw_mermaid_png(output_file_path='./基础图.png')))

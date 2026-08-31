@@ -13,7 +13,10 @@ dependencies = [
     "langgraph-cli",
     "langgraph-api",
     "fastapi",
-    "dashscope"
+    "dashscope",
+    "loguru>=0.7.3",
+    "langchain-core>=1.6.1",
+    "ipython>=9.17.0",
 ]
 
 
