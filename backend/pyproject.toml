@@ -17,6 +17,8 @@ dependencies = [
     "loguru>=0.7.3",
     "langchain-core>=1.6.1",
     "ipython>=9.17.0",
+    "debugpy>=1.8.21",
+    "ipykernel>=7.3.0",
 ]
 
 

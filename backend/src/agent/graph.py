@@ -154,18 +154,43 @@ def critique(state: OverallState, config: RunnableConfig) -> ReflectionState:
     configurable = Configuration.from_runnable_config(config)
     # 增加研究循环计数并获取推理模型
     state["research_loop_count"] = state.get("research_loop_count", 0) + 1
-    reasoning_model = state.get("reasoning_model", configurable.reflection_model)
+    # 注意:用 `or` 而不是 `state.get(key, default)` — key 存在但值为空字符串时也要回退
+    reasoning_model = state.get("reasoning_model") or configurable.reflection_model
     logger.info(f"critique反思节点模型：{reasoning_model}")
 
     # 格式化提示
     agent = JsonAgent(model_id=reasoning_model, keys=Reflection)
     agent.set_step_prompt(reflection_instructions)
-    result = agent.step(
-        current_date=get_current_date(),
-        number_queries=state["initial_search_query_count"],
-        research_topic=get_research_topic(state["messages"]),
-        summaries="\n\n---\n\n".join(state["web_search_result"]),
-    )
+    try:
+        result = agent.step(
+            current_date=get_current_date(),
+            number_queries=state["initial_search_query_count"],
+            research_topic=get_research_topic(state["messages"]),
+            summaries="\n\n---\n\n".join(state["web_search_result"]),
+        )
+    except Exception as e:
+        logger.error(f"critique 节点 LLM 调用失败: {e}")
+        # 防御性: 反思失败时默认认为信息已经够,直接进入 final_answer 结束这轮
+        return {
+            "is_sufficient": True,
+            "knowledge_gap": "",
+            "follow_up_queries": [],
+            "research_loop_count": state["research_loop_count"],
+            "number_of_ran_queries": len(state["search_query"]),
+            "max_research_loops": state.get("max_research_loops") or configurable.max_research_loops,
+        }
+
+    # 如果 LLM 三次重试都失败,step 返回空串,做成安全默认值避免崩
+    if not isinstance(result, Reflection):
+        logger.warning(f"critique 返回非 Reflection 对象, 转为安全默认值: {result!r}")
+        return {
+            "is_sufficient": True,
+            "knowledge_gap": "",
+            "follow_up_queries": [],
+            "research_loop_count": state["research_loop_count"],
+            "number_of_ran_queries": len(state["search_query"]),
+            "max_research_loops": state.get("max_research_loops") or configurable.max_research_loops,
+        }
 
     logger.info(f"反思分析：{result}")
     return {

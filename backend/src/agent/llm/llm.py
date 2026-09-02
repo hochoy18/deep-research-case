@@ -1,6 +1,9 @@
 from openai import OpenAI
 import os
 
+from agent.post import Post
+
+
 class OpenAICompatibleLLM:
 
     def __init__(self, model_id=""):
@@ -23,4 +26,5 @@ class OpenAICompatibleLLM:
             ],
             extra_body={"enable_thinking": False},
         )
-        return response.choices[0].message.content
+        # 去除 <think> 推理块,避免 thinking 模型把过程文本带出来
+        return Post.strip_think_tags(response.choices[0].message.content)
