@@ -162,7 +162,7 @@ class WebSearchAgent(MCPAgent):
         except Exception as e:
             step_prompt = self.step_prompt
 
-        api_key = os.getenv("APP_TOKEN")
+        api_key = os.getenv("MCP_APP_TOKEN")
         app_id = os.getenv("MCP_APP_ID")
         
         # 获取速率限制器

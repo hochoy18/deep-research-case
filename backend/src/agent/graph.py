@@ -7,7 +7,6 @@ from langgraph.types import Send
 from langgraph.graph import StateGraph
 from langgraph.graph import START, END
 from langchain_core.runnables import RunnableConfig
-from IPython.display import Image, display
 
 from agent.state import (
     OverallState,
@@ -64,7 +63,7 @@ def generate_plan(state: OverallState, config: RunnableConfig)-> OverallState:
     agent.set_step_prompt(plan_instructions)
     response = agent.step(
         current_date=get_current_date(),
-        research_topic=get_research_topic(state["messages"], [msg.content for msg in state["plan_messages"]]),
+        research_topic=get_research_topic(state.get("messages",[]), [msg.content for msg in state.get('plan_messages',[])]),
         research_proposal=state.get("plan", "")
     )
     response = Post.extract_pattern(response, pattern="markdown")
@@ -386,4 +385,3 @@ builder.add_edge(FINAL_ANSWER_NODE, END)
 # 编译图
 graph = builder.compile(name="pro-research-agent")
 
-display(Image(graph.get_graph().draw_mermaid_png(output_file_path='./人类参与版.png')))

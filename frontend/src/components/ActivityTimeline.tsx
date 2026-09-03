@@ -26,11 +26,13 @@ export interface ProcessedEvent {
 interface ActivityTimelineProps {
   processedEvents: ProcessedEvent[];
   isLoading: boolean;
+  title?: string;
 }
 
 export function ActivityTimeline({
   processedEvents,
   isLoading,
+  title = "生成计划",
 }: ActivityTimelineProps) {
   const [isTimelineCollapsed, setIsTimelineCollapsed] =
     useState<boolean>(false);
@@ -56,6 +58,13 @@ export function ActivityTimeline({
     if (!isLoading && processedEvents.length !== 0) {
       setIsTimelineCollapsed(true);
     }
+    if (
+      processedEvents.some(
+        (event) => event.title === "生成计划"
+      )
+    ) {
+      setIsTimelineCollapsed(false);
+    }
   }, [isLoading, processedEvents]);
 
   return (
@@ -66,7 +75,7 @@ export function ActivityTimeline({
             className="flex items-center justify-start text-sm w-full cursor-pointer gap-2 text-neutral-100"
             onClick={() => setIsTimelineCollapsed(!isTimelineCollapsed)}
           >
-            Research
+            {title}
             {isTimelineCollapsed ? (
               <ChevronDown className="h-4 w-4 mr-2" />
             ) : (
@@ -106,7 +115,7 @@ export function ActivityTimeline({
                       <p className="text-sm text-neutral-200 font-medium mb-0.5">
                         {eventItem.title}
                       </p>
-                      <p className="text-xs text-neutral-300 leading-relaxed">
+                      <p className="text-xs text-neutral-300 leading-relaxed" style={{ whiteSpace: 'pre-line' }}>
                         {typeof eventItem.data === "string"
                           ? eventItem.data
                           : Array.isArray(eventItem.data)
