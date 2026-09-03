@@ -12,6 +12,9 @@ import operator
 
 class OverallState(TypedDict):
     messages: Annotated[list, add_messages]
+    plan: str
+    plan_status: str
+    plan_messages: Annotated[list, add_messages]
     search_query: Annotated[list, operator.add]
     web_search_result: Annotated[list, operator.add]
     sources_gathered: Annotated[list, operator.add]
@@ -42,6 +45,9 @@ class QueryGenerationState(TypedDict):
 class WebSearchState(TypedDict):
     search_query: str
     id: str
+
+class PlanState(TypedDict):
+    plan: str
 
 
 @dataclass(kw_only=True)

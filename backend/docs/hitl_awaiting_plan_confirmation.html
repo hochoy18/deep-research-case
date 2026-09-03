@@ -1,0 +1,1757 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>awaiting_plan_confirmation · HITL 流转详解 · Deep Research</title>
+<!-- Mermaid for flow / sequence / state diagrams -->
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<style>
+  :root {
+    --bg-0: #0b0f1a;
+    --bg-1: #111827;
+    --bg-2: #1a2236;
+    --line: #243049;
+    --text: #e6edf7;
+    --muted: #97a3bd;
+    --primary: #8b5cf6;
+    --primary-2: #6366f1;
+    --accent: #22d3ee;
+    --accent-2: #06b6d4;
+    --warn: #f59e0b;
+    --ok: #10b981;
+    --danger: #ef4444;
+    --code-bg: #0a1020;
+    --shadow: 0 10px 30px rgba(0,0,0,.35);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+                 "Microsoft YaHei", Roboto, Helvetica, Arial, sans-serif;
+    background:
+      radial-gradient(1200px 600px at 10% -10%, rgba(139,92,246,.18), transparent 60%),
+      radial-gradient(1000px 500px at 110% 10%, rgba(34,211,238,.15), transparent 60%),
+      var(--bg-0);
+    color: var(--text);
+    line-height: 1.7;
+    min-height: 100vh;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .hero {
+    padding: 56px 16px 32px;
+    text-align: center;
+    border-bottom: 1px solid var(--line);
+    background: linear-gradient(180deg, rgba(139,92,246,.10), transparent 60%);
+  }
+  .hero .badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 999px;
+    background: rgba(139,92,246,.18);
+    color: #c4b5fd;
+    border: 1px solid rgba(139,92,.35);
+    font-size: 12px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .hero h1 {
+    font-size: 36px;
+    margin: 12px 0 4px;
+    background: linear-gradient(90deg, #c4b5fd, #67e8f9, #f0abfc);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .hero p { color: var(--muted); margin: 4px 0 0; font-size: 14px; }
+  .hero .meta {
+    margin-top: 14px;
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .pill {
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 8px;
+    background: var(--bg-2);
+    border: 1px solid var(--line);
+    color: var(--muted);
+  }
+  .pill b { color: var(--text); }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 180px 1fr;
+    gap: 18px;
+    max-width: 1480px;
+    margin: 0 auto;
+    padding: 22px 14px 80px;
+  }
+  nav.toc {
+    position: sticky;
+    top: 18px;
+    align-self: start;
+    background: rgba(17,24,39,.7);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 12px 12px;
+    box-shadow: var(--shadow);
+    font-size: 13px;
+  }
+  nav.toc h3 {
+    margin: 2px 0 8px;
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+  nav.toc a {
+    display: block;
+    padding: 5px 8px;
+    border-radius: 6px;
+    color: var(--muted);
+    font-size: 12.5px;
+    line-height: 1.45;
+  }
+  nav.toc a:hover {
+    background: rgba(139,92,246,.12);
+    color: var(--text);
+    text-decoration: none;
+  }
+  nav.toc a.active {
+    background: rgba(139,92,.22);
+    color: #ddd6fe;
+  }
+
+  main { min-width: 0; }
+
+  section.card {
+    background: rgba(17,24,39,.65);
+    backdrop-filter: blur(6px);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 20px 22px;
+    margin-bottom: 18px;
+    box-shadow: var(--shadow);
+  }
+  section.card h2 {
+    margin: 0 0 6px;
+    font-size: 22px;
+    color: #f1f5f9;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  section.card h2 .num {
+    display: inline-flex;
+    width: 28px; height: 28px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, var(--primary), var(--primary-2));
+    color: white;
+    font-size: 13px;
+    align-items: center; justify-content: center;
+  }
+  section.card h3 {
+    margin: 16px 0 6px;
+    font-size: 15px;
+    color: #cbd5e1;
+    border-left: 3px solid var(--accent);
+    padding-left: 10px;
+  }
+  section.card p { color: #d1d5db; margin: 6px 0; font-size: 14px; }
+  section.card ul, section.card ol { color: #d1d5db; padding-left: 22px; }
+  section.card li { margin: 4px 0; font-size: 14px; }
+  .lead { color: var(--muted); font-size: 13px; }
+
+  pre.code {
+    background: var(--code-bg);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 14px 16px;
+    overflow-x: auto;
+    font-family: "JetBrains Mono", "Fira Code", ui-monospace, Menlo, Consolas, monospace;
+    font-size: 13px;
+    line-height: 1.55;
+    color: #e2e8f0;
+    position: relative;
+  }
+  pre.code .k { color: #f0abfc; }
+  pre.code .s { color: #86efac; }
+  pre.code .c { color: #64748b; font-style: italic; }
+  pre.code .n { color: #93c5fd; }
+  pre.code .b { color: #fcd34d; }
+  pre.code .v { color: #fda4af; }
+  pre.code .o { color: #f472b6; }
+  pre.code .p { color: #c4b5fd; }
+  .lang-tag {
+    position: absolute;
+    top: 8px; right: 12px;
+    font-size: 11px;
+    color: #64748b;
+    letter-spacing: 1px;
+  }
+
+  table.t {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 10px 0;
+    font-size: 13px;
+  }
+  table.t th, table.t td {
+    border: 1px solid var(--line);
+    padding: 7px 11px;
+    text-align: left;
+    vertical-align: top;
+  }
+  table.t th {
+    background: rgba(99,102,241,.12);
+    color: #c7d2fe;
+  }
+  table.t tr:nth-child(even) td { background: rgba(255,255,255,.02); }
+
+  .callout {
+    border-left: 4px solid var(--accent);
+    background: rgba(34,211,238,.06);
+    padding: 10px 14px;
+    border-radius: 8px;
+    margin: 10px 0;
+    color: #cbd5e1;
+    font-size: 13.5px;
+  }
+  .callout.warn { border-left-color: var(--warn); background: rgba(245,158,11,.08); }
+  .callout.ok   { border-left-color: var(--ok);   background: rgba(16,185,129,.08); }
+  .callout.tip  { border-left-color: var(--primary); background: rgba(139,92,246,.08); }
+  .callout.danger { border-left-color: var(--danger); background: rgba(239,68,68,.08); }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  @media (max-width: 980px) {
+    .layout { grid-template-columns: 1fr; padding: 18px 12px 60px; }
+    nav.toc { position: relative; top: 0; }
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    .hero h1 { font-size: 24px; }
+  }
+
+  .mini {
+    background: var(--bg-2);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 12px 14px;
+  }
+  .mini h4 { margin: 0 0 4px; color: #c4b5fd; font-size: 13px; }
+  .mini p  { margin: 0; font-size: 13px; color: #d1d5db; }
+
+  .mermaid {
+    background: rgba(10,16,32,.5);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 16px;
+    margin: 12px 0;
+    text-align: center;
+    overflow-x: auto;
+  }
+  .mermaid.big {
+    padding: 24px;
+    font-size: 16px;
+  }
+  .mermaid.big .nodeLabel, .mermaid.big .edgeLabel, .mermaid.big tspan {
+    font-size: 16px !important;
+  }
+
+  .svg-wrap {
+    background: rgba(10,16,32,.5);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 16px;
+    margin: 12px 0;
+    overflow-x: auto;
+  }
+  .svg-wrap svg { display: block; margin: 0 auto; max-width: 100%; height: auto; }
+
+  .canvas-demo {
+    background: rgba(10,16,32,.5);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 16px;
+    margin: 12px 0;
+  }
+  .canvas-demo canvas {
+    display: block;
+    margin: 0 auto;
+    background: #0a1020;
+    border-radius: 10px;
+    border: 1px solid var(--line);
+    max-width: 100%;
+  }
+  .ctrl-row {
+    display: flex; gap: 10px; justify-content: center; margin-top: 10px; flex-wrap: wrap;
+  }
+  .ctrl-row button {
+    background: rgba(139,92,.25);
+    border: 1px solid rgba(139,92,.4);
+    color: #ddd6fe;
+    padding: 6px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: all .15s ease;
+  }
+  .ctrl-row button:hover { background: rgba(139,92,.45); }
+  .ctrl-row button.active { background: rgba(34,211,238,.35); border-color: rgba(34,211,238,.5); color: #cffafe; }
+
+  /* 角色色标 */
+  .actor-user  { background: rgba(34,211,238,.15); border-color: rgba(34,211,238,.45); color: #67e8f9; }
+  .actor-fe    { background: rgba(139,92,.15); border-color: rgba(139,92,.45); color: #c4b5fd; }
+  .actor-graph { background: rgba(16,185,129,.15); border-color: rgba(16,185,129,.45); color: #6ee7b7; }
+  .actor-llm   { background: rgba(245,158,11,.15); border-color: rgba(245,158,11,.45); color: #fcd34d; }
+
+  /* ASCII 块 */
+  pre.ascii {
+    background: var(--code-bg);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 14px 16px;
+    overflow-x: auto;
+    font-family: "JetBrains Mono", "Fira Code", ui-monospace, Menlo, Consolas, monospace;
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: #cbd5e1;
+    position: relative;
+  }
+  pre.ascii .label {
+    position: absolute;
+    top: 8px; right: 12px;
+    font-size: 11px;
+    color: #64748b;
+    letter-spacing: 1px;
+  }
+  pre.ascii .hl { color: #fbbf24; font-weight: bold; }
+  pre.ascii .hl2 { color: #67e8f9; font-weight: bold; }
+  pre.ascii .hl3 { color: #c4b5fd; font-weight: bold; }
+
+  footer {
+    text-align: center;
+    color: var(--muted);
+    padding: 24px 16px 40px;
+    font-size: 13px;
+    border-top: 1px solid var(--line);
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <span class="badge">LangGraph · Human-in-the-Loop</span>
+  <h1>awaiting_plan_confirmation · HITL 流转详解</h1>
+  <p>src/agent/graph.py · 什么时候人参与，什么时候图读 HITL 输入</p>
+  <div class="meta">
+    <span class="pill">👥 <b>参与方</b>：<code>用户 / 前端 / LangGraph 图 / LLM</code></span>
+    <span class="pill">🔑 <b>关键字段</b>：<code>plan_status</code></span>
+    <span class="pill">📍 <b>节点性质</b>：<code>pass-through · 无出口</code></span>
+    <span class="pill">🔁 <b>触发次数</b>：图被 invoke <b>2 次</b></span>
+  </div>
+</header>
+
+<div class="layout">
+
+  <nav class="toc" id="toc">
+    <h3>目录</h3>
+    <a href="#sec1">① 核心概念：HITL 在哪里发生</a>
+    <a href="#sec2">② 参与方与边界</a>
+    <a href="#sec3">③ 关键代码事实</a>
+    <a href="#sec4">④ 阶段 ① 用户发起</a>
+    <a href="#sec5">⑤ 阶段 ② 图第一次执行</a>
+    <a href="#sec6">⑥ 阶段 ③ 用户看计划</a>
+    <a href="#sec7">⑦ 阶段 ④ 前端二次 invoke</a>
+    <a href="#sec8">⑧ 阶段 ⑤ 图第二次执行</a>
+    <a href="#sec9">⑨ 隐式契约：plan_status</a>
+    <a href="#sec10">⑩ 三个常见误解</a>
+    <a href="#sec11">⑪ 改进方案：显式 Interrupt</a>
+    <a href="#sec12">⑫ 设计亮点与风险</a>
+  </nav>
+
+  <main>
+
+    <!-- ① -->
+    <section class="card" id="sec1">
+      <h2><span class="num">1</span>核心概念：HITL 在哪里发生</h2>
+      <p class="lead">
+        HITL（Human-in-the-Loop）不是发生在<strong>图的某个节点里</strong>，
+        而是发生在<strong>图的两次 invoke 之间</strong>。
+        后端的 LangGraph 图本身不知道"人在等待"，它只在两次被调用的空隙里
+        安静地结束一次、再被前端重新启动。
+      </p>
+
+      <div class="mermaid big">
+sequenceDiagram
+    autonumber
+    participant U as 用户
+    participant FE as 前端
+    participant G as LangGraph 图
+    participant L as LLM
+
+    U->>FE: ① 输入初始问题
+    FE->>G: ② invoke(state)
+    G->>L: 调用 LLM 生成 plan
+    L-->>G: plan + 进度条
+    G->>G: evaluate_plan → awaiting_plan_confirmation
+    G-->>FE: ③ 返回 state (plan_status="unconfirmed")
+    FE-->>U: ④ 渲染 plan 给用户看
+    Note over U: ⑤ 用户做决定<br/>(人在这里)
+    U->>FE: ⑥ 输入回复
+    Note over FE: ⑦ 【隐式契约】<br/>append HumanMessage<br/>plan_status = "confirmed"
+    FE->>G: ⑧ invoke(新 state)
+    G->>L: 研究阶段调用
+    G-->>FE: ⑨ 返回最终报告
+    FE-->>U: ⑩ 展示报告
+      </div>
+
+      <div class="callout tip">
+        💡 <b>记住这一句话</b>：图的"暂停"由"无出口节点 → 自然结束"实现；
+        图的"恢复"由"前端重新 invoke"实现。整个 HITL 的秘密在<b>前端</b>，不在<b>后端</b>。
+      </div>
+    </section>
+
+    <!-- ② -->
+    <section class="card" id="sec2">
+      <h2><span class="num">2</span>参与方与边界</h2>
+      <p>整个流转在 4 个角色之间穿梭，先把它们的位置画清楚：</p>
+
+      <div class="svg-wrap">
+<svg viewBox="0 0 1100 460" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#94a3b8"/>
+    </marker>
+    <linearGradient id="u" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#22d3ee"/><stop offset="1" stop-color="#06b6d4"/>
+    </linearGradient>
+    <linearGradient id="f" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#8b5cf6"/><stop offset="1" stop-color="#6366f1"/>
+    </linearGradient>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#10b981"/><stop offset="1" stop-color="#059669"/>
+    </linearGradient>
+    <linearGradient id="l" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#f59e0b"/><stop offset="1" stop-color="#ef4444"/>
+    </linearGradient>
+    <style>
+      .role-ttl { font-size: 18px; font-weight: 700; }
+      .role-desc { font-size: 12px; }
+      .role-extra { font-size: 11px; fill: #cbd5e1; }
+      .arrow { stroke-width: 1.8; fill: none; }
+      .label { font-size: 11px; }
+    </style>
+  </defs>
+
+  <!-- 顶部边框：前端 / 后端 -->
+  <rect x="20" y="20" width="540" height="420" fill="rgba(139,92,246,.05)" stroke="#8b5cf6" stroke-width="1.5" stroke-dasharray="6 4" rx="10"/>
+  <text x="40" y="44" fill="#c4b5fd" font-size="13" font-weight="700">前 端（浏览器 / 客户端）</text>
+
+  <rect x="580" y="20" width="500" height="420" fill="rgba(16,185,129,.05)" stroke="#10b981" stroke-width="1.5" stroke-dasharray="6 4" rx="10"/>
+  <text x="600" y="44" fill="#6ee7b7" font-size="13" font-weight="700">后 端（LangGraph + LLM）</text>
+
+  <!-- 用户 (左上前端侧) -->
+  <rect x="60" y="80" width="220" height="140" rx="12" fill="rgba(34,211,238,.12)" stroke="url(#u)" stroke-width="2"/>
+  <text x="170" y="110" text-anchor="middle" class="role-ttl" fill="#67e8f9">👤 用户</text>
+  <text x="170" y="138" text-anchor="middle" class="role-desc" fill="#cbd5e1">在 UI 里打字、看 plan</text>
+  <text x="170" y="158" text-anchor="middle" class="role-desc" fill="#cbd5e1">做"确认 / 修改 / 补充"决定</text>
+  <text x="170" y="190" text-anchor="middle" class="role-extra" fill="#94a3b8">唯一有自由意志的角色</text>
+
+  <!-- 前端 (左下前端侧) -->
+  <rect x="60" y="270" width="220" height="140" rx="12" fill="rgba(139,92,246,.12)" stroke="url(#f)" stroke-width="2"/>
+  <text x="170" y="300" text-anchor="middle" class="role-ttl" fill="#c4b5fd">⚙️ 前端 (FE)</text>
+  <text x="170" y="328" text-anchor="middle" class="role-desc" fill="#cbd5e1">构造 state / invoke 图</text>
+  <text x="170" y="348" text-anchor="middle" class="role-desc" fill="#cbd5e1">渲染 plan / 收集用户输入</text>
+  <text x="170" y="380" text-anchor="middle" class="role-extra" fill="#94a3b8">HITL 的真正执行者</text>
+
+  <!-- LangGraph 图 (右上下) -->
+  <rect x="620" y="80" width="200" height="140" rx="12" fill="rgba(16,185,129,.12)" stroke="url(#g)" stroke-width="2"/>
+  <text x="720" y="110" text-anchor="middle" class="role-ttl" fill="#6ee7b7">🔀 LangGraph 图</text>
+  <text x="720" y="138" text-anchor="middle" class="role-desc" fill="#cbd5e1">跑节点 / 流转状态</text>
+  <text x="720" y="158" text-anchor="middle" class="role-desc" fill="#cbd5e1">读 state["plan_status"]</text>
+  <text x="720" y="190" text-anchor="middle" class="role-extra" fill="#94a3b8">不直接接触用户</text>
+
+  <!-- LLM (右下后端) -->
+  <rect x="850" y="80" width="200" height="140" rx="12" fill="rgba(245,158,11,.12)" stroke="url(#l)" stroke-width="2"/>
+  <text x="950" y="110" text-anchor="middle" class="role-ttl" fill="#fcd34d">🤖 LLM</text>
+  <text x="950" y="138" text-anchor="middle" class="role-desc" fill="#cbd5e1">被图调用生成文本</text>
+  <text x="950" y="158" text-anchor="middle" class="role-desc" fill="#cbd5e1">plan / 搜索词 / 报告</text>
+  <text x="950" y="190" text-anchor="middle" class="role-extra" fill="#94a3b8">纯函数式，无状态</text>
+
+  <!-- 关系箭头 -->
+  <!-- 用户 -> 前端 -->
+  <path d="M 170 220 L 170 270" stroke="#22d3ee" stroke-width="1.8" marker-end="url(#ar2)"/>
+  <text x="178" y="248" class="label" fill="#67e8f9">输入 / 决定</text>
+  <!-- 前端 -> 用户 -->
+  <path d="M 180 270 L 180 220" stroke="#22d3ee" stroke-width="1.8" marker-end="url(#ar2)" stroke-dasharray="3 3"/>
+  <text x="270" y="248" class="label" fill="#67e8f9">渲染 UI</text>
+
+  <!-- 前端 -> 图 -->
+  <path d="M 280 320 C 460 320 460 150 620 150" stroke="url(#f)" stroke-width="2" marker-end="url(#ar2)"/>
+  <text x="430" y="200" class="label" fill="#c4b5fd">graph.invoke(state)</text>
+
+  <!-- 图 -> 前端 -->
+  <path d="M 620 170 C 460 170 460 340 280 340" stroke="url(#f)" stroke-width="2" marker-end="url(#ar2)" stroke-dasharray="3 3"/>
+  <text x="430" y="370" class="label" fill="#c4b5fd">返回 state</text>
+
+  <!-- 图 -> LLM -->
+  <path d="M 820 130 L 850 130" stroke="#10b981" stroke-width="2" marker-end="url(#ar2)"/>
+  <text x="824" y="125" class="label" fill="#6ee7b7">prompt</text>
+  <path d="M 850 150 L 820 150" stroke="#10b981" stroke-width="2" marker-end="url(#ar2)" stroke-dasharray="3 3"/>
+  <text x="824" y="170" class="label" fill="#6ee7b7">response</text>
+
+  <!-- 图内说明 -->
+  <text x="720" y="270" text-anchor="middle" font-size="12" fill="#94a3b8">图内部还有 6 个节点：</text>
+  <text x="720" y="288" text-anchor="middle" font-size="11" fill="#94a3b8">generate_plan → evaluate_plan</text>
+  <text x="720" y="304" text-anchor="middle" font-size="11" fill="#94a3b8">→ awaiting_plan_confirmation</text>
+  <text x="720" y="320" text-anchor="middle" font-size="11" fill="#94a3b8">→ generate_query → web_search → critique → final_answer</text>
+
+  <!-- 后端图说明 -->
+  <text x="720" y="395" text-anchor="middle" font-size="12" fill="#fbbf24">★ awaiting_plan_confirmation：pass-through 节点，无出口</text>
+</svg>
+      </div>
+    </section>
+
+    <!-- ③ -->
+    <section class="card" id="sec3">
+      <h2><span class="num">3</span>关键代码事实</h2>
+      <p>先把"硬证据"摆出来，所有后面的解释都基于这些事实：</p>
+      <table class="t">
+        <tr><th>位置</th><th>代码片段</th><th>含义</th></tr>
+        <tr>
+          <td><code>graph.py:74-78</code></td>
+          <td>
+<pre class="code" style="margin:0;font-size:12px"><span class="k">return</span> {
+    <span class="s">"messages"</span>: [...],
+    <span class="s">"plan"</span>: <span class="v">response</span>,
+    <span class="s">"plan_status"</span>: <span class="s">"unconfirmed"</span>,
+    <span class="s">"plan_messages"</span>: [...]
+}</pre>
+          </td>
+          <td><b>generate_plan</b> 写回时，<code>plan_status</code> 固定为 <code>"unconfirmed"</code></td>
+        </tr>
+        <tr>
+          <td><code>graph.py:96-98</code></td>
+          <td>
+<pre class="code" style="margin:0;font-size:12px"><span class="k">if</span> <span class="n">state</span>.<span class="b">get</span>(<span class="s">"plan_status"</span>, <span class="s">"unconfirmed"</span>) == <span class="s">"unconfirmed"</span>:
+    <span class="k">return</span> <span class="s">"awaiting_plan_confirmation"</span></pre>
+          </td>
+          <td><b>evaluate_plan</b> 看到 <code>unconfirmed</code> 就直接返回，无条件</td>
+        </tr>
+        <tr>
+          <td><code>graph.py:363</code></td>
+          <td>
+<pre class="code" style="margin:0;font-size:12px"><span class="n">builder</span>.<span class="n">add_node</span>(<span class="s">"replan"</span>,
+    <span class="k">lambda</span> <span class="v">state</span>, <span class="v">config</span>: {<span class="s">"plan_status"</span>: <span class="s">"unconfirmed"</span>})</pre>
+          </td>
+          <td><b>replan</b> 也只是把 <code>plan_status</code> 重置回 <code>unconfirmed</code></td>
+        </tr>
+        <tr>
+          <td><code>graph.py:362</code></td>
+          <td>
+<pre class="code" style="margin:0;font-size:12px"><span class="n">builder</span>.<span class="n">add_node</span>(<span class="s">"awaiting_plan_confirmation"</span>,
+    <span class="k">lambda</span> <span class="v">state</span>, <span class="v">config</span>: <span class="v">state</span>)</pre>
+          </td>
+          <td><b>awaiting_plan_confirmation</b> 是 pass-through，不改任何字段</td>
+        </tr>
+        <tr>
+          <td><code>graph.py:355-378</code></td>
+          <td>
+            <pre class="code" style="margin:0;font-size:12px"><span class="c"># awaiting_plan_confirmation 没有任何 add_edge 出口</span>
+<span class="c"># ↓</span>
+<span class="n">builder</span>.<span class="n">add_edge</span>(<span class="n">START</span>, <span class="n">GENERATE_PLAN_NODE</span>)
+<span class="n">builder</span>.<span class="n">add_conditional_edges</span>(<span class="n">GENERATE_PLAN_NODE</span>, ...)
+<span class="n">builder</span>.<span class="n">add_edge</span>(<span class="s">"replan"</span>, <span class="n">GENERATE_PLAN_NODE</span>)
+<span class="c"># ← 这里没有 add_edge("awaiting_plan_confirmation", ...)</span></pre>
+          </td>
+          <td><b>awaiting_plan_confirmation</b> 没有出口边 → 进入即结束图</td>
+        </tr>
+        <tr>
+          <td>全项目搜索</td>
+          <td><code>grep -rn "plan_status" src/</code></td>
+          <td>没有任何代码把 <code>plan_status</code> 改成 <code>"confirmed"</code> 或其他值</td>
+        </tr>
+      </table>
+
+      <div class="callout danger">
+        🚨 <b>关键结论</b>：<code>plan_status</code> 在<b>后端</b>永远是 <code>"unconfirmed"</code>。
+        从 <code>unconfirmed</code> → <code>confirmed</code> 的跃迁<b>完全靠前端</b>在二次 invoke 时手动设置。
+        这是图与前端之间的一个<b>隐式契约</b>。
+      </div>
+    </section>
+
+    <!-- ④ -->
+    <section class="card" id="sec4">
+      <h2><span class="num">4</span>阶段 ① 用户发起</h2>
+      <p>用户在 UI 里敲下第一个问题。这是<b>整个 HITL 的起点</b>，此时图还没启动。</p>
+
+      <div class="svg-wrap">
+<svg viewBox="0 0 1100 380" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="p1u" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#22d3ee"/><stop offset="1" stop-color="#06b6d4"/>
+    </linearGradient>
+    <linearGradient id="p1f" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#8b5cf6"/><stop offset="1" stop-color="#6366f1"/>
+    </linearGradient>
+    <marker id="p1ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#67e8f9"/>
+    </marker>
+    <style>
+      .role-box { fill: rgba(17,24,39,.85); stroke-width: 2; rx: 12; }
+      .role-ttl { font-size: 18px; font-weight: 700; font-family: ui-sans-serif, system-ui; }
+      .role-sub { font-size: 12px; fill: #94a3b8; font-family: ui-monospace, Menlo, monospace; }
+      .state-code { font-size: 13px; font-family: ui-monospace, Menlo, monospace; fill: #e2e8f0; }
+      .state-key { fill: #fda4af; }
+      .state-val { fill: #86efac; }
+      .state-comment { fill: #64748b; font-style: italic; }
+      .arrow-label { font-size: 12px; font-family: ui-monospace, Menlo, monospace; }
+    </style>
+  </defs>
+
+  <!-- 阶段标题 -->
+  <text x="40" y="30" font-size="14" fill="#fbbf24" font-family="ui-monospace, Menlo, monospace" font-weight="700">PHASE 1 · 用户发起</text>
+  <text x="40" y="50" font-size="12" fill="#94a3b8" font-family="ui-monospace, Menlo, monospace">图的"暂停-恢复"循环的起点</text>
+
+  <!-- 用户角色框 -->
+  <rect class="role-box" x="60" y="90" width="280" height="220" fill="rgba(34,211,238,.08)" stroke="url(#p1u)"/>
+  <text class="role-ttl" x="200" y="120" text-anchor="middle" fill="#67e8f9">👤 用户</text>
+  <text class="role-sub" x="200" y="140" text-anchor="middle">人在浏览器里</text>
+
+  <!-- 用户输入框 mock -->
+  <rect x="90" y="170" width="220" height="100" rx="6" fill="rgba(10,16,32,.6)" stroke="#334155"/>
+  <text x="105" y="195" font-size="11" fill="#64748b" font-family="ui-monospace, Menlo, monospace">输入框：</text>
+  <text x="105" y="220" font-size="13" fill="#e2e8f0" font-family="ui-monospace, Menlo, monospace">调研企业级 AI Agent</text>
+  <text x="105" y="240" font-size="13" fill="#e2e8f0" font-family="ui-monospace, Menlo, monospace">落地方案</text>
+  <!-- 光标闪烁 -->
+  <rect x="105" y="245" width="2" height="16" fill="#67e8f9">
+    <animate attributeName="opacity" values="1;0;1" dur="1.2s" repeatCount="indefinite"/>
+  </rect>
+  <text x="105" y="262" font-size="10" fill="#64748b" font-family="ui-monospace, Menlo, monospace">[Enter]</text>
+
+  <!-- 主箭头：用户 → 前端 -->
+  <line x1="340" y1="200" x2="640" y2="200" stroke="#67e8f9" stroke-width="2.5" marker-end="url(#p1ar)"/>
+  <rect x="410" y="180" width="160" height="22" rx="4" fill="rgba(10,16,32,.9)" stroke="#22d3ee"/>
+  <text x="490" y="196" text-anchor="middle" font-size="12" fill="#67e8f9" font-family="ui-monospace, Menlo, monospace">打字 → 输入事件</text>
+
+  <!-- 前端角色框 -->
+  <rect class="role-box" x="640" y="90" width="400" height="220" fill="rgba(139,92,246,.08)" stroke="url(#p1f)"/>
+  <text class="role-ttl" x="840" y="120" text-anchor="middle" fill="#c4b5fd">⚙️ 前端 (FE)</text>
+  <text class="role-sub" x="840" y="140" text-anchor="middle">构造 state，准备 invoke</text>
+
+  <!-- state 代码块 -->
+  <rect x="660" y="160" width="360" height="130" rx="6" fill="rgba(10,16,32,.7)" stroke="#334155"/>
+  <text x="675" y="180" class="state-code">new_state = {</text>
+  <text x="675" y="200" class="state-code">  <tspan class="state-key">"messages"</tspan>: [</text>
+  <text x="675" y="218" class="state-code">    <tspan class="state-val">HumanMessage</tspan>(</text>
+  <text x="675" y="236" class="state-code">      content=<tspan class="state-val">"调研..."</tspan></text>
+  <text x="675" y="254" class="state-code">    )</text>
+  <text x="675" y="272" class="state-code">  ],</text>
+  <text x="675" y="288" class="state-code">  <tspan class="state-comment"># plan / plan_status 都还没有</tspan></text>
+
+  <!-- 底部说明 -->
+  <rect x="60" y="330" width="980" height="30" rx="6" fill="rgba(245,158,11,.08)" stroke="#f59e0b"/>
+  <text x="80" y="350" font-size="13" fill="#fbbf24" font-family="ui-monospace, Menlo, monospace" font-weight="700">⚠ 前端此时</text>
+  <text x="200" y="350" font-size="13" fill="#cbd5e1" font-family="ui-monospace, Menlo, monospace">还没 invoke 图  ·  graph 对象的 zero call · LLM zero call</text>
+</svg>
+      </div>
+
+      <h3>本阶段的契约</h3>
+      <ul>
+        <li><b>用户</b>：纯 UI 操作，没碰任何代码</li>
+        <li><b>前端</b>：把输入打包成 <code>OverallState</code>（至少含 <code>messages</code>），还没调图</li>
+        <li><b>图</b>：完全没运行，没有线程在跑</li>
+        <li><b>LLM</b>：零调用</li>
+      </ul>
+    </section>
+
+    <!-- ⑤ -->
+    <section class="card" id="sec5">
+      <h2><span class="num">5</span>阶段 ② 图第一次执行（系统自动跑）</h2>
+      <p>前端 invoke 图后，<b>完全自动</b>跑完三个节点，然后自然结束。</p>
+
+      <div class="svg-wrap">
+<svg viewBox="0 0 1100 720" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="p2fe" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#8b5cf6"/><stop offset="1" stop-color="#6366f1"/>
+    </linearGradient>
+    <linearGradient id="p2g" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#10b981"/><stop offset="1" stop-color="#059669"/>
+    </linearGradient>
+    <linearGradient id="p2ll" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#f59e0b"/><stop offset="1" stop-color="#ef4444"/>
+    </linearGradient>
+    <marker id="p2arfe" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#c4b5fd"/>
+    </marker>
+    <marker id="p2arg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#6ee7b7"/>
+    </marker>
+    <marker id="p2arll" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#fcd34d"/>
+    </marker>
+    <style>
+      .lane { stroke-width: 1.5; stroke-dasharray: 5 4; fill: none; }
+      .lane-lbl { font-size: 14px; font-weight: 700; font-family: ui-sans-serif, system-ui; }
+      .node { fill: rgba(17,24,39,.92); stroke-width: 2; rx: 8; }
+      .node-ttl { font-size: 14px; font-weight: 700; font-family: ui-monospace, Menlo, monospace; fill: #f1f5f9; }
+      .node-body { font-size: 11.5px; fill: #cbd5e1; font-family: ui-monospace, Menlo, monospace; }
+      .node-hl { fill: #fbbf24; font-weight: 700; }
+      .arrow-lbl { font-size: 11px; font-family: ui-monospace, Menlo, monospace; }
+    </style>
+  </defs>
+
+  <!-- 阶段标题 -->
+  <text x="40" y="30" font-size="14" fill="#fbbf24" font-family="ui-monospace, Menlo, monospace" font-weight="700">PHASE 2 · 图第一次执行（系统自动跑，无人参与）</text>
+  <text x="40" y="50" font-size="12" fill="#94a3b8" font-family="ui-monospace, Menlo, monospace">前端 invoke 后，图自动跑 3 个节点 → 自然结束 → 返回 state</text>
+
+  <!-- 泳道 -->
+  <!-- 前端泳道 (y=110) -->
+  <line class="lane" x1="50" y1="110" x2="1050" y2="110" stroke="#8b5cf6"/>
+  <text class="lane-lbl" x="60" y="105" fill="#c4b5fd">⚙️ 前端</text>
+
+  <!-- 图泳道 (y=400) -->
+  <line class="lane" x1="50" y1="400" x2="1050" y2="400" stroke="#10b981"/>
+  <text class="lane-lbl" x="60" y="395" fill="#6ee7b7">🔀 LangGraph 图</text>
+
+  <!-- LLM泳道 (y=620) -->
+  <line class="lane" x1="50" y1="620" x2="1050" y2="620" stroke="#f59e0b"/>
+  <text class="lane-lbl" x="60" y="615" fill="#fcd34d">🤖 LLM</text>
+
+  <!-- ① invoke 箭头：前端 → 图 -->
+  <path d="M 200 130 C 350 130 350 380 500 380" stroke="url(#p2fe)" stroke-width="2.5" fill="none" marker-end="url(#p2arfe)"/>
+  <rect x="290" y="240" width="160" height="24" rx="4" fill="rgba(10,16,32,.9)" stroke="#8b5cf6"/>
+  <text x="370" y="257" text-anchor="middle" font-size="12" fill="#c4b5fd" font-family="ui-monospace, Menlo, monospace">graph.invoke(state)</text>
+
+  <!-- 节点 1：generate_plan -->
+  <rect class="node" x="450" y="370" width="220" height="80" stroke="url(#p2g)"/>
+  <text class="node-ttl" x="560" y="392" text-anchor="middle">① generate_plan</text>
+  <text class="node-body" x="560" y="412" text-anchor="middle">plan_status=<tspan class="node-hl">"unconfirmed"</tspan> (默认)</text>
+  <text class="node-body" x="560" y="428" text-anchor="middle">→ <tspan class="node-hl">不早退</tspan>，调 LLM 写需求单</text>
+
+  <!-- ② 调 LLM：图 → LLM -->
+  <path d="M 560 460 C 560 540 800 540 800 600" stroke="url(#p2ll)" stroke-width="2" fill="none" marker-end="url(#p2arll)"/>
+  <rect x="565" y="490" width="220" height="22" rx="4" fill="rgba(10,16,32,.9)" stroke="#f59e0b"/>
+  <text x="675" y="506" text-anchor="middle" font-size="11" fill="#fcd34d" font-family="ui-monospace, Menlo, monospace">prompt: plan_instructions</text>
+
+  <!-- LLM 响应：LLM → 图 -->
+  <path d="M 800 600 C 800 540 590 540 590 460" stroke="url(#p2ll)" stroke-width="2" fill="none" stroke-dasharray="4 3" marker-end="url(#p2arll)"/>
+  <rect x="565" y="540" width="220" height="22" rx="4" fill="rgba(10,16,32,.9)" stroke="#f59e0b"/>
+  <text x="675" y="556" text-anchor="middle" font-size="11" fill="#fcd34d" font-family="ui-monospace, Menlo, monospace">"# 需求清晰度进度条: 30%..."</text>
+
+  <!-- 节点 2：evaluate_plan -->
+  <rect class="node" x="280" y="370" width="150" height="80" stroke="url(#p2g)"/>
+  <text class="node-ttl" x="355" y="392" text-anchor="middle">② evaluate_plan</text>
+  <text class="node-body" x="355" y="412" text-anchor="middle">plan_status ==</text>
+  <text class="node-body" x="355" y="426" text-anchor="middle"><tspan class="node-hl">"unconfirmed"</tspan> ?</text>
+  <text class="node-body" x="355" y="440" text-anchor="middle" fill="#fbbf24">→ True</text>
+
+  <!-- 节点间箭头：generate_plan → evaluate_plan -->
+  <path d="M 450 410 L 430 410" stroke="#6ee7b7" stroke-width="2" fill="none" marker-end="url(#p2arg)"/>
+
+  <!-- 节点 3：awaiting_plan_confirmation -->
+  <rect class="node" x="100" y="370" width="170" height="80" stroke="url(#p2g)" stroke-dasharray="3 2"/>
+  <text class="node-ttl" x="185" y="392" text-anchor="middle">③ awaiting_plan</text>
+  <text class="node-ttl" x="185" y="408" text-anchor="middle">_confirmation</text>
+  <text class="node-body" x="185" y="426" text-anchor="middle" fill="#94a3b8">lambda: pass-through</text>
+  <text class="node-body" x="185" y="440" text-anchor="middle" fill="#fbbf24">无出口边 → END</text>
+
+  <!-- 节点 2 → 节点 3 -->
+  <path d="M 280 410 L 270 410" stroke="#6ee7b7" stroke-width="2" fill="none" marker-end="url(#p2arg)"/>
+
+  <!-- ④ 返回箭头：图 → 前端 -->
+  <path d="M 200 380 C 350 380 350 150 500 130" stroke="url(#p2fe)" stroke-width="2.5" fill="none" stroke-dasharray="4 3" marker-end="url(#p2arfe)"/>
+  <rect x="270" y="190" width="180" height="24" rx="4" fill="rgba(10,16,32,.9)" stroke="#8b5cf6"/>
+  <text x="360" y="207" text-anchor="middle" font-size="12" fill="#c4b5fd" font-family="ui-monospace, Menlo, monospace">返回 state</text>
+
+  <!-- state 关键字段高亮 -->
+  <rect x="700" y="105" width="340" height="130" rx="6" fill="rgba(17,24,39,.7)" stroke="#8b5cf6"/>
+  <text x="715" y="128" font-size="13" fill="#f1f5f9" font-family="ui-monospace, Menlo, monospace" font-weight="700">返回的 state 包含：</text>
+  <text x="715" y="152" font-size="12" fill="#fda4af" font-family="ui-monospace, Menlo, monospace">"plan"</text>
+  <text x="775" y="152" font-size="12" fill="#e2e8f0" font-family="ui-monospace, Menlo, monospace">= "# 需求清晰度进度条..."</text>
+  <text x="715" y="174" font-size="12" fill="#fda4af" font-family="ui-monospace, Menlo, monospace">"plan_status"</text>
+  <text x="815" y="174" font-size="12" fill="#fbbf24" font-family="ui-monospace, Menlo, monospace" font-weight="700">= "unconfirmed" ← 关键</text>
+  <text x="715" y="196" font-size="12" fill="#fda4af" font-family="ui-monospace, Menlo, monospace">"plan_messages"</text>
+  <text x="845" y="196" font-size="12" fill="#e2e8f0" font-family="ui-monospace, Menlo, monospace">= [AIMessage(...)]</text>
+  <text x="715" y="218" font-size="12" fill="#fda4af" font-family="ui-monospace, Menlo, monospace">"messages"</text>
+  <text x="815" y="218" font-size="12" fill="#e2e8f0" font-family="ui-monospace, Menlo, monospace">= [HumanMessage, AIMessage]</text>
+
+  <!-- 底部注解 -->
+  <rect x="50" y="660" width="1000" height="40" rx="6" fill="rgba(245,158,11,.08)" stroke="#f59e0b"/>
+  <text x="70" y="685" font-size="12" fill="#fbbf24" font-family="ui-monospace, Menlo, monospace" font-weight="700">★ 重点</text>
+  <text x="140" y="685" font-size="12" fill="#cbd5e1" font-family="ui-monospace, Menlo, monospace">图返回时 plan_status 仍是 "unconfirmed" · 图已结束运行 · 等待发生在前端 UI 层</text>
+</svg>
+      </div>
+
+      <h3>本阶段的契约</h3>
+      <ul>
+        <li><b>用户</b>：在等。什么也不做。</li>
+        <li><b>前端</b>：阻塞在 <code>invoke()</code> 调用上，等图返回</li>
+        <li><b>图</b>：自动跑 <code>generate_plan → evaluate_plan → awaiting_plan_confirmation</code></li>
+        <li><b>LLM</b>：被调 1 次（生成 plan）</li>
+        <li><b>结果</b>：前端拿到一份带进度条的计划，<code>plan_status="unconfirmed"</code></li>
+      </ul>
+
+      <div class="callout warn">
+        ⚠️ 注意：<b>图的"暂停"不是真正的暂停</b>，是<b>图执行完毕</b>。
+        后端没有线程在等用户输入 — 等发生在<b>前端 UI 层</b>。
+      </div>
+    </section>
+
+    <!-- ⑥ -->
+    <section class="card" id="sec6">
+      <h2><span class="num">6</span>阶段 ③ 用户看计划（人在读）</h2>
+      <p>图完全停下来了。人在屏幕上读 plan，做决定。这是<b>人真正介入的窗口</b>。</p>
+
+      <div class="svg-wrap">
+<svg viewBox="0 0 1100 540" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="p3fe" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#8b5cf6"/><stop offset="1" stop-color="#6366f1"/>
+    </linearGradient>
+    <linearGradient id="p3u" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#22d3ee"/><stop offset="1" stop-color="#06b6d4"/>
+    </linearGradient>
+    <marker id="p3ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#c4b5fd"/>
+    </marker>
+    <style>
+      .role-box { fill: rgba(17,24,39,.85); stroke-width: 2; rx: 12; }
+      .role-ttl { font-size: 18px; font-weight: 700; font-family: ui-sans-serif, system-ui; }
+      .role-sub { font-size: 12px; fill: #94a3b8; font-family: ui-monospace, Menlo, monospace; }
+      .browser-bar { fill: #1f2937; stroke: #334155; stroke-width: 1; }
+      .browser-content { fill: rgba(10,16,32,.95); stroke: #334155; stroke-width: 1; }
+      .md-h1 { font-size: 16px; font-weight: 700; fill: #f1f5f9; font-family: ui-monospace, Menlo, monospace; }
+      .md-h2 { font-size: 13px; font-weight: 700; fill: #c4b5fd; font-family: ui-monospace, Menlo, monospace; }
+      .md-body { font-size: 11.5px; fill: #cbd5e1; font-family: ui-monospace, Menlo, monospace; }
+      .decision { fill: rgba(34,211,238,.08); stroke-width: 1.5; rx: 8; }
+      .decision-ttl { font-size: 12px; font-weight: 700; fill: #67e8f9; font-family: ui-monospace, Menlo, monospace; }
+      .decision-body { font-size: 11px; fill: #cbd5e1; font-family: ui-monospace, Menlo, monospace; }
+      .arrow-lbl { font-size: 12px; fill: #c4b5fd; font-family: ui-monospace, Menlo, monospace; }
+    </style>
+  </defs>
+
+  <!-- 阶段标题 -->
+  <text x="40" y="30" font-size="14" fill="#fbbf24" font-family="ui-monospace, Menlo, monospace" font-weight="700">PHASE 3 · 用户看计划（人真正介入的窗口）</text>
+  <text x="40" y="50" font-size="12" fill="#94a3b8" font-family="ui-monospace, Menlo, monospace">图已结束 · 后端零线程 · 等待发生在前端 UI 层 · 可以等几秒也可以等几天</text>
+
+  <!-- 前端角色框 (左) -->
+  <rect class="role-box" x="40" y="80" width="180" height="180" fill="rgba(139,92,246,.08)" stroke="url(#p3fe)"/>
+  <text class="role-ttl" x="130" y="110" text-anchor="middle" fill="#c4b5fd">⚙️ 前端</text>
+  <text class="role-sub" x="130" y="130" text-anchor="middle">纯 UI 渲染</text>
+  <text class="role-sub" x="130" y="160" text-anchor="middle" fill="#86efac">零 API 调用</text>
+  <text class="role-sub" x="130" y="178" text-anchor="middle" fill="#86efac">零图调用</text>
+  <text class="role-sub" x="130" y="200" text-anchor="middle" fill="#94a3b8">把 plan 转成</text>
+  <text class="role-sub" x="130" y="218" text-anchor="middle" fill="#94a3b8">Markdown 渲染</text>
+  <text class="role-sub" x="130" y="240" text-anchor="middle" fill="#fbbf24">等用户操作...</text>
+
+  <!-- 主箭头：前端 → 用户（渲染 plan） -->
+  <line x1="220" y1="170" x2="370" y2="170" stroke="#c4b5fd" stroke-width="2.5" marker-end="url(#p3ar)"/>
+  <rect x="225" y="148" width="140" height="22" rx="4" fill="rgba(10,16,32,.9)" stroke="#8b5cf6"/>
+  <text x="295" y="164" text-anchor="middle" font-size="11" fill="#c4b5fd" font-family="ui-monospace, Menlo, monospace">渲染 Markdown</text>
+
+  <!-- 浏览器 mock (右) -->
+  <g transform="translate(380, 80)">
+    <!-- 浏览器顶部条 -->
+    <rect class="browser-bar" x="0" y="0" width="680" height="30" rx="8"/>
+    <circle cx="20" cy="15" r="5" fill="#ef4444"/>
+    <circle cx="40" cy="15" r="5" fill="#f59e0b"/>
+    <circle cx="60" cy="15" r="5" fill="#10b981"/>
+    <rect x="100" y="6" width="380" height="18" rx="4" fill="rgba(10,16,32,.8)"/>
+    <text x="290" y="20" text-anchor="middle" font-size="11" fill="#94a3b8" font-family="ui-monospace, Menlo, monospace">https://research.ai/plan/abc123</text>
+
+    <!-- 浏览器内容区 -->
+    <rect class="browser-content" x="0" y="30" width="680" height="440" rx="0"/>
+    <text x="0" y="0" fill="none"/>
+
+    <!-- Markdown 内容 -->
+    <g transform="translate(20, 60)">
+      <text class="md-h1" x="0" y="0">📋 需求清晰度进度条: 30%</text>
+      <!-- 进度条 -->
+      <rect x="0" y="10" width="640" height="8" rx="4" fill="#374151"/>
+      <rect x="0" y="10" width="192" height="8" rx="4" fill="url(#p3u)"/>
+
+      <text class="md-h2" x="0" y="50">## 核心需求理解</text>
+      <text class="md-body" x="0" y="74">1. 核心分析对象: 企业级 AI Agent 落地方案</text>
+      <text class="md-body" x="0" y="94">2. 对手策略维度: 当前需求未涉及</text>
+      <text class="md-body" x="0" y="114">3. 风险研判维度: 未明确</text>
+
+      <text class="md-h2" x="0" y="150">## 待确认问题</text>
+      <text class="md-body" x="0" y="174">① 覆盖哪些行业？ (金融/客服/研发/政企...)</text>
+      <text class="md-body" x="0" y="194">② 时间范围？ (最近 1 年 / 2 年 / 自定义)</text>
+      <text class="md-body" x="0" y="214">③ 信源偏好？ (Gartner/IDC/36氪/...)</text>
+
+      <text class="md-h2" x="0" y="252" fill="#fbbf24">## 智能默认建议</text>
+      <text class="md-body" x="0" y="276" fill="#94a3b8">若您不便逐项回复，可直接采纳以下方案：</text>
+      <text class="md-body" x="0" y="296" fill="#67e8f9">→ 回复 【需求确认】 采纳默认方案</text>
+      <text class="md-body" x="0" y="316" fill="#67e8f9">→ 回复 修改意见 进入下一轮</text>
+    </g>
+
+    <!-- 输入框 -->
+    <rect x="20" y="430" width="640" height="30" rx="6" fill="rgba(10,16,32,.6)" stroke="#334155"/>
+    <text x="30" y="450" font-size="11" fill="#64748b" font-family="ui-monospace, Menlo, monospace">输入您的回复...</text>
+    <!-- 光标闪烁 -->
+    <rect x="135" y="437" width="2" height="16" fill="#67e8f9">
+      <animate attributeName="opacity" values="1;0;1" dur="1.2s" repeatCount="indefinite"/>
+    </rect>
+    <rect x="600" y="436" width="50" height="20" rx="4" fill="#8b5cf6"/>
+    <text x="625" y="450" text-anchor="middle" font-size="11" fill="white" font-family="ui-monospace, Menlo, monospace">发送</text>
+  </g>
+
+  <!-- 底部注解 -->
+  <rect x="40" y="490" width="1020" height="40" rx="6" fill="rgba(34,211,238,.08)" stroke="#22d3ee"/>
+  <text x="60" y="515" font-size="12" fill="#67e8f9" font-family="ui-monospace, Menlo, monospace" font-weight="700">★ HITL 真正的"人参与"窗口</text>
+  <text x="260" y="515" font-size="12" fill="#cbd5e1" font-family="ui-monospace, Menlo, monospace">用户可读任意久 · 后端零资源 · 后端零 LLM 调用 · 后端零图线程</text>
+</svg>
+      </div>
+
+      <h3>本阶段的契约</h3>
+      <ul>
+        <li><b>用户</b>：<b>这是 HITL 真正的"人参与"窗口</b>，用户可以读任意久</li>
+        <li><b>前端</b>：纯 UI 渲染，不调任何 API，不调图</li>
+        <li><b>图</b>：线程早已结束，零活动</li>
+        <li><b>LLM</b>：零活动</li>
+      </ul>
+
+      <div class="callout tip">
+        💡 <b>关键</b>：<b>等待时长可以是几秒，也可以是几天</b>。
+        因为图的"暂停"不是真的暂停，前端完全可以让用户在 UI 里停留任意久。
+        后端不消耗任何资源。
+      </div>
+    </section>
+
+    <!-- ⑦ -->
+    <section class="card" id="sec7">
+      <h2><span class="num">7</span>阶段 ④ 前端二次 invoke（<b>整个 HITL 的枢纽</b>）</h2>
+      <p class="lead">
+        用户在 UI 输入框敲下回复后，<b>前端</b>做两件关键事，然后再次 invoke 图。
+        没有这两步，图永远卡在阶段 ⑤。
+      </p>
+
+      <div class="svg-wrap">
+<svg viewBox="0 0 1100 620" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="p4u" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#22d3ee"/><stop offset="1" stop-color="#06b6d4"/>
+    </linearGradient>
+    <linearGradient id="p4fe" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#8b5cf6"/><stop offset="1" stop-color="#6366f1"/>
+    </linearGradient>
+    <linearGradient id="p4g" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#10b981"/><stop offset="1" stop-color="#059669"/>
+    </linearGradient>
+    <marker id="p4aru" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#67e8f9"/>
+    </marker>
+    <marker id="p4arfe" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#c4b5fd"/>
+    </marker>
+    <style>
+      .lane { stroke-width: 1.5; stroke-dasharray: 5 4; fill: none; }
+      .lane-lbl { font-size: 14px; font-weight: 700; font-family: ui-sans-serif, system-ui; }
+      .role-box { fill: rgba(17,24,39,.85); stroke-width: 2; rx: 12; }
+      .role-ttl { font-size: 16px; font-weight: 700; font-family: ui-sans-serif, system-ui; }
+      .role-sub { font-size: 11.5px; fill: #94a3b8; font-family: ui-monospace, Menlo, monospace; }
+      .step-num { fill: #fbbf24; font-size: 16px; font-weight: 700; font-family: ui-sans-serif, system-ui; }
+      .step-title { font-size: 13px; font-weight: 700; fill: #fde68a; font-family: ui-monospace, Menlo, monospace; }
+      .step-body { font-size: 11.5px; fill: #e2e8f0; font-family: ui-monospace, Menlo, monospace; }
+      .code-key { fill: #fda4af; }
+      .code-val { fill: #86efac; }
+      .code-comment { fill: #64748b; font-style: italic; }
+      .hub-highlight { fill: rgba(251,191,36,.15); stroke: #fbbf24; stroke-width: 2; stroke-dasharray: 4 3; rx: 10; }
+      .arrow-lbl { font-size: 12px; font-family: ui-monospace, Menlo, monospace; }
+    </style>
+  </defs>
+
+  <!-- 阶段标题 -->
+  <text x="40" y="30" font-size="14" fill="#fbbf24" font-family="ui-monospace, Menlo, monospace" font-weight="700">PHASE 4 · 前端二次 invoke ★ 整个 HITL 的枢纽 ★</text>
+  <text x="40" y="50" font-size="12" fill="#94a3b8" font-family="ui-monospace, Menlo, monospace">前端做两件关键事：① append HumanMessage  ② plan_status = "confirmed"</text>
+
+  <!-- 泳道 -->
+  <line class="lane" x1="50" y1="110" x2="1050" y2="110" stroke="#22d3ee"/>
+  <text class="lane-lbl" x="60" y="105" fill="#67e8f9">👤 用户</text>
+
+  <line class="lane" x1="50" y1="290" x2="1050" y2="290" stroke="#8b5cf6"/>
+  <text class="lane-lbl" x="60" y="285" fill="#c4b5fd">⚙️ 前端 (FE) ← 枢纽在这里</text>
+
+  <line class="lane" x1="50" y1="500" x2="1050" y2="500" stroke="#10b981"/>
+  <text class="lane-lbl" x="60" y="495" fill="#6ee7b7">🔀 LangGraph 图</text>
+
+  <!-- 用户角色框 + 输入 -->
+  <rect class="role-box" x="80" y="130" width="240" height="130" fill="rgba(34,211,238,.08)" stroke="url(#p4u)"/>
+  <text class="role-ttl" x="200" y="158" text-anchor="middle" fill="#67e8f9">👤 用户</text>
+  <text class="role-sub" x="200" y="178" text-anchor="middle">在 UI 输入框打字：</text>
+  <rect x="100" y="195" width="200" height="50" rx="6" fill="rgba(10,16,32,.7)" stroke="#334155"/>
+  <text x="115" y="220" font-size="13" fill="#e2e8f0" font-family="ui-monospace, Menlo, monospace">"需求确认，</text>
+  <text x="115" y="238" font-size="13" fill="#e2e8f0" font-family="ui-monospace, Menlo, monospace"> 开始研究"</text>
+
+  <!-- 用户 → 前端 箭头 -->
+  <path d="M 320 195 C 420 195 420 320 520 320" stroke="#67e8f9" stroke-width="2.5" fill="none" marker-end="url(#p4aru)"/>
+  <rect x="380" y="240" width="160" height="22" rx="4" fill="rgba(10,16,32,.9)" stroke="#22d3ee"/>
+  <text x="460" y="256" text-anchor="middle" font-size="11" fill="#67e8f9" font-family="ui-monospace, Menlo, monospace">输入事件</text>
+
+  <!-- 前端角色框 + 两件关键事（高亮枢纽） -->
+  <rect class="hub-highlight" x="500" y="310" width="490" height="180"/>
+  <text x="520" y="335" font-size="13" fill="#fbbf24" font-family="ui-monospace, Menlo, monospace" font-weight="700">★ 前端必须做这两件事</text>
+
+  <!-- 步骤 ① -->
+  <text class="step-num" x="520" y="365">①</text>
+  <text class="step-title" x="545" y="365">append HumanMessage</text>
+  <text class="step-body" x="545" y="385"><tspan class="code-key">messages</tspan>.append(<tspan class="code-val">HumanMessage("需求确认...")</tspan>)</text>
+
+  <!-- 步骤 ② 突出显示 -->
+  <text class="step-num" x="520" y="420" fill="#ef4444">②</text>
+  <text class="step-title" x="545" y="420" fill="#ef4444">plan_status = "confirmed" ← 关键!</text>
+  <text class="step-body" x="545" y="440"><tspan class="code-comment"># 后端代码永远不做这步，前端必须手动设置</tspan></text>
+  <text class="step-body" x="545" y="458" fill="#fbbf24">→ 没有这步，evaluate_plan 会永远返回 awaiting_plan_confirmation</text>
+
+  <!-- 新 state 展示 -->
+  <rect x="500" y="510" width="490" height="80" rx="6" fill="rgba(10,16,32,.7)" stroke="#334155"/>
+  <text x="515" y="530" font-size="12" fill="#f1f5f9" font-family="ui-monospace, Menlo, monospace" font-weight="700">新 state：</text>
+  <text x="515" y="550" font-size="11" fill="#fda4af" font-family="ui-monospace, Menlo, monospace">"messages"</text>
+  <text x="595" y="550" font-size="11" fill="#e2e8f0" font-family="ui-monospace, Menlo, monospace">= [HumanMessage(old), <tspan fill="#86efac">HumanMessage(新)</tspan>]</text>
+  <text x="515" y="568" font-size="11" fill="#fda4af" font-family="ui-monospace, Menlo, monospace">"plan_status"</text>
+  <text x="615" y="568" font-size="11" fill="#fbbf24" font-family="ui-monospace, Menlo, monospace" font-weight="700">= "confirmed" ← 改成 confirmed 了！</text>
+  <text x="515" y="586" font-size="11" fill="#fda4af" font-family="ui-monospace, Menlo, monospace">"plan"</text>
+  <text x="585" y="586" font-size="11" fill="#e2e8f0" font-family="ui-monospace, Menlo, monospace">= "..."  (保留上一版)</text>
+
+  <!-- 前端 → 图 二次 invoke 箭头 -->
+  <path d="M 500 410 C 420 410 420 540 320 540" stroke="url(#p4fe)" stroke-width="2.5" fill="none" marker-end="url(#p4arfe)"/>
+  <rect x="335" y="470" width="170" height="22" rx="4" fill="rgba(10,16,32,.9)" stroke="#8b5cf6"/>
+  <text x="420" y="486" text-anchor="middle" font-size="12" fill="#c4b5fd" font-family="ui-monospace, Menlo, monospace">graph.invoke(new_state)</text>
+
+  <!-- 图角色框 -->
+  <rect class="role-box" x="60" y="510" width="240" height="80" fill="rgba(16,185,129,.08)" stroke="url(#p4g)"/>
+  <text class="role-ttl" x="180" y="540" text-anchor="middle" fill="#6ee7b7">🔀 图</text>
+  <text class="role-sub" x="180" y="560" text-anchor="middle">收到新 state</text>
+  <text class="role-sub" x="180" y="578" text-anchor="middle" fill="#fbbf24">进入阶段 ⑤</text>
+
+  <!-- 底部注解 -->
+  <rect x="50" y="600" width="1000" height="0" fill="transparent"/>
+</svg>
+      </div>
+
+      <div class="grid-2">
+        <div class="mini">
+          <h4>① append HumanMessage</h4>
+          <p>把用户回复作为 <code>HumanMessage</code> 追加到 <code>messages</code> 列表。这样后续 <code>evaluate_plan</code> 中的 <code>get_last_user_response()</code> 才能读到它。</p>
+        </div>
+        <div class="mini">
+          <h4>② plan_status = "confirmed"</h4>
+          <p>这是<b>唯一能让图跳过阶段 ② 死循环</b>的操作。后端代码里没有这一步，必须前端手动设置。</p>
+        </div>
+      </div>
+
+      <div class="callout danger">
+        🚨 <b>没做这两步会怎样？</b><br/>
+        · 没 append HumanMessage → <code>evaluate_plan</code> 读不到用户输入<br/>
+        · 没改 plan_status → <code>evaluate_plan</code> 永远返回 <code>awaiting_plan_confirmation</code>，图永远停在那里<br/>
+        → 这是新人接手最常踩的坑
+      </div>
+    </section>
+
+    <!-- ⑧ -->
+    <section class="card" id="sec8">
+      <h2><span class="num">8</span>阶段 ⑤ 图第二次执行（再没人参与）</h2>
+      <p>第二次 invoke 进来后，图发现 <code>plan_status</code> 已经变了，整个流转就跟第一次不一样了。</p>
+
+      <div class="svg-wrap">
+<svg viewBox="0 0 1100 620" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="p5fe" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#8b5cf6"/><stop offset="1" stop-color="#6366f1"/>
+    </linearGradient>
+    <linearGradient id="p5g" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#10b981"/><stop offset="1" stop-color="#059669"/>
+    </linearGradient>
+    <linearGradient id="p5ll" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#f59e0b"/><stop offset="1" stop-color="#ef4444"/>
+    </linearGradient>
+    <marker id="p5arfe" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#c4b5fd"/>
+    </marker>
+    <marker id="p5arg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#6ee7b7"/>
+    </marker>
+    <marker id="p5arll" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#fcd34d"/>
+    </marker>
+    <style>
+      .lane { stroke-width: 1.5; stroke-dasharray: 5 4; fill: none; }
+      .lane-lbl { font-size: 14px; font-weight: 700; font-family: ui-sans-serif, system-ui; }
+      .node { fill: rgba(17,24,39,.92); stroke-width: 2; rx: 8; }
+      .node-ttl { font-size: 13px; font-weight: 700; font-family: ui-monospace, Menlo, monospace; fill: #f1f5f9; }
+      .node-body { font-size: 10.5px; fill: #cbd5e1; font-family: ui-monospace, Menlo, monospace; }
+      .node-hl { fill: #fbbf24; font-weight: 700; }
+      .node-early-exit { fill: rgba(245,158,11,.10); stroke: #f59e0b; stroke-width: 2; stroke-dasharray: 4 3; rx: 8; }
+      .arrow-lbl { font-size: 11px; font-family: ui-monospace, Menlo, monospace; }
+    </style>
+  </defs>
+
+  <!-- 阶段标题 -->
+  <text x="40" y="30" font-size="14" fill="#fbbf24" font-family="ui-monospace, Menlo, monospace" font-weight="700">PHASE 5 · 图第二次执行（再没人参与）</text>
+  <text x="40" y="50" font-size="12" fill="#94a3b8" font-family="ui-monospace, Menlo, monospace">plan_status="confirmed" → generate_plan 早退 → 进入研究流水线</text>
+
+  <!-- 泳道 -->
+  <line class="lane" x1="50" y1="110" x2="1050" y2="110" stroke="#8b5cf6"/>
+  <text class="lane-lbl" x="60" y="105" fill="#c4b5fd">⚙️ 前端</text>
+
+  <line class="lane" x1="50" y1="280" x2="1050" y2="280" stroke="#10b981"/>
+  <text class="lane-lbl" x="60" y="275" fill="#6ee7b7">🔀 LangGraph 图</text>
+
+  <line class="lane" x1="50" y1="540" x2="1050" y2="540" stroke="#f59e0b"/>
+  <text class="lane-lbl" x="60" y="535" fill="#fcd34d">🤖 LLM</text>
+
+  <!-- invoke 箭头 -->
+  <line x1="180" y1="130" x2="500" y2="290" stroke="url(#p5fe)" stroke-width="2.5" marker-end="url(#p5arfe)"/>
+  <rect x="270" y="200" width="160" height="22" rx="4" fill="rgba(10,16,32,.9)" stroke="#8b5cf6"/>
+  <text x="350" y="216" text-anchor="middle" font-size="11" fill="#c4b5fd" font-family="ui-monospace, Menlo, monospace">graph.invoke(new_state)</text>
+
+  <!-- 节点 1：generate_plan 早退 -->
+  <rect class="node-early-exit" x="490" y="280" width="200" height="80"/>
+  <text class="node-ttl" x="590" y="305" text-anchor="middle">① generate_plan</text>
+  <text class="node-body" x="590" y="324" text-anchor="middle">plan_status="confirmed"</text>
+  <text class="node-body" x="590" y="340" text-anchor="middle"><tspan class="node-hl">!= "unconfirmed" → 早退</tspan></text>
+  <text class="node-body" x="590" y="354" text-anchor="middle" fill="#86efac">return {} 跳过 LLM</text>
+
+  <!-- 节点 2：evaluate_plan -->
+  <rect class="node" x="710" y="280" width="170" height="80" stroke="url(#p5g)"/>
+  <text class="node-ttl" x="795" y="305" text-anchor="middle">② evaluate_plan</text>
+  <text class="node-body" x="795" y="324" text-anchor="middle">!= "unconfirmed" → 跳过</text>
+  <text class="node-body" x="795" y="340" text-anchor="middle">"开始研究" in context</text>
+  <text class="node-body" x="795" y="354" text-anchor="middle"><tspan class="node-hl">→ "generate_search"</tspan></text>
+
+  <!-- 节点 3：generate_query -->
+  <rect class="node" x="900" y="280" width="140" height="80" stroke="url(#p5g)"/>
+  <text class="node-ttl" x="970" y="305" text-anchor="middle">③ generate_query</text>
+  <text class="node-body" x="970" y="330" text-anchor="middle">调 LLM 生成</text>
+  <text class="node-body" x="970" y="346" text-anchor="middle">搜索查询列表</text>
+
+  <!-- 调 LLM：generate_query → LLM -->
+  <line x1="970" y1="370" x2="970" y2="520" stroke="url(#p5ll)" stroke-width="2" marker-end="url(#p5arll)"/>
+  <rect x="880" y="440" width="180" height="22" rx="4" fill="rgba(10,16,32,.9)" stroke="#f59e0b"/>
+  <text x="970" y="456" text-anchor="middle" font-size="11" fill="#fcd34d" font-family="ui-monospace, Menlo, monospace">query_writer_instructions</text>
+
+  <!-- LLM 响应 -->
+  <line x1="950" y1="520" x2="950" y2="370" stroke="url(#p5ll)" stroke-width="2" stroke-dasharray="4 3" marker-end="url(#p5arll)"/>
+
+  <!-- 节点间横向箭头 -->
+  <line x1="690" y1="320" x2="710" y2="320" stroke="#6ee7b7" stroke-width="2" marker-end="url(#p5arg)"/>
+  <line x1="880" y1="320" x2="900" y2="320" stroke="#6ee7b7" stroke-width="2" marker-end="url(#p5arg)"/>
+
+  <!-- 节点 4-6：web_search / critique / final_answer（垂直栈在图泳道下方） -->
+  <rect class="node" x="490" y="400" width="140" height="60" stroke="url(#p5g)"/>
+  <text class="node-ttl" x="560" y="425" text-anchor="middle">④ web_search × N</text>
+  <text class="node-body" x="560" y="445" text-anchor="middle" fill="#94a3b8">并行检索</text>
+
+  <rect class="node" x="350" y="400" width="120" height="60" stroke="url(#p5g)"/>
+  <text class="node-ttl" x="410" y="425" text-anchor="middle">⑤ critique</text>
+  <text class="node-body" x="410" y="445" text-anchor="middle" fill="#94a3b8">评估 + 决定循环</text>
+
+  <rect class="node" x="200" y="400" width="130" height="60" stroke="url(#p5g)"/>
+  <text class="node-ttl" x="265" y="425" text-anchor="middle">⑥ final_answer</text>
+  <text class="node-body" x="265" y="445" text-anchor="middle" fill="#94a3b8">调 LLM 生成报告</text>
+
+  <!-- critique → final_answer 调 LLM -->
+  <line x1="265" y1="465" x2="265" y2="520" stroke="url(#p5ll)" stroke-width="2" marker-end="url(#p5arll)"/>
+  <line x1="245" y1="520" x2="245" y2="465" stroke="url(#p5ll)" stroke-width="2" stroke-dasharray="4 3" marker-end="url(#p5arll)"/>
+
+  <!-- 横向流程箭头：generate_query → web_search → critique → final_answer -->
+  <path d="M 900 340 C 700 360 700 400 630 400" stroke="#6ee7b7" stroke-width="2" fill="none" marker-end="url(#p5arg)"/>
+  <line x1="490" y1="430" x2="470" y2="430" stroke="#6ee7b7" stroke-width="2" marker-end="url(#p5arg)"/>
+  <line x1="350" y1="430" x2="330" y2="430" stroke="#6ee7b7" stroke-width="2" marker-end="url(#p5arg)"/>
+
+  <!-- critique 自环：可能循环多次 -->
+  <path d="M 410 400 C 410 380 430 380 430 400" stroke="#94a3b8" stroke-width="1.5" fill="none" marker-end="url(#p5arg)" stroke-dasharray="3 3"/>
+  <text x="445" y="380" font-size="10" fill="#94a3b8" font-family="ui-monospace, Menlo, monospace">循环</text>
+
+  <!-- 返回箭头：final_answer → 前端 -->
+  <path d="M 180 415 C 100 415 60 200 90 130" stroke="url(#p5fe)" stroke-width="2.5" fill="none" stroke-dasharray="4 3" marker-end="url(#p5arfe)"/>
+  <rect x="50" y="200" width="120" height="22" rx="4" fill="rgba(10,16,32,.9)" stroke="#8b5cf6"/>
+  <text x="110" y="216" text-anchor="middle" font-size="11" fill="#c4b5fd" font-family="ui-monospace, Menlo, monospace">返回报告 state</text>
+
+  <!-- END 标记 -->
+  <rect x="170" y="490" width="60" height="30" rx="6" fill="rgba(239,68,68,.15)" stroke="#ef4444"/>
+  <text x="200" y="510" text-anchor="middle" font-size="12" fill="#fca5a5" font-family="ui-monospace, Menlo, monospace" font-weight="700">END</text>
+  <line x1="265" y1="465" x2="200" y2="490" stroke="#6ee7b7" stroke-width="2" marker-end="url(#p5arg)"/>
+
+  <!-- 底部注解 -->
+  <rect x="50" y="570" width="1000" height="40" rx="6" fill="rgba(16,185,129,.08)" stroke="#10b981"/>
+  <text x="70" y="595" font-size="12" fill="#6ee7b7" font-family="ui-monospace, Menlo, monospace" font-weight="700">★ 本阶段特点</text>
+  <text x="170" y="595" font-size="12" fill="#cbd5e1" font-family="ui-monospace, Menlo, monospace">generate_plan 早退省 LLM · 研究阶段调多次 LLM · critique 可能循环多轮 · 用户在等报告</text>
+</svg>
+      </div>
+
+      <h3>本阶段的契约</h3>
+      <ul>
+        <li><b>用户</b>：在等。可以去喝杯咖啡 ☕，因为这一步可能要跑几十秒到几分钟</li>
+        <li><b>前端</b>：阻塞在 <code>invoke()</code>，等图返回最终报告</li>
+        <li><b>图</b>：执行 <code>generate_query → web_search × N → critique (循环) → final_answer</code></li>
+        <li><b>LLM</b>：被调多次（生成查询、生成报告）</li>
+        <li><b>结果</b>：前端拿到完整研究报告 + 引用源</li>
+      </ul>
+    </section>
+
+    <!-- ⑨ -->
+    <section class="card" id="sec9">
+      <h2><span class="num">9</span>隐式契约：plan_status</h2>
+      <p>
+        整个 HITL 的灵魂字段是 <code>plan_status</code>。下面用一张图把它在前端、后端、用户三者之间的流转画出来：
+      </p>
+
+      <div class="svg-wrap">
+<svg viewBox="0 0 1100 360" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="ar3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#94a3b8"/>
+    </marker>
+    <style>
+      .bx { fill: rgba(17,24,39,.85); stroke: #334155; stroke-width: 1.5; rx: 10; }
+      .bx-fe   { stroke: #8b5cf6; }
+      .bx-graph{ stroke: #10b981; }
+      .bx-user { stroke: #22d3ee; }
+      .ttl { font-size: 15px; font-weight: 700; }
+      .desc { font-size: 12px; fill: #cbd5e1; font-family: ui-monospace, Menlo, monospace; }
+      .badge-unconfirmed { fill: #fde68a; stroke: #f59e0b; rx: 4; }
+      .badge-confirmed   { fill: #a7f3d0; stroke: #10b981; rx: 4; }
+      .badge-txt { font-family: ui-monospace, Menlo, monospace; font-size: 12px; font-weight: 700; fill: #1f2937; }
+      .arrow { stroke: #94a3b8; stroke-width: 1.8; fill: none; }
+      .arrow-fe { stroke: #8b5cf6; stroke-width: 2; fill: none; }
+      .arrow-graph { stroke: #10b981; stroke-width: 2; fill: none; }
+    </style>
+  </defs>
+
+  <!-- 标题 -->
+  <rect class="bx" x="20" y="20" width="1060" height="50"/>
+  <text class="ttl" x="40" y="50" fill="#f1f5f9">🔑 plan_status 的 8 个生命周期瞬间</text>
+
+  <!-- 三个角色泳道 -->
+  <rect class="bx bx-user"  x="40"  y="100" width="320" height="220"/>
+  <text class="ttl" x="60" y="130" fill="#67e8f9">👤 用户</text>
+
+  <rect class="bx bx-fe"    x="380" y="100" width="320" height="220"/>
+  <text class="ttl" x="400" y="130" fill="#c4b5fd">⚙️ 前端</text>
+
+  <rect class="bx bx-graph" x="720" y="100" width="340" height="220"/>
+  <text class="ttl" x="740" y="130" fill="#6ee7b7">🔀 LangGraph 图</text>
+
+  <!-- 用户侧标注 -->
+  <text class="desc" x="60" y="170">① 输入问题</text>
+  <text class="desc" x="60" y="195">③ 阅读 plan</text>
+  <text class="desc" x="60" y="220">④ 输入回复</text>
+  <text class="desc" x="60" y="245">⑤ 阅读最终报告</text>
+  <text class="desc" x="60" y="285" fill="#94a3b8">人唯一的活动范围</text>
+
+  <!-- 前端侧标注 -->
+  <text class="desc" x="400" y="170">② 构造 state，invoke</text>
+  <text class="desc" x="400" y="195">⑥ 渲染 plan 给用户</text>
+  <text class="desc" x="400" y="220" fill="#fbbf24">⑦ append HumanMessage</text>
+  <text class="desc" x="400" y="240" fill="#fbbf24">  + plan_status="confirmed"</text>
+  <text class="desc" x="400" y="260">⑧ 二次 invoke</text>
+  <text class="desc" x="400" y="285" fill="#94a3b8">★ 整个 HITL 的枢纽</text>
+
+  <!-- 图侧标注 -->
+  <text class="desc" x="740" y="170">generate_plan: 写 plan_status="unconfirmed"</text>
+  <text class="desc" x="740" y="195">evaluate_plan: 看到 "unconfirmed" → 停</text>
+  <text class="desc" x="740" y="220">generate_plan: 看到 "confirmed" → 早退</text>
+  <text class="desc" x="740" y="245">evaluate_plan: 看到 "confirmed" → 进入主流程</text>
+  <text class="desc" x="740" y="285" fill="#94a3b8">★ 一切围绕 plan_status 转</text>
+
+  <!-- 底部说明 -->
+  <rect class="bx" x="20" y="335" width="1060" height="0" fill="transparent"/>
+</svg>
+      </div>
+
+      <h3>为什么 plan_status 是关键？</h3>
+      <p>把 <code>generate_plan</code> 和 <code>evaluate_plan</code> 里的相关判断拎出来看：</p>
+
+      <pre class="code"><span class="lang-tag">python</span><span class="c"># generate_plan 第 58 行</span>
+<span class="k">if</span> <span class="n">state</span>.<span class="b">get</span>(<span class="s">"plan_status"</span>, <span class="s">"unconfirmed"</span>) != <span class="s">"unconfirmed"</span>:
+    <span class="k">return</span> {}    <span class="c"># ← plan_status != "unconfirmed" → 早退，不调 LLM</span>
+
+<span class="c"># evaluate_plan 第 96 行</span>
+<span class="k">if</span> <span class="n">state</span>.<span class="b">get</span>(<span class="s">"plan_status"</span>, <span class="s">"unconfirmed"</span>) == <span class="s">"unconfirmed"</span>:
+    <span class="k">return</span> <span class="s">"awaiting_plan_confirmation"</span>    <span class="c"># ← plan_status == "unconfirmed" → 卡住</span></pre>
+
+      <p>两段判断<b>互斥且互为反命题</b>，整个流转就是被这一对判断驱动。</p>
+
+      <h3>plan_status 状态机</h3>
+      <div class="mermaid big">
+stateDiagram-v2
+    direction LR
+    [*] --> unconfirmed: 用户首次提问<br/>generate_plan 写回
+    unconfirmed --> unconfirmed: replan 节点重置
+    unconfirmed --> confirmed: <b>前端手动设置</b><br/>(后端永远不做这步)
+    confirmed --> unconfirmed: replan 节点重置
+    confirmed --> confirmed: generate_plan 早退<br/>不修改
+    note right of unconfirmed
+      触发 evaluate_plan
+      → 返回 awaiting_plan_confirmation
+      → 图自然结束
+    end note
+    note right of confirmed
+      触发 evaluate_plan
+      → 进入主流程
+      → 流向 generate_search / replan
+    end note
+      </div>
+
+      <div class="callout danger">
+        🚨 <b>风险</b>：后端代码里没有任何注释说明"前端必须把 plan_status 改成 confirmed"，
+        这是个<b>严重的文档缺失</b>。新人接手很容易踩坑。
+      </div>
+    </section>
+
+    <!-- ⑩ -->
+    <section class="card" id="sec10">
+      <h2><span class="num">10</span>三个常见误解</h2>
+
+      <div class="grid-3">
+        <div class="mini" style="border-color: var(--danger); background: rgba(239,68,68,.05);">
+          <h4 style="color: #fca5a5;">误解 ①</h4>
+          <p><b>"awaiting_plan_confirmation 是图在等用户"</b></p>
+          <p>❌ 错。图已经结束运行了，后端<b>没有线程在等</b>。等待发生在<b>前端 UI 层</b>。</p>
+        </div>
+        <div class="mini" style="border-color: var(--danger); background: rgba(239,68,68,.05);">
+          <h4 style="color: #fca5a5;">误解 ②</h4>
+          <p><b>"图自己会读用户的下一条消息"</b></p>
+          <p>❌ 错。图是被<b>前端重新 invoke</b>才会重新跑。用户消息从<b>前端</b>进图，不是从<b>用户</b>直接进图。</p>
+        </div>
+        <div class="mini" style="border-color: var(--danger); background: rgba(239,68,68,.05);">
+          <h4 style="color: #fca5a5;">误解 ③</h4>
+          <p><b>"plan_status 是图自己管理的"</b></p>
+          <p>❌ 错。后端代码里 plan_status 永远是 "unconfirmed"。是<b>前端</b>负责切换成 "confirmed"。</p>
+        </div>
+      </div>
+
+      <h3>正确的心智模型</h3>
+      <div class="callout ok">
+        ✅ 图 = 一个<b>函数</b>（接受 state，返回新 state）。<br/>
+        ✅ 用户 = 一个<b>外部观察者</b>（通过浏览器读 plan，通过键盘输入决定）。<br/>
+        ✅ 前端 = <b>协调者</b>（把用户的决定翻译成 state 的修改，然后重新调图）。<br/>
+        ✅ awaiting_plan_confirmation = 一个<b>无返回值的回调</b>（告诉图"你该停了，下一步由协调者接手"）。
+      </div>
+    </section>
+
+    <!-- ⑪ -->
+    <section class="card" id="sec11">
+      <h2><span class="num">11</span>改进方案：显式 Interrupt</h2>
+      <p>上面的"隐式契约"非常脆弱。LangGraph 官方提供了更优雅的方案：<b>interrupt</b>。</p>
+
+      <h3>当前方案（隐式契约）</h3>
+      <pre class="code"><span class="lang-tag">python</span><span class="c"># 编译时没有 interrupt 配置</span>
+<span class="n">graph</span> = <span class="n">builder</span>.<span class="n">compile</span>(<span class="v">name</span>=<span class="s">"pro-research-agent"</span>)
+
+<span class="c"># 前端必须手动维护 plan_status 字段</span>
+<span class="c"># 不然图会无限循环</span></pre>
+
+      <h3>改进方案（显式 Interrupt + Checkpointer + Command）</h3>
+      <pre class="code"><span class="lang-tag">python</span><span class="k">from</span> <span class="n">langgraph.checkpoint.memory</span> <span class="k">import</span> <span class="n">MemorySaver</span>
+<span class="k">from</span> <span class="n">langgraph.types</span> <span class="k">import</span> <span class="n">Command</span>
+
+<span class="c"># 1. 编译时声明：在 awaiting_plan_confirmation 节点前中断</span>
+<span class="n">graph</span> = <span class="n">builder</span>.<span class="n">compile</span>(
+    <span class="v">interrupt_before</span>=[<span class="s">"awaiting_plan_confirmation"</span>],
+    <span class="v">checkpointer</span>=<span class="n">MemorySaver</span>(),
+)
+
+<span class="c"># 2. 前端第一次调用（用 thread_id 维持会话）</span>
+<span class="n">config</span> = {<span class="s">"configurable"</span>: {<span class="s">"thread_id"</span>: <span class="s">"user-123"</span>}}
+<span class="n">result</span> = <span class="n">graph</span>.<span class="n">invoke</span>(<span class="n">initial_state</span>, <span class="v">config</span>=<span class="n">config</span>)
+<span class="c"># → 图跑到 awaiting_plan_confirmation 之前自动暂停</span>
+
+<span class="c"># 3. 前端拿到暂停状态后，渲染 plan 给用户</span>
+<span class="c"># 4. 用户输入回复后，前端用 Command(resume=...) 恢复</span>
+<span class="n">graph</span>.<span class="n">invoke</span>(
+    <span class="n">Command</span>(<span class="v">resume</span>=<span class="s">"需求确认"</span>),    <span class="c"># 直接传用户输入</span>
+    <span class="v">config</span>=<span class="n">config</span>             <span class="c"># 用同一个 thread_id</span>
+)
+<span class="c"># → 图从暂停处继续，自动跳过 plan_status 的隐式管理</span></pre>
+
+      <h3>两种方案对比（流转视角）</h3>
+      <div class="mermaid big">
+flowchart LR
+    subgraph 当前方案 [当前: 隐式契约]
+        A1[用户输入] --> A2[前端 invoke]
+        A2 --> A3[图跑到 awaiting_plan_confirmation]
+        A3 --> A4[前端手动改 plan_status]
+        A4 --> A5[前端二次 invoke]
+    end
+    subgraph 改进方案 [改进: 显式 Interrupt]
+        B1[用户输入] --> B2[前端 invoke + thread_id]
+        B2 --> B3[图在 awaiting 前自动暂停]
+        B3 --> B4[前端用 Command resume=]
+        B4 --> B5[图从暂停处继续]
+    end
+    style A4 fill:#fde68a,stroke:#f59e0b,color:#1f2937
+    style B4 fill:#a7f3d0,stroke:#10b981,color:#1f2937
+      </div>
+
+      <h3>两种方案对比</h3>
+      <table class="t">
+        <tr>
+          <th>维度</th>
+          <th>当前方案（隐式契约）</th>
+          <th>改进方案（Interrupt）</th>
+        </tr>
+        <tr>
+          <td><b>plan_status 谁管</b></td>
+          <td>前端手动改</td>
+          <td>图自己管（LangGraph 内部）</td>
+        </tr>
+        <tr>
+          <td><b>HumanMessage 谁塞</b></td>
+          <td>前端手动 append</td>
+          <td>用 <code>Command(resume=...)</code> 直接传</td>
+        </tr>
+        <tr>
+          <td><b>线程维持</b></td>
+          <td>前端自己管理 state</td>
+          <td>LangGraph checkpointer 自动</td>
+        </tr>
+        <tr>
+          <td><b>新人上手难度</b></td>
+          <td>高（隐式契约）</td>
+          <td>低（标准 LangGraph 范式）</td>
+        </tr>
+        <tr>
+          <td><b>需要改后端代码？</b></td>
+          <td>—</td>
+          <td>是（compile 参数 + checkpointer）</td>
+        </tr>
+      </table>
+
+      <div class="callout ok">
+        ✅ <b>建议</b>：生产环境升级到 Interrupt 方案，能彻底消除隐式契约带来的维护成本。
+        当前项目作为 demo 是可以接受的，但建议在文档里至少补一句"前端必须改 plan_status"的注释。
+      </div>
+    </section>
+
+    <!-- ⑫ -->
+    <section class="card" id="sec12">
+      <h2><span class="num">12</span>设计亮点与风险</h2>
+
+      <h3>✅ 亮点</h3>
+      <div class="grid-2">
+        <div class="mini">
+          <h4>① 后端极简</h4>
+          <p><code>awaiting_plan_confirmation</code> 是个 pass-through lambda。所有"暂停-恢复"逻辑都委托给前端和 LangGraph runtime。</p>
+        </div>
+        <div class="mini">
+          <h4>② 解耦明确</h4>
+          <p>图只关心"该不该生成 plan"，不关心"前端怎么暂停 UI"。职责清晰。</p>
+        </div>
+        <div class="mini">
+          <h4>③ 等待时长任意</h4>
+          <p>由于图是真的结束了（不是真的暂停），用户可以停留任意久。后端零资源消耗。</p>
+        </div>
+        <div class="mini">
+          <h4>④ 早退省 LLM</h4>
+          <p>第二次 invoke 时 <code>generate_plan</code> 早退返回 {}，跳过 LLM 调用，省钱省时间。</p>
+        </div>
+      </div>
+
+      <h3>⚠️ 风险</h3>
+      <div class="grid-2">
+        <div class="mini" style="border-color: var(--warn);">
+          <h4>① 隐式契约</h4>
+          <p><code>plan_status</code> 必须由前端设置 <code>confirmed</code>，后端代码完全没体现这条契约，<b>新人接手容易踩坑</b>。</p>
+        </div>
+        <div class="mini" style="border-color: var(--warn);">
+          <h4>② 状态不可观测</h4>
+          <p>从图的角度看，"等待用户输入"和"真的结束"无法区分。需要在监控层自行实现。</p>
+        </div>
+        <div class="mini" style="border-color: var(--warn);">
+          <h4>③ 死代码风险</h4>
+          <p><code>evaluate_plan</code> 后面 <code>else</code> 分支里的 <code>if "开始研究" in context</code> 等判断，在没有前端配合的情况下永远走不到。</p>
+        </div>
+        <div class="mini" style="border-color: var(--warn);">
+          <h4>④ 前端强耦合</h4>
+          <p>前端必须理解 LangGraph 的 state 结构和节点跳转逻辑，对前端开发者要求较高。</p>
+        </div>
+      </div>
+
+      <h3>📌 三句话总结</h3>
+      <div class="callout tip">
+        <b>①</b> HITL 的全部秘密在<b>前端</b>，不在<b>后端</b>。后端只在两次 invoke 之间留个空隙。<br/>
+        <b>②</b> 等待发生在<b>前端 UI 层</b>，不在图的某个节点里。图的"暂停"实际上是"自然结束"。<br/>
+        <b>③</b> <code>plan_status</code> 是图与前端之间的<b>隐式契约</b>，后端没文档化，全靠约定 — 这是设计上的主要风险点。
+      </div>
+
+      <!-- 互动演示 -->
+      <h3>🧪 互动演示：5 阶段流转</h3>
+      <p>点击下方按钮切换不同阶段，观察参与方与状态变化：</p>
+      <div class="canvas-demo">
+        <canvas id="flow-canvas" width="1080" height="380"></canvas>
+        <div class="ctrl-row">
+          <button data-phase="all" class="active">完整 5 阶段</button>
+          <button data-phase="1">① 用户发起</button>
+          <button data-phase="2">② 图第一次跑</button>
+          <button data-phase="3">③ 用户看计划</button>
+          <button data-phase="4">④ 前端二次 invoke</button>
+          <button data-phase="5">⑤ 图第二次跑</button>
+        </div>
+        <p class="lead" style="text-align:center;margin-top:8px">
+          横向泳道：用户 / 前端 / 图 / LLM    灰色 = 当前阶段未参与
+        </p>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<footer>
+  © Deep Research Case · awaiting_plan_confirmation HITL 流转详解 · 由 Mermaid / SVG / Canvas 三种方式混合呈现
+</footer>
+
+<script>
+  // ---------- Mermaid init ----------
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'dark',
+    themeVariables: {
+      primaryColor: '#1f2937',
+      primaryTextColor: '#e6edf7',
+      primaryBorderColor: '#8b5cf6',
+      lineColor: '#94a3b8',
+      secondaryColor: '#0a1020',
+      tertiaryColor: '#111827',
+      fontFamily: 'ui-monospace, Menlo, monospace',
+      fontSize: '17px'
+    },
+    flowchart: { curve: 'basis', padding: 18, htmlLabels: true },
+    sequence: {
+      actorMargin: 90,
+      messageMargin: 55,
+      boxMargin: 12,
+      boxTextMargin: 8,
+      noteMargin: 12,
+      messageTextMargin: 6,
+      mirrorActors: true,
+      bottomMarginAdj: 1.5,
+      useMaxWidth: true,
+      rightAngles: false,
+      showSequenceNumbers: false,
+      actorFontSize: 16,
+      actorFontFamily: 'ui-monospace, Menlo, monospace',
+      messageFontSize: 15,
+      messageFontFamily: 'ui-monospace, Menlo, monospace',
+      noteFontSize: 15,
+      noteFontFamily: 'ui-monospace, Menlo, monospace'
+    },
+    stateDiagram: {
+      fontSize: 17,
+      fontFamily: 'ui-monospace, Menlo, monospace'
+    }
+  });
+
+  // ---------- TOC active highlight ----------
+  const tocLinks = document.querySelectorAll('nav.toc a');
+  const sections = Array.from(tocLinks).map(a => document.querySelector(a.getAttribute('href')));
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach(en => {
+      if (en.isIntersecting) {
+        tocLinks.forEach(l => l.classList.remove('active'));
+        const id = '#' + en.target.id;
+        const link = document.querySelector(`nav.toc a[href="${id}"]`);
+        if (link) link.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-30% 0px -55% 0px', threshold: 0.01 });
+  sections.forEach(s => s && obs.observe(s));
+
+  // ---------- Canvas: HITL 5 阶段泳道图 ----------
+  (function () {
+    const canvas = document.getElementById('flow-canvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+
+    // 4 个泳道：用户 / 前端 / 图 / LLM
+    const lanes = [
+      { id: 'user',  label: '👤 用户',     y: 60,  color: '#22d3ee' },
+      { id: 'fe',    label: '⚙️ 前端',     y: 150, color: '#8b5cf6' },
+      { id: 'graph', label: '🔀 LangGraph 图', y: 240, color: '#10b981' },
+      { id: 'llm',   label: '🤖 LLM',      y: 330, color: '#f59e0b' }
+    ];
+
+    // 5 个阶段
+    const phases = [
+      {
+        id: 1, x: 110, label: '阶段 ① 用户发起',
+        active: { user: '输入问题', fe: '构造 state', graph: '', llm: '' }
+      },
+      {
+        id: 2, x: 300, label: '阶段 ② 图第一次跑',
+        active: { user: '在等', fe: '阻塞 invoke', graph: '生成 plan', llm: '被调 1 次' }
+      },
+      {
+        id: 3, x: 510, label: '阶段 ③ 用户看计划',
+        active: { user: '读 plan · 决定', fe: '渲染 UI', graph: '', llm: '' }
+      },
+      {
+        id: 4, x: 710, label: '阶段 ④ 前端二次 invoke',
+        active: { user: '输入回复', fe: '★ 改 plan_status', graph: '', llm: '' }
+      },
+      {
+        id: 5, x: 920, label: '阶段 ⑤ 图第二次跑',
+        active: { user: '在等 ☕', fe: '阻塞 invoke', graph: '研究阶段', llm: '被调多次' }
+      }
+    ];
+
+    let curPhase = 'all';
+
+    function dimLane(laneId, phaseId) {
+      if (curPhase === 'all') return 1.0;
+      const p = phases.find(x => x.id == phaseId);
+      return (p && p.active[laneId]) ? 1.0 : 0.18;
+    }
+
+    function drawLane(lane) {
+      const a = (curPhase === 'all') ? 1.0 : (dimLane(lane.id, parseInt(curPhase)));
+      ctx.save();
+      ctx.globalAlpha = a;
+      ctx.strokeStyle = lane.color;
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([4, 3]);
+      ctx.beginPath();
+      ctx.moveTo(50, lane.y);
+      ctx.lineTo(W - 50, lane.y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // lane label
+      ctx.fillStyle = lane.color;
+      ctx.font = 'bold 13px ui-monospace, Menlo, monospace';
+      ctx.textAlign = 'left';
+      ctx.fillText(lane.label, 60, lane.y - 8);
+      ctx.restore();
+    }
+
+    function drawPhase(p) {
+      const isActive = (curPhase === 'all' || curPhase == p.id);
+      const alpha = isActive ? 1.0 : 0.3;
+
+      // vertical separator
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.strokeStyle = '#475569';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([2, 3]);
+      ctx.beginPath();
+      ctx.moveTo(p.x, 30);
+      ctx.lineTo(p.x, H - 30);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // phase label
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '12px ui-monospace, Menlo, monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(p.label, p.x, 22);
+      ctx.restore();
+
+      // activity boxes per lane
+      Object.entries(p.active).forEach(([laneId, activity]) => {
+        if (!activity) return;
+        const lane = lanes.find(l => l.id === laneId);
+        if (!lane) return;
+        const dim = dimLane(laneId, p.id);
+        if (dim < 0.5) return;
+
+        ctx.save();
+        ctx.globalAlpha = dim;
+        // activity chip
+        const w = Math.max(80, ctx.measureText(activity).width + 16);
+        const h = 26;
+        ctx.fillStyle = 'rgba(17,24,39,0.92)';
+        ctx.strokeStyle = lane.color;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        const r = 8;
+        const x = p.x - w/2;
+        const y = lane.y - h/2 + 4;
+        ctx.moveTo(x + r, y);
+        ctx.arcTo(x + w, y, x + w, y + h, r);
+        ctx.arcTo(x + w, y + h, x, y + h, r);
+        ctx.arcTo(x, y + h, x, y, r);
+        ctx.arcTo(x, y, x + w, y, r);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = lane.color;
+        ctx.font = '11px ui-monospace, Menlo, monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(activity, p.x, y + h/2);
+        ctx.restore();
+      });
+    }
+
+    function drawPhaseArrow() {
+      // 阶段 ② → ③ : 图 → 前端（返回）
+      ctx.save();
+      ctx.strokeStyle = '#22d3ee';
+      ctx.lineWidth = 1.5;
+      const x1 = phases[1].x + 30, y1 = 240; // graph
+      const x2 = phases[2].x - 30, y2 = 240;
+      ctx.globalAlpha = (curPhase === 'all' || curPhase == 2 || curPhase == 3) ? 0.7 : 0.2;
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.quadraticCurveTo((x1+x2)/2, y1+25, x2, y2);
+      ctx.stroke();
+      ctx.restore();
+
+      // 阶段 ④ 标注枢纽
+      if (curPhase === 'all' || curPhase == 4) {
+        ctx.save();
+        ctx.globalAlpha = 1.0;
+        ctx.fillStyle = '#fbbf24';
+        ctx.font = 'bold 13px ui-monospace, Menlo, monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('★ HITL 枢纽 ★', phases[3].x, lanes[1].y + 36);
+        ctx.restore();
+      }
+    }
+
+    function loop(now) {
+      ctx.clearRect(0, 0, W, H);
+      // bg grid
+      ctx.save();
+      ctx.strokeStyle = 'rgba(148,163,184,0.05)';
+      ctx.lineWidth = 1;
+      for (let x = 0; x < W; x += 40) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+      }
+      for (let y = 0; y < H; y += 40) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+      }
+      ctx.restore();
+
+      lanes.forEach(drawLane);
+      phases.forEach(drawPhase);
+      drawPhaseArrow();
+
+      requestAnimationFrame(loop);
+    }
+
+    document.querySelectorAll('.ctrl-row button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.ctrl-row button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        curPhase = btn.dataset.phase;
+      });
+    });
+
+    requestAnimationFrame(loop);
+  })();
+</script>
+</body>
+</html>

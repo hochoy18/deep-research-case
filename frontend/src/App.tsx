@@ -13,14 +13,18 @@ export default function App() {
   const [historicalActivities, setHistoricalActivities] = useState<
     Record<string, ProcessedEvent[]>
   >({});
+  const [awaitingPlanConfirmation, setAwaitingPlanConfirmation] = useState("unconfirmed");
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const hasFinalizeEventOccurredRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
+  const [savedEffort, setSavedEffort] = useState("medium");
+  const [savedModel, setSavedModel] = useState("qwen-plus-latest");
   const thread = useStream<{
     messages: Message[];
     initial_search_query_count: number;
     max_research_loops: number;
     reasoning_model: string;
+    plan_status: string;
   }>({
     apiUrl: import.meta.env.DEV
       ? "http://localhost:2024"
@@ -29,7 +33,15 @@ export default function App() {
     messagesKey: "messages",
     onUpdateEvent: (event: any) => {
       let processedEvent: ProcessedEvent | null = null;
-      if (event.generate_query) {
+      if (event.generate_plan){
+        processedEvent = {
+          title: "生成计划",
+          data: event.generate_plan?.plan || "No Plan to generate"
+        }
+        setAwaitingPlanConfirmation("confirmed");
+        hasFinalizeEventOccurredRef.current = true;
+      }
+      else if (event.generate_query) {
         processedEvent = {
           title: "生成搜索查询",
           data: event.generate_query?.search_query?.join(", ") || "",
@@ -106,13 +118,23 @@ export default function App() {
       setProcessedEventsTimeline([]);
       hasFinalizeEventOccurredRef.current = false;
 
+      // 如果是第一次提交（没有历史消息），保存effort和模型值
+      if (thread.messages.length === 0) {
+        setSavedEffort(effort);
+        setSavedModel(model);
+      }
+
+      // 使用保存的值或传入的值
+      const currentEffort = thread.messages.length === 0 ? effort : savedEffort;
+      const currentModel = thread.messages.length === 0 ? model : savedModel;
+
       // convert effort to, initial_search_query_count and max_research_loops
       // low means max 1 loop and 1 query
       // medium means max 3 loops and 3 queries
       // high means max 10 loops and 5 queries
       let initial_search_query_count = 0;
       let max_research_loops = 0;
-      switch (effort) {
+      switch (currentEffort) {
         case "low":
           initial_search_query_count = 1;
           max_research_loops = 1;
@@ -140,10 +162,11 @@ export default function App() {
         messages: newMessages,
         initial_search_query_count: initial_search_query_count,
         max_research_loops: max_research_loops,
-        reasoning_model: model,
-      });
+        reasoning_model: currentModel,
+        plan_status: awaitingPlanConfirmation,
+      } as any);
     },
-    [thread]
+    [thread, savedEffort, savedModel]
   );
 
   const handleCancel = useCallback(() => {

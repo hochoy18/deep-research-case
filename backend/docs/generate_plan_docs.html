@@ -1,0 +1,1332 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>generate_plan 函数详解 · Deep Research</title>
+<!-- Mermaid for flow / sequence / state diagrams -->
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<style>
+  :root {
+    --bg-0: #0b0f1a;
+    --bg-1: #111827;
+    --bg-2: #1a2236;
+    --line: #243049;
+    --text: #e6edf7;
+    --muted: #97a3bd;
+    --primary: #8b5cf6;
+    --primary-2: #6366f1;
+    --accent: #22d3ee;
+    --accent-2: #06b6d4;
+    --warn: #f59e0b;
+    --ok: #10b981;
+    --danger: #ef4444;
+    --code-bg: #0a1020;
+    --shadow: 0 10px 30px rgba(0,0,0,.35);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+                 "Microsoft YaHei", Roboto, Helvetica, Arial, sans-serif;
+    background:
+      radial-gradient(1200px 600px at 10% -10%, rgba(139,92,246,.18), transparent 60%),
+      radial-gradient(1000px 500px at 110% 10%, rgba(34,211,238,.15), transparent 60%),
+      var(--bg-0);
+    color: var(--text);
+    line-height: 1.7;
+    min-height: 100vh;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* Hero */
+  .hero {
+    padding: 56px 16px 32px;
+    text-align: center;
+    border-bottom: 1px solid var(--line);
+    background:
+      linear-gradient(180deg, rgba(139,92,246,.10), transparent 60%);
+  }
+  .hero .badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 999px;
+    background: rgba(139,92,246,.18);
+    color: #c4b5fd;
+    border: 1px solid rgba(139,92,.35);
+    font-size: 12px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .hero h1 {
+    font-size: 36px;
+    margin: 12px 0 4px;
+    background: linear-gradient(90deg, #c4b5fd, #67e8f9, #f0abfc);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .hero p { color: var(--muted); margin: 4px 0 0; font-size: 14px; }
+  .hero .meta {
+    margin-top: 14px;
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .pill {
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 8px;
+    background: var(--bg-2);
+    border: 1px solid var(--line);
+    color: var(--muted);
+  }
+  .pill b { color: var(--text); }
+
+  /* Layout: TOC 收紧、内容放大 */
+  .layout {
+    display: grid;
+    grid-template-columns: 180px 1fr;
+    gap: 18px;
+    max-width: 1480px;
+    margin: 0 auto;
+    padding: 22px 14px 80px;
+  }
+  nav.toc {
+    position: sticky;
+    top: 18px;
+    align-self: start;
+    background: rgba(17,24,39,.7);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 12px 12px;
+    box-shadow: var(--shadow);
+    font-size: 13px;
+  }
+  nav.toc h3 {
+    margin: 2px 0 8px;
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+  nav.toc a {
+    display: block;
+    padding: 5px 8px;
+    border-radius: 6px;
+    color: var(--muted);
+    font-size: 12.5px;
+    line-height: 1.45;
+  }
+  nav.toc a:hover {
+    background: rgba(139,92,246,.12);
+    color: var(--text);
+    text-decoration: none;
+  }
+  nav.toc a.active {
+    background: rgba(139,92,.22);
+    color: #ddd6fe;
+  }
+
+  main { min-width: 0; }
+
+  section.card {
+    background: rgba(17,24,39,.65);
+    backdrop-filter: blur(6px);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 20px 22px;
+    margin-bottom: 18px;
+    box-shadow: var(--shadow);
+  }
+  section.card h2 {
+    margin: 0 0 6px;
+    font-size: 22px;
+    color: #f1f5f9;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  section.card h2 .num {
+    display: inline-flex;
+    width: 28px; height: 28px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, var(--primary), var(--primary-2));
+    color: white;
+    font-size: 13px;
+    align-items: center; justify-content: center;
+  }
+  section.card h3 {
+    margin: 16px 0 6px;
+    font-size: 15px;
+    color: #cbd5e1;
+    border-left: 3px solid var(--accent);
+    padding-left: 10px;
+  }
+  section.card p { color: #d1d5db; margin: 6px 0; font-size: 14px; }
+  section.card ul, section.card ol { color: #d1d5db; padding-left: 22px; }
+  section.card li { margin: 4px 0; font-size: 14px; }
+  .lead { color: var(--muted); font-size: 13px; }
+
+  /* Code blocks */
+  pre.code {
+    background: var(--code-bg);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 14px 16px;
+    overflow-x: auto;
+    font-family: "JetBrains Mono", "Fira Code", ui-monospace, Menlo, Consolas, monospace;
+    font-size: 13px;
+    line-height: 1.55;
+    color: #e2e8f0;
+    position: relative;
+  }
+  pre.code .k { color: #f0abfc; }
+  pre.code .s { color: #86efac; }
+  pre.code .c { color: #64748b; font-style: italic; }
+  pre.code .n { color: #93c5fd; }
+  pre.code .b { color: #fcd34d; }
+  pre.code .v { color: #fda4af; }
+  pre.code .o { color: #f472b6; }
+  pre.code .p { color: #c4b5fd; }
+  .lang-tag {
+    position: absolute;
+    top: 8px; right: 12px;
+    font-size: 11px;
+    color: #64748b;
+    letter-spacing: 1px;
+  }
+
+  /* Tables */
+  table.t {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 10px 0;
+    font-size: 13px;
+  }
+  table.t th, table.t td {
+    border: 1px solid var(--line);
+    padding: 7px 11px;
+    text-align: left;
+    vertical-align: top;
+  }
+  table.t th {
+    background: rgba(99,102,241,.12);
+    color: #c7d2fe;
+  }
+  table.t tr:nth-child(even) td { background: rgba(255,255,255,.02); }
+
+  /* Callout */
+  .callout {
+    border-left: 4px solid var(--accent);
+    background: rgba(34,211,238,.06);
+    padding: 10px 14px;
+    border-radius: 8px;
+    margin: 10px 0;
+    color: #cbd5e1;
+    font-size: 13.5px;
+  }
+  .callout.warn { border-left-color: var(--warn); background: rgba(245,158,11,.08); }
+  .callout.ok   { border-left-color: var(--ok);   background: rgba(16,185,129,.08); }
+  .callout.tip  { border-left-color: var(--primary); background: rgba(139,92,246,.08); }
+
+  /* Grid for cards */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  @media (max-width: 980px) {
+    .layout { grid-template-columns: 1fr; padding: 18px 12px 60px; }
+    nav.toc { position: relative; top: 0; }
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    .hero h1 { font-size: 24px; }
+  }
+
+  .mini {
+    background: var(--bg-2);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 12px 14px;
+  }
+  .mini h4 { margin: 0 0 4px; color: #c4b5fd; font-size: 13px; }
+  .mini p  { margin: 0; font-size: 13px; color: #d1d5db; }
+
+  .step {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(139,92,.18);
+    color: #ddd6fe;
+    border: 1px solid rgba(139,92,.35);
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    margin-right: 6px;
+  }
+  .step.ok { background: rgba(16,185,129,.18); color: #a7f3d0; border-color: rgba(16,185,129,.4); }
+  .step.warn { background: rgba(245,158,11,.18); color: #fde68a; border-color: rgba(245,158,11,.4); }
+
+  /* Mermaid container */
+  .mermaid {
+    background: rgba(10,16,32,.5);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 16px;
+    margin: 12px 0;
+    text-align: center;
+    overflow-x: auto;
+  }
+  /* 大图变体 */
+  .mermaid.big {
+    padding: 24px;
+    font-size: 16px;
+  }
+  .mermaid.big .nodeLabel, .mermaid.big .edgeLabel, .mermaid.big tspan {
+    font-size: 16px !important;
+  }
+
+  /* SVG wrapper */
+  .svg-wrap {
+    background: rgba(10,16,32,.5);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 16px;
+    margin: 12px 0;
+    overflow-x: auto;
+  }
+  .svg-wrap svg { display: block; margin: 0 auto; max-width: 100%; height: auto; }
+
+  /* Canvas demo */
+  .canvas-demo {
+    background: rgba(10,16,32,.5);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 16px;
+    margin: 12px 0;
+  }
+  .canvas-demo canvas {
+    display: block;
+    margin: 0 auto;
+    background: #0a1020;
+    border-radius: 10px;
+    border: 1px solid var(--line);
+    max-width: 100%;
+  }
+  .ctrl-row {
+    display: flex; gap: 10px; justify-content: center; margin-top: 10px; flex-wrap: wrap;
+  }
+  .ctrl-row button {
+    background: rgba(139,92,.25);
+    border: 1px solid rgba(139,92,.4);
+    color: #ddd6fe;
+    padding: 6px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: all .15s ease;
+  }
+  .ctrl-row button:hover { background: rgba(139,92,.45); }
+  .ctrl-row button.active { background: rgba(34,211,238,.35); border-color: rgba(34,211,238,.5); color: #cffafe; }
+
+  footer {
+    text-align: center;
+    color: var(--muted);
+    padding: 24px 16px 40px;
+    font-size: 13px;
+    border-top: 1px solid var(--line);
+  }
+
+  /* Prompt card 专属样式 */
+  .prompt-card {
+    background: linear-gradient(135deg, rgba(139,92,246,.08), rgba(34,211,238,.05));
+    border: 1px solid rgba(139,92,246,.3);
+    border-radius: 14px;
+    padding: 16px 18px;
+    margin: 12px 0;
+  }
+  .prompt-card h4 {
+    margin: 0 0 6px;
+    color: #c4b5fd;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .prompt-card p { margin: 4px 0; font-size: 13.5px; }
+  .prompt-card .quote {
+    border-left: 2px solid var(--accent);
+    padding: 4px 10px;
+    margin: 6px 0;
+    color: #cbd5e1;
+    background: rgba(0,0,0,.2);
+    font-style: italic;
+    font-size: 13px;
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <span class="badge">LangGraph · Deep Research</span>
+  <h1>generate_plan 函数详解</h1>
+  <p>src/agent/graph.py · 人机协同的需求澄清节点（Agent 提示词驱动）</p>
+  <div class="meta">
+    <span class="pill">📌 <b>节点名</b>：<code>GENERATE_PLAN_NODE</code></span>
+    <span class="pill">🧠 <b>模型</b>：<code>query_generator_model</code></span>
+    <span class="pill">📤 <b>返回字段</b>：<code>plan / plan_status / messages / plan_messages</code></span>
+    <span class="pill">🔁 <b>循环</b>：可被 replan 触发再生成</span>
+  </div>
+</header>
+
+<div class="layout">
+
+  <!-- TOC -->
+  <nav class="toc" id="toc">
+    <h3>目录</h3>
+    <a href="#sec1">① 节点定位</a>
+    <a href="#sec2">② 完整代码</a>
+    <a href="#sec3">③ 执行流程</a>
+    <a href="#sec4">④ 参数详解</a>
+    <a href="#sec5">⑤ 内部调用链</a>
+    <a href="#sec6">⑥ 提示词结构</a>
+    <a href="#sec7">⑦ 提示词设计哲学</a>
+    <a href="#sec8">⑧ 后处理：提取 Markdown</a>
+    <a href="#sec9">⑨ 状态写入</a>
+    <a href="#sec10">⑩ 状态机</a>
+    <a href="#sec11">⑪ 在图中的位置</a>
+    <a href="#sec12">⑫ 设计亮点</a>
+  </nav>
+
+  <main>
+
+    <!-- ① -->
+    <section class="card" id="sec1">
+      <h2><span class="num">1</span>节点定位</h2>
+      <p class="lead">
+        <code>generate_plan</code> 是 LangGraph 工作流的<strong>第一个执行节点</strong>（从
+        <code>START</code> 出发直达）。它的职责是：根据用户的初始提问，调用 LLM 生成
+        一份结构化的<strong>研究计划需求单</strong>（带 Markdown 进度条），暴露给用户做
+        Human-in-the-Loop 确认。
+      </p>
+      <div class="mermaid">
+flowchart LR
+    S([START]) --> GP[generate_plan]
+    GP -->|evaluate_plan| EP{plan_status?}
+    EP -->|unconfirmed| AWP[awaiting_plan_confirmation]
+    EP -->|confirmed| GQ[generate_query]
+    EP -->|需修改| RP[replan]
+    RP --> GP
+    AWP -.用户确认.-> EP
+      </div>
+      <div class="callout tip">
+        💡 <b>关键定位</b>：<code>generate_plan</code> 只负责<b>"产出 + 标记 unconfirmed"</b>，
+        不负责判定是否通过。判定职责在下一个节点 <code>evaluate_plan</code>。
+      </div>
+    </section>
+
+    <!-- ② -->
+    <section class="card" id="sec2">
+      <h2><span class="num">2</span>完整代码</h2>
+      <pre class="code"><span class="lang-tag">python</span><span class="k">def</span> <span class="n">generate_plan</span>(<span class="v">state</span>: <span class="n">OverallState</span>, <span class="v">config</span>: <span class="n">RunnableConfig</span>) -&gt; <span class="n">OverallState</span>:
+    <span class="c">"""生成研究计划的LangGraph节点 ..."""</span>
+    <span class="n">logger</span>.<span class="b">info</span>(<span class="s">"正在生成计划..."</span>)
+    <span class="k">if</span> <span class="n">state</span>.<span class="b">get</span>(<span class="s">"plan_status"</span>, <span class="s">"unconfirmed"</span>) != <span class="s">"unconfirmed"</span>:
+        <span class="k">return</span> {}
+
+    <span class="n">configurable</span> = <span class="n">Configuration</span>.<span class="n">from_runnable_config</span>(<span class="v">config</span>)
+    <span class="n">agent</span> = <span class="n">Agent</span>(<span class="v">model_id</span>=<span class="n">configurable</span>.<span class="n">query_generator_model</span>)
+    <span class="n">agent</span>.<span class="n">set_step_prompt</span>(<span class="n">plan_instructions</span>)
+    <span class="v">response</span> = <span class="n">agent</span>.<span class="n">step</span>(
+        <span class="v">current_date</span>=<span class="n">get_current_date</span>(),
+        <span class="v">research_topic</span>=<span class="n">get_research_topic</span>(
+            <span class="n">state</span>.<span class="b">get</span>(<span class="s">"messages"</span>, []),
+            [<span class="n">msg</span>.<span class="n">content</span> <span class="k">for</span> <span class="n">msg</span> <span class="k">in</span> <span class="n">state</span>.<span class="b">get</span>(<span class="s">'plan_messages'</span>, [])]
+        ),
+        <span class="v">research_proposal</span>=<span class="n">state</span>.<span class="b">get</span>(<span class="s">"plan"</span>, <span class="s">""</span>)
+    )
+    <span class="v">response</span> = <span class="n">Post</span>.<span class="n">extract_pattern</span>(<span class="v">response</span>, <span class="v">pattern</span>=<span class="s">"markdown"</span>)
+    <span class="n">logger</span>.<span class="b">info</span>(<span class="n">state</span>)
+    <span class="n">logger</span>.<span class="b">info</span>(<span class="v">response</span>)
+
+    <span class="k">return</span> {
+        <span class="s">"messages"</span>: [<span class="n">AIMessage</span>(<span class="v">content</span>=<span class="v">response</span>)],
+        <span class="s">"plan"</span>: <span class="v">response</span>,
+        <span class="s">"plan_status"</span>: <span class="s">"unconfirmed"</span>,
+        <span class="s">"plan_messages"</span>: [<span class="n">AIMessage</span>(<span class="v">content</span>=<span class="v">response</span>)]
+    }</pre>
+    </section>
+
+    <!-- ③ -->
+    <section class="card" id="sec3">
+      <h2><span class="num">3</span>执行流程</h2>
+      <p>下面是该函数的完整执行路径，用 Mermaid 流程图表示：</p>
+      <div class="mermaid">
+flowchart TD
+    A([generate_plan 入口]) --> B{plan_status != unconfirmed?}
+    B -- "是 · 已确认" --> C[返回 空字典 早退]
+    B -- "否 · 待生成" --> D[加载 Configuration]
+    D --> E["Agent(model_id)"]
+    E --> F["set_step_prompt(plan_instructions)"]
+    F --> G["agent.step<br/>date / topic / proposal"]
+    G --> H["Post.extract_pattern<br/>剥离 think 块 + 提取 markdown fence"]
+    H --> I[写入 state 四个字段]
+    I --> J([返回节点完成])
+    C --> J
+    style C fill:#fde68a,stroke:#f59e0b,color:#1f2937
+    style H fill:#c4b5fd,stroke:#7c3aed,color:#1f2937
+    style I fill:#a7f3d0,stroke:#10b981,color:#1f2937
+      </div>
+
+      <p>为了让你更直观地看到"两个分支"在节点内部的差异，下面用 Canvas 实现一个可交互的执行轨迹演示。点击按钮切换模式，灰色节点表示在该分支中不会被经过：</p>
+      <div class="canvas-demo">
+        <canvas id="flow-canvas" width="1080" height="360"></canvas>
+        <div class="ctrl-row">
+          <button data-mode="all" class="active">完整流程</button>
+          <button data-mode="skip">早退分支</button>
+          <button data-mode="run">正常生成分支</button>
+        </div>
+        <p class="lead" style="text-align:center;margin-top:8px">
+          单列执行轨迹 · 由左至右依次为函数体内的关键步骤
+        </p>
+      </div>
+    </section>
+
+    <!-- ④ -->
+    <section class="card" id="sec4">
+      <h2><span class="num">4</span>参数详解</h2>
+      <table class="t">
+        <tr><th>形参 / 字段</th><th>类型</th><th>来源</th><th>作用</th></tr>
+        <tr>
+          <td><code>state</code></td><td><code>OverallState</code></td><td>LangGraph 注入</td>
+          <td>当前图状态，含 <code>messages</code>、<code>plan</code>、<code>plan_status</code>、<code>plan_messages</code></td>
+        </tr>
+        <tr>
+          <td><code>config</code></td><td><code>RunnableConfig</code></td><td>LangGraph 注入</td>
+          <td>运行配置，<code>configurable</code> 子字段含模型名等参数</td>
+        </tr>
+        <tr>
+          <td><code>current_date</code></td><td><code>str</code></td><td><code>get_current_date()</code></td>
+          <td><code>"July 04, 2026"</code> 这样的格式，供 LLM 判断时事</td>
+        </tr>
+        <tr>
+          <td><code>research_topic</code></td><td><code>str</code></td><td><code>get_research_topic(...)</code></td>
+          <td>拼接对话历史，<b>跳过</b> <code>plan_messages</code> 里出现过的 AI 内容</td>
+        </tr>
+        <tr>
+          <td><code>research_proposal</code></td><td><code>str</code></td><td><code>state.get("plan", "")</code></td>
+          <td>首次生成时空串；replan 时为上一版计划，供 LLM 迭代改进</td>
+        </tr>
+        <tr>
+          <td>返回 <code>messages</code></td><td><code>list[AIMessage]</code></td><td>本节点</td>
+          <td>追加一条 AI 消息到主对话历史</td>
+        </tr>
+        <tr>
+          <td>返回 <code>plan</code></td><td><code>str</code></td><td>本节点</td>
+          <td>真正的"研究计划"快照，被后续节点引用</td>
+        </tr>
+        <tr>
+          <td>返回 <code>plan_status</code></td><td><code>str</code></td><td>本节点</td>
+          <td>固定 <code>"unconfirmed"</code>，配合 <code>evaluate_plan</code> 路由</td>
+        </tr>
+        <tr>
+          <td>返回 <code>plan_messages</code></td><td><code>list[AIMessage]</code></td><td>本节点</td>
+          <td>单独累计计划确认轮次的 AI 消息，下轮生成时被跳过</td>
+        </tr>
+      </table>
+
+      <p>下面用 SVG 自绘一张"<strong>三股数据流</strong>"图，解释 <code>get_research_topic</code> 是如何合并数据、又跳过了什么：</p>
+      <div class="svg-wrap">
+<svg viewBox="0 0 900 460" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="g1" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#8b5cf6"/><stop offset="1" stop-color="#6366f1"/>
+    </linearGradient>
+    <linearGradient id="g2" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#22d3ee"/><stop offset="1" stop-color="#06b6d4"/>
+    </linearGradient>
+    <linearGradient id="g3" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#f59e0b"/><stop offset="1" stop-color="#ef4444"/>
+    </linearGradient>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#94a3b8"/>
+    </marker>
+    <style>
+      .lbl { fill: #e2e8f0; font-family: ui-monospace, Menlo, monospace; font-size: 13px; }
+      .lbl-sm { fill: #94a3b8; font-family: ui-monospace, Menlo, monospace; font-size: 11px; }
+      .bx { fill: rgba(17,24,39,.85); stroke: #334155; rx: 10; }
+      .bx-g1 { stroke: #8b5cf6; }
+      .bx-g2 { stroke: #22d3ee; }
+      .bx-g3 { stroke: #f59e0b; }
+      .ln { stroke: #94a3b8; stroke-width: 1.5; fill: none; }
+      .ln-g1 { stroke: url(#g1); stroke-width: 2.5; }
+      .ln-g2 { stroke: url(#g2); stroke-width: 2.5; }
+      .ln-g3 { stroke: url(#g3); stroke-width: 2.5; }
+    </style>
+  </defs>
+
+  <!-- Source A: messages -->
+  <rect class="bx bx-g1" x="20" y="40" width="220" height="100"/>
+  <text class="lbl" x="40" y="70">state["messages"]</text>
+  <text class="lbl-sm" x="40" y="92">[HumanMessage,</text>
+  <text class="lbl-sm" x="40" y="108"> AIMessage, ...]</text>
+  <text class="lbl-sm" x="40" y="128" fill="#c4b5fd">主对话历史</text>
+
+  <!-- Source B: plan_messages (to be skipped) -->
+  <rect class="bx bx-g2" x="20" y="180" width="220" height="100"/>
+  <text class="lbl" x="40" y="210">state["plan_messages"]</text>
+  <text class="lbl-sm" x="40" y="232">[AIMessage(plan_v1),</text>
+  <text class="lbl-sm" x="40" y="248"> AIMessage(plan_v2), ...]</text>
+  <text class="lbl-sm" x="40" y="268" fill="#67e8f9">计划确认轮次</text>
+
+  <!-- Source C: plan -->
+  <rect class="bx bx-g3" x="20" y="320" width="220" height="100"/>
+  <text class="lbl" x="40" y="350">state["plan"]</text>
+  <text class="lbl-sm" x="40" y="372">"" (首次) 或</text>
+  <text class="lbl-sm" x="40" y="388">"# 需求清晰度进度条: 60% ..."</text>
+  <text class="lbl-sm" x="40" y="408" fill="#fbbf24">上一版计划</text>
+
+  <!-- get_research_topic box -->
+  <rect class="bx" x="380" y="110" width="260" height="120"/>
+  <text class="lbl" x="400" y="142" fill="#a5b4fc">get_research_topic(</text>
+  <text class="lbl-sm" x="400" y="162">  messages,</text>
+  <text class="lbl-sm" x="400" y="178">  ignore_contexts=</text>
+  <text class="lbl-sm" x="400" y="194">    [m.content for m in plan_messages]</text>
+  <text class="lbl" x="400" y="216" fill="#a5b4fc">)</text>
+
+  <!-- Arrow A -->
+  <path class="ln-g1" d="M 240 90 L 380 150" marker-end="url(#ar)"/>
+  <text class="lbl" x="260" y="100" fill="#c4b5fd">join()</text>
+  <!-- Arrow B (dashed = skip) -->
+  <path class="ln" d="M 240 230 L 380 180" stroke-dasharray="4 4" marker-end="url(#ar)"/>
+  <text class="lbl-sm" x="252" y="220" fill="#67e8f9">skip</text>
+
+  <!-- research_proposal goes directly -->
+  <path class="ln-g3" d="M 240 370 C 320 370 320 290 380 280" marker-end="url(#ar)"/>
+  <text class="lbl-sm" x="252" y="364" fill="#fbbf24">直接传入</text>
+
+  <!-- agent.step output -->
+  <rect class="bx" x="700" y="110" width="180" height="120"/>
+  <text class="lbl" x="720" y="142" fill="#86efac">LLM Prompt</text>
+  <text class="lbl-sm" x="720" y="162">{current_date}</text>
+  <text class="lbl-sm" x="720" y="178">{research_topic}</text>
+  <text class="lbl-sm" x="720" y="194">{research_proposal}</text>
+  <text class="lbl-sm" x="720" y="218" fill="#86efac">↓ markdown plan</text>
+
+  <path class="ln" d="M 640 170 L 700 170" marker-end="url(#ar)"/>
+
+  <!-- Legend -->
+  <rect x="380" y="270" width="260" height="60" class="bx"/>
+  <text class="lbl-sm" x="400" y="290">🟣 messages — 拼接后传入</text>
+  <text class="lbl-sm" x="400" y="308">🔵 plan_messages — 跳过避免污染</text>
+  <text class="lbl-sm" x="400" y="326">🟠 plan — 作为迭代上下文</text>
+</svg>
+      </div>
+      <div class="callout warn">
+        ⚠️ <b>为什么需要 plan_messages？</b> 如果直接把计划塞进 <code>messages</code>，
+        下一轮 replan 时 <code>get_research_topic</code> 会把上一版的计划当成
+        "Assistant 之前说过的话"再喂给 LLM，可能引发复读。分开独立子流就能干净地
+        处理"重新生成"。
+      </div>
+    </section>
+
+    <!-- ⑤ -->
+    <section class="card" id="sec5">
+      <h2><span class="num">5</span>内部调用链</h2>
+      <p>从函数入口到拿到最终 <code>response</code>，经历以下调用。用 Mermaid 时序图表示：</p>
+      <div class="mermaid big">
+sequenceDiagram
+    autonumber
+    participant U as User / Frontend
+    participant G as generate_plan
+    participant C as Configuration
+    participant A as Agent
+    participant L as OpenAICompatibleLLM
+    participant P as Post
+
+    U->>G: 触发节点 (state, config)
+    G->>G: state.get("plan_status", "unconfirmed")
+    alt 已确认
+        G-->>U: return {}
+    else 需要生成
+        G->>C: Configuration.from_runnable_config(config)
+        C-->>G: configurable
+        G->>A: Agent(model_id=query_generator_model)
+        G->>A: set_step_prompt(plan_instructions)
+        G->>A: step(current_date, research_topic, research_proposal)
+        A->>A: prompt_format 占位符替换
+        A->>L: generate_response(formatted_prompt)
+        L-->>A: raw markdown + think 块
+        A->>A: post_process(response) 默认直传
+        A-->>G: response
+        G->>P: extract_pattern(response, "markdown")
+        P->>P: strip_think_tags
+        P->>P: 正则匹配 markdown fence
+        P-->>G: clean markdown
+        G-->>U: 写入 state 四个字段
+    end
+      </div>
+
+      <h3>Agent.step 内部细节（来自 <code>base_agent.py</code>）</h3>
+      <pre class="code"><span class="lang-tag">python</span><span class="k">def</span> <span class="n">step</span>(<span class="bp">self</span>, **<span class="n">kwargs</span>):
+    <span class="n">step_prompt</span> = <span class="bp">self</span>.<span class="n">prompt_format</span>(<span class="bp">self</span>.<span class="n">step_prompt</span>, **<span class="n">kwargs</span>)
+    <span class="k">for</span> <span class="n">_</span> <span class="k">in</span> <span class="b">range</span>(<span class="s">3</span>):    <span class="c"># 最多重试 3 次</span>
+        <span class="k">try</span>:
+            <span class="v">response</span> = <span class="bp">self</span>(<span class="n">step_prompt</span>)
+            <span class="v">response</span> = <span class="bp">self</span>.<span class="n">post_process</span>(<span class="v">response</span>)
+            <span class="k">break</span>
+        <span class="k">except</span> <span class="n">Exception</span> <span class="k">as</span> <span class="n">e</span>:
+            <span class="n">logger</span>.<span class="b">error</span>(<span class="n">traceback</span>.<span class="n">format_exc</span>())
+            <span class="k">continue</span>
+    <span class="k">return</span> <span class="v">response</span></pre>
+      <ul>
+        <li><b>字符串替换而非 .format()</b>：避免花括号转义问题</li>
+        <li><b>3 次重试容错</b>：单点失败不会让整条研究链路崩</li>
+        <li><b>post_process 为空操作</b>：普通 <code>Agent</code> 不做 JSON 解析；换成 <code>JsonAgent</code> 时这里会解析 JSON</li>
+      </ul>
+    </section>
+
+    <!-- ⑥ -->
+    <section class="card" id="sec6">
+      <h2><span class="num">6</span>提示词结构</h2>
+      <p><code>plan_instructions</code> 是一段约 100 行的中文系统提示。下面是 SVG 版的提示词结构图：</p>
+      <div class="svg-wrap">
+<svg viewBox="0 0 900 520" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .box { fill: rgba(17,24,39,.9); stroke: #334155; rx: 10; }
+    .title { fill: #f1f5f9; font-size: 15px; font-family: ui-sans-serif, system-ui; font-weight: 600; }
+    .desc { fill: #cbd5e1; font-size: 12px; font-family: ui-monospace, Menlo, monospace; }
+    .tag { fill: #c4b5fd; font-size: 11px; }
+    .arrow { stroke: #94a3b8; stroke-width: 1.5; fill: none; }
+  </style>
+
+  <!-- header -->
+  <rect class="box" x="20" y="20" width="860" height="60"/>
+  <text class="title" x="40" y="48">📋 plan_instructions · 系统提示词</text>
+  <text class="desc" x="40" y="68"># 任务说明 + 五步澄清循环 + Output Format + 背景信息</text>
+
+  <!-- 5 steps -->
+  <g transform="translate(0,100)">
+    <rect class="box" x="20"  y="0" width="170" height="110"/>
+    <text class="title" x="35" y="28">① 解构与模板映射</text>
+    <text class="desc" x="35" y="50">将模糊语言映射到</text>
+    <text class="desc" x="35" y="66">"专报五大关键要素"</text>
+    <text class="tag"   x="35" y="92">对象/对手/风险/边界/格式</text>
+  </g>
+
+  <g transform="translate(190,100)">
+    <rect class="box" x="0"   y="0" width="170" height="110"/>
+    <text class="title" x="15" y="28">② 模糊度评估</text>
+    <text class="desc" x="15" y="50">对五要素逐一</text>
+    <text class="desc" x="15" y="66">评估明确度</text>
+    <text class="tag"   x="15" y="92">生成封闭选择题</text>
+  </g>
+
+  <g transform="translate(380,100)">
+    <rect class="box" x="0"   y="0" width="170" height="110"/>
+    <text class="title" x="15" y="28">③ 智能默认项</text>
+    <text class="desc" x="15" y="50">主动提供建议</text>
+    <text class="desc" x="15" y="66">信源 / 分析框架</text>
+    <text class="tag"   x="15" y="92">动态信源扩充</text>
+  </g>
+
+  <g transform="translate(570,100)">
+    <rect class="box" x="0"   y="0" width="170" height="110"/>
+    <text class="title" x="15" y="28">④ 进度可视化</text>
+    <text class="desc" x="15" y="50">"需求清晰度进度条"</text>
+    <text class="desc" x="15" y="66">30% → 60% → 95%</text>
+    <text class="tag"   x="15" y="92">让用户直观感知推进</text>
+  </g>
+
+  <g transform="translate(760,100)">
+    <rect class="box" x="-30" y="0" width="170" height="110"/>
+    <text class="title" x="-15" y="28">⑤ 锁定确认</text>
+    <text class="desc" x="-15" y="50">回复【需求确认】</text>
+    <text class="desc" x="-15" y="66">才进入下一步</text>
+    <text class="tag"   x="-15" y="92">明确的执行确认指令</text>
+  </g>
+
+  <!-- arrows between steps -->
+  <path class="arrow" d="M 190 155 L 210 155" /><polygon points="210,150 220,155 210,160" fill="#94a3b8"/>
+  <path class="arrow" d="M 380 155 L 400 155" /><polygon points="400,150 410,155 400,160" fill="#94a3b8"/>
+  <path class="arrow" d="M 570 155 L 590 155" /><polygon points="590,150 600,155 590,160" fill="#94a3b8"/>
+  <path class="arrow" d="M 760 155 L 780 155" /><polygon points="780,150 790,155 780,160" fill="#94a3b8"/>
+
+  <!-- Output Format -->
+  <rect class="box" x="20" y="240" width="430" height="100"/>
+  <text class="title" x="40" y="268">🎨 Output Format</text>
+  <text class="desc" x="40" y="290">强制 Markdown，包裹在 markdown fence 之间</text>
+  <text class="desc" x="40" y="306">包含：进度条 + 核心需求理解 + 待确认问题 + 智能建议</text>
+  <text class="tag"   x="40" y="328">最终版末尾强制："回复【需求确认】"</text>
+
+  <!-- Background info -->
+  <rect class="box" x="470" y="240" width="410" height="100"/>
+  <text class="title" x="490" y="268">📅 背景信息</text>
+  <text class="desc" x="490" y="290">{current_date} → "July 04, 2026"</text>
+  <text class="desc" x="490" y="306">{research_topic} → 主对话历史（跳过计划子流）</text>
+  <text class="desc" x="490" y="322">{research_proposal} → 首次空 / replan 时为上一版</text>
+
+  <!-- Result example -->
+  <rect class="box" x="20" y="360" width="860" height="140" stroke="#7c3aed"/>
+  <text class="title" x="40" y="388">📤 LLM 输出示例</text>
+  <text class="desc" x="40" y="410">markdown fence 包裹：</text>
+  <text class="desc" x="40" y="428"># 需求清晰度进度条: 30%</text>
+  <text class="desc" x="40" y="446">## 核心需求理解：</text>
+  <text class="desc" x="40" y="464">1. 核心分析对象: 稳定币的概念和特性</text>
+  <text class="desc" x="40" y="482">2. 对手策略维度: 当前需求未涉及...</text>
+  <text class="desc" x="40" y="498">## 待确认问题：...</text>
+</svg>
+      </div>
+    </section>
+
+    <!-- ⑦ -->
+    <section class="card" id="sec7">
+      <h2><span class="num">7</span>提示词设计哲学（Agent 核心）</h2>
+      <p>
+        <code>generate_plan</code> 本质上是一个 <b>Agent 角色扮演节点</b>。
+        真正决定它行为的是 <code>plan_instructions</code> 这段系统提示。
+        它的设计哲学可以拆为 <b>四个支柱</b>：
+      </p>
+
+      <div class="grid-2">
+        <div class="prompt-card">
+          <h4>🎭 支柱一 · 角色定位（Role）</h4>
+          <p>提示词第一段就把 LLM 锁定为"<b>专业的科研Agent</b>"：</p>
+          <div class="quote">
+            你的核心使命不是直接回答问题或撰写报告，而是与用户进行结构化对话，
+            将一个模糊、宽泛的分析需求，通过精准、连续的追问，转化为一个定义清晰、
+            范围明确、可执行的情报分析任务。
+          </div>
+          <p>这不是"回答问题"的 Agent，而是"<b>澄清需求</b>"的 Agent —— 这一句就锁死了它的行为模式。</p>
+        </div>
+
+        <div class="prompt-card">
+          <h4>📐 支柱二 · 过程协议（Process Protocol）</h4>
+          <p>五步"澄清循环"是 Agent 行为的<b>剧本</b>，每一步都有明确动作：</p>
+          <ul>
+            <li><b>解构</b> → 把语言映射到五要素模板</li>
+            <li><b>评估</b> → 量化模糊度</li>
+            <li><b>建议</b> → 主动给默认项</li>
+            <li><b>可视化</b> → 进度条推动对话</li>
+            <li><b>锁定</b> → 明确终止条件</li>
+          </ul>
+          <p>每一步都带示例（"正确示范"、"示例1-4"），让 LLM 知道<b>长什么样算合格</b>。</p>
+        </div>
+
+        <div class="prompt-card">
+          <h4>🎯 支柱三 · 主动智能（Proactive Intelligence）</h4>
+          <p>这是与一般"问答模板"最大的区别 —— Agent 会被要求<b>主动给方案</b>：</p>
+          <div class="quote">
+            当"认知作战"概念模糊时，你可以主动将其拆解："关于民进党策略，
+            是否需要我深化分析其'舆论斗争'手段（如贴标签、威胁）和'认知作战'路径
+            （如利用外媒、智库合作）？"
+          </div>
+          <p>提示词中"动态信源调整建议"那段更进一步：要求 Agent 主动判断并<b>动态扩充</b>信源，触发条件、信源类型、用户确认话术都写得清清楚楚。</p>
+        </div>
+
+        <div class="prompt-card">
+          <h4>🚦 支柱四 · 终止条件（Stop Condition）</h4>
+          <p>Agent 必须有一个明确的"<b>何时结束</b>"的信号，否则会陷入无限追问：</p>
+          <div class="quote">
+            以上需求若无遗漏，请回复【需求确认】。
+            若需补充或调整，请直接说明。
+            在得到您的确认后，我将开始生成报告。
+          </div>
+          <p>这句话同时承担三个作用：① 给出关键词 <code>需求确认</code> 让后端 <code>evaluate_plan</code> 路由判定；② 给用户明确预期；③ 防止 Agent 在最后一轮过度发挥。</p>
+        </div>
+      </div>
+
+      <h3>为什么 prompt 是"Agent 系统"的关键资产？</h3>
+      <table class="t">
+        <tr>
+          <th>代码侧职责</th><th>提示词侧职责</th><th>协作结果</th>
+        </tr>
+        <tr>
+          <td><code>get_research_topic</code> 拼接上下文</td>
+          <td>五要素模板让 LLM 知道<b>读什么</b></td>
+          <td>上下文被充分利用，不会浪费 token</td>
+        </tr>
+        <tr>
+          <td><code>extract_pattern</code> 抽取 markdown</td>
+          <td>强制 <code>markdown fence</code> 输出格式</td>
+          <td>正则能稳定命中，节点不会崩溃</td>
+        </tr>
+        <tr>
+          <td><code>plan_status</code> 路由</td>
+          <td>"回复【需求确认】"终止话术</td>
+          <td>用户行为 → 状态机迁移 → 进入研究阶段</td>
+        </tr>
+        <tr>
+          <td><code>plan_messages</code> 子流</td>
+          <td>五步澄清循环 + 进度条</td>
+          <td>多轮交互不污染主对话历史</td>
+        </tr>
+      </table>
+
+      <div class="callout ok">
+        ✅ <b>一句话总结</b>：<code>generate_plan</code> 的 Python 代码只是"<b>骨架</b>"，
+        让 LLM 真正按剧本演戏的是 <code>plan_instructions</code>。
+        修改这个提示词就是在"<b>训练</b>"这个 Agent 角色，而不需要改一行代码。
+      </div>
+    </section>
+
+    <!-- ⑧ -->
+    <section class="card" id="sec8">
+      <h2><span class="num">8</span>后处理：提取 Markdown</h2>
+      <p>调用 LLM 后，原始字符串里可能夹带 <code>&lt;think&gt;...&lt;/think&gt;</code> 与 markdown fence。用 Mermaid 表达处理流程：</p>
+      <div class="mermaid big">
+flowchart LR
+    A["LLM 原始输出<br/>(含 think 块)"] --> B["strip_think_tags()<br/>剥离 think 类标签"]
+    B --> C{"正则匹配<br/>markdown fence"}
+    C -- "命中" --> D["matches 0<br/>提取代码块内文本"]
+    C -- "未命中" --> E["降级返回原文<br/>节点不崩溃"]
+    D --> F["最终 response<br/>纯净 markdown"]
+    E --> F
+    F --> G["写入 state"]
+    style B fill:#a78bfa,stroke:#7c3aed,color:#1f2937
+    style D fill:#a7f3d0,stroke:#10b981,color:#1f2937
+      </div>
+      <pre class="code"><span class="lang-tag">python</span><span class="c"># post.py</span>
+<span class="k">@staticmethod</span>
+<span class="k">def</span> <span class="n">extract_pattern</span>(<span class="v">text</span>, <span class="v">pattern</span>):
+    <span class="n">text</span> = <span class="n">Post</span>.<span class="n">strip_think_tags</span>(<span class="v">text</span>)    <span class="c"># 先剥思考块</span>
+    <span class="v">pattern</span> = <span class="n">re</span>.<span class="n">compile</span>(<span class="s">rf"\`\`\`{pattern}\s(.*?)\`\`\`"</span>, <span class="n">re</span>.<span class="n">DOTALL</span>)
+    <span class="v">matches</span> = <span class="n">pattern</span>.<span class="n">findall</span>(<span class="v">text</span>)
+    <span class="k">return</span> <span class="v">matches</span>[<span class="s">0</span>] <span class="k">if</span> <span class="v">matches</span> <span class="k">else</span> <span class="v">text</span></pre>
+      <div class="callout ok">
+        ✅ <b>容错要点</b>：剥 <code>think</code> 在前、匹配 markdown fence 在后，
+        避免思考块污染 fence 边界；未命中 fence 时原样返回，保证节点不会因为
+        LLM 输出格式异常而崩溃。
+      </div>
+    </section>
+
+    <!-- ⑨ -->
+    <section class="card" id="sec9">
+      <h2><span class="num">9</span>状态写入</h2>
+      <p>节点返回 4 个字段，用 SVG 展示它们分别写入 OverallState 的什么位置：</p>
+      <div class="svg-wrap">
+<svg viewBox="0 0 900 360" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .state-box { fill: rgba(99,102,241,.10); stroke: #6366f1; stroke-width: 2; rx: 12; }
+    .field { fill: #c7d2fe; font-family: ui-monospace, Menlo, monospace; font-size: 14px; }
+    .ttl { fill: #f1f5f9; font-size: 18px; font-weight: 700; }
+    .desc { fill: #94a3b8; font-family: ui-monospace, Menlo, monospace; font-size: 11px; }
+    .arrow { stroke: #22d3ee; stroke-width: 2; fill: none; }
+    .label { fill: #67e8f9; font-size: 11px; }
+    .key { fill: #fda4af; font-family: ui-monospace, Menlo, monospace; font-size: 12px; }
+    .val { fill: #86efac; font-family: ui-monospace, Menlo, monospace; font-size: 12px; }
+  </style>
+
+  <!-- State box -->
+  <rect class="state-box" x="240" y="20" width="620" height="320"/>
+  <text class="ttl" x="260" y="55">OverallState (TypedDict)</text>
+
+  <text class="key" x="260" y="90">messages:</text>
+  <text class="val" x="360" y="90">[AIMessage(content=response)]</text>
+  <text class="desc" x="260" y="108">Annotated[list, add_messages]  ← 追加</text>
+
+  <text class="key" x="260" y="140">plan:</text>
+  <text class="val" x="330" y="140">response  (markdown 文本)</text>
+  <text class="desc" x="260" y="158">快照，供 generate_query / critique / final_answer 引用</text>
+
+  <text class="key" x="260" y="190">plan_status:</text>
+  <text class="val" x="380" y="190">"unconfirmed"</text>
+  <text class="desc" x="260" y="208">配合 evaluate_plan 路由：未确认时停在 awaiting_plan_confirmation</text>
+
+  <text class="key" x="260" y="240">plan_messages:</text>
+  <text class="val" x="395" y="240">[AIMessage(content=response)]</text>
+  <text class="desc" x="260" y="258">独立子流，下轮生成时作为 ignore_contexts 跳过</text>
+
+  <text class="desc" x="260" y="295">search_query / web_search_result / sources_gathered ... 本节点不写</text>
+  <text class="desc" x="260" y="313">research_loop_count / reasoning_model ... 本节点不写</text>
+
+  <!-- Left: 4 return keys -->
+  <rect x="20" y="20" width="200" height="320" class="state-box" stroke="#8b5cf6"/>
+  <text class="ttl" x="40" y="55">return {</text>
+
+  <text class="field" x="40" y="90">"messages": [...]</text>
+  <text class="field" x="40" y="140">"plan": ...</text>
+  <text class="field" x="40" y="190">"plan_status": ...</text>
+  <text class="field" x="40" y="240">"plan_messages": [...]</text>
+  <text class="ttl" x="40" y="295">}</text>
+
+  <!-- Arrows -->
+  <path class="arrow" d="M 220 85 L 240 85" marker-end="url(#ar2)"/>
+  <path class="arrow" d="M 220 135 L 240 135" marker-end="url(#ar2)"/>
+  <path class="arrow" d="M 220 185 L 240 185" marker-end="url(#ar2)"/>
+  <path class="arrow" d="M 220 235 L 240 235" marker-end="url(#ar2)"/>
+
+  <defs>
+    <marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#22d3ee"/>
+    </marker>
+  </defs>
+</svg>
+      </div>
+    </section>
+
+    <!-- ⑩ -->
+    <section class="card" id="sec10">
+      <h2><span class="num">10</span>状态机：plan_status 的生命周期</h2>
+      <div class="mermaid big">
+stateDiagram-v2
+    direction LR
+    [*] --> Unconfirmed: generate_plan 首次执行
+    Unconfirmed --> Unconfirmed: 用户说"修改/补充" 走 replan 分支
+    Unconfirmed --> Confirmed: 用户回复【需求确认】 或"开始研究"
+    Confirmed --> Confirmed: generate_plan 早退返回 空字典
+    Unconfirmed --> Unconfirmed: replan 只重置 plan_status 再生成
+      </div>
+
+      <h3>触发迁移的关键代码（evaluate_plan 节选）</h3>
+      <pre class="code"><span class="lang-tag">python</span><span class="k">def</span> <span class="n">evaluate_plan</span>(<span class="v">state</span>, <span class="v">config</span>):
+    <span class="n">plan</span> = <span class="n">state</span>.<span class="b">get</span>(<span class="s">"plan"</span>, <span class="k">None</span>)
+    <span class="k">if</span> <span class="n">state</span>.<span class="b">get</span>(<span class="s">"plan_status"</span>, <span class="s">"unconfirmed"</span>) == <span class="s">"unconfirmed"</span>:
+        <span class="k">return</span> <span class="s">"awaiting_plan_confirmation"</span>
+    <span class="k">if</span> <span class="k">not</span> <span class="n">plan</span>:
+        <span class="k">return</span> <span class="s">"replan"</span>
+    <span class="v">context</span> = <span class="n">get_last_user_response</span>(<span class="n">state</span>[<span class="s">"messages"</span>])
+    <span class="k">if</span> <span class="s">"开始研究"</span> <span class="k">in</span> <span class="v">context</span> <span class="k">or</span> <span class="s">"需求确认"</span> <span class="k">in</span> <span class="v">context</span>:
+        <span class="k">return</span> <span class="n">GENERATE_SEARCH_NODE</span>
+    <span class="v">result</span> = <span class="n">JsonAgent</span>(<span class="n">keys</span>=<span class="n">PlanReflection</span>).<span class="n">step</span>(<span class="n">plan</span>=<span class="n">plan</span>, <span class="n">context</span>=<span class="v">context</span>)
+    <span class="k">return</span> <span class="n">GENERATE_SEARCH_NODE</span> <span class="k">if</span> <span class="v">result</span>.<span class="n">satisfy</span> <span class="k">else</span> <span class="s">"replan"</span></pre>
+    </section>
+
+    <!-- ⑪ -->
+    <section class="card" id="sec11">
+      <h2><span class="num">11</span>在 LangGraph 中的位置</h2>
+      <p>下面是整个图的拓扑，用 Mermaid 展示 <code>generate_plan</code> 与其他节点的连接关系：</p>
+      <div class="mermaid">
+flowchart TD
+    START([START]) --> GP[generate_plan]
+    GP --> EP{evaluate_plan}
+    EP -->|plan_status=unconfirmed| AWP[awaiting_plan_confirmation]
+    EP -->|需要修改| RP[replan]
+    EP -->|用户已确认| GQ[generate_query]
+    RP --> GP
+    GQ -->|send_to_web_search| WS1[web_search]
+    WS1 --> CR[critique]
+    CR --> RE{route_evaluate}
+    RE -->|需要更多| WS2[web_search]
+    RE -->|已充分| FA[final_answer]
+    WS2 --> CR
+    FA --> END([END])
+    AWP -.用户操作.-> EP
+
+    style GP fill:#c4b5fd,stroke:#7c3aed,color:#1f2937
+    style EP fill:#fde68a,stroke:#f59e0b,color:#1f2937
+    style RP fill:#fda4af,stroke:#ef4444,color:#1f2937
+    style AWP fill:#a7f3d0,stroke:#10b981,color:#1f2937
+      </div>
+
+      <h3>replan 节点（lambda 实现）</h3>
+      <pre class="code"><span class="lang-tag">python</span><span class="n">builder</span>.<span class="n">add_node</span>(<span class="s">"replan"</span>, <span class="k">lambda</span> <span class="v">state</span>, <span class="v">config</span>: {<span class="s">"plan_status"</span>: <span class="s">"unconfirmed"</span>})</pre>
+      <p class="lead">
+        它只是把 <code>plan_status</code> 重置为 <code>unconfirmed</code>，不调用 LLM；
+        真正"重新生成"由下一次进入 <code>generate_plan</code> 完成。
+      </p>
+    </section>
+
+    <!-- ⑫ -->
+    <section class="card" id="sec12">
+      <h2><span class="num">12</span>设计亮点</h2>
+      <div class="grid-3">
+        <div class="mini">
+          <h4>① plan_status 早退</h4>
+          <p>避免确认后重复生成，节点具备幂等性。</p>
+        </div>
+        <div class="mini">
+          <h4>② 独立 plan_messages 子流</h4>
+          <p>防止计划确认对话污染研究对话主历史。</p>
+        </div>
+        <div class="mini">
+          <h4>③ 普通 Agent 而非 JsonAgent</h4>
+          <p>计划是长 Markdown，不是结构化字段，强行 JSON 反而会损失表达力。</p>
+        </div>
+        <div class="mini">
+          <h4>④ Post 容错提取</h4>
+          <p>先剥 think、再匹配 fence，未命中原样返回，不让节点崩溃。</p>
+        </div>
+        <div class="mini">
+          <h4>⑤ research_proposal 复用上版</h4>
+          <p>replan 时实现"基于上一版迭代"，避免从零开始。</p>
+        </div>
+        <div class="mini">
+          <h4>⑥ Agent Prompt 即剧本</h4>
+          <p>plan_instructions 把 LLM 训练成"科研澄清 Agent"，代码只负责调度。</p>
+        </div>
+      </div>
+
+      <h3>一句话总结</h3>
+      <div class="callout tip">
+        <b>generate_plan</b> 是一个<b>人机协同的"需求澄清节点"</b>：
+        代码提供骨架，<b>提示词提供剧本</b>。LLM 按剧本与用户多轮澄清需求，
+        输出停在 <code>unconfirmed</code> 状态等待用户确认；用户确认后由 <code>evaluate_plan</code>
+        放行进入正式研究流程；若用户要求修改，则基于上一版计划重新生成。
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<footer>
+  © Deep Research Case · generate_plan 函数详解 · 由 Mermaid / SVG / Canvas 三种方式混合呈现
+</footer>
+
+<script>
+  // ---------- Mermaid init ----------
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'dark',
+    themeVariables: {
+      primaryColor: '#1f2937',
+      primaryTextColor: '#e6edf7',
+      primaryBorderColor: '#8b5cf6',
+      lineColor: '#94a3b8',
+      secondaryColor: '#0a1020',
+      tertiaryColor: '#111827',
+      fontFamily: 'ui-monospace, Menlo, monospace',
+      fontSize: '17px'
+    },
+    flowchart: { curve: 'basis', padding: 18, htmlLabels: true },
+    sequence: {
+      actorMargin: 90,
+      messageMargin: 55,
+      boxMargin: 12,
+      boxTextMargin: 8,
+      noteMargin: 12,
+      messageTextMargin: 6,
+      mirrorActors: true,
+      bottomMarginAdj: 1.5,
+      useMaxWidth: true,
+      rightAngles: false,
+      showSequenceNumbers: false,
+      actorFontSize: 16,
+      actorFontFamily: 'ui-monospace, Menlo, monospace',
+      messageFontSize: 15,
+      messageFontFamily: 'ui-monospace, Menlo, monospace',
+      noteFontSize: 15,
+      noteFontFamily: 'ui-monospace, Menlo, monospace'
+    },
+    stateDiagram: {
+      fontSize: 17,
+      fontFamily: 'ui-monospace, Menlo, monospace'
+    }
+  });
+
+  // ---------- TOC active highlight ----------
+  const tocLinks = document.querySelectorAll('nav.toc a');
+  const sections = Array.from(tocLinks).map(a => document.querySelector(a.getAttribute('href')));
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach(en => {
+      if (en.isIntersecting) {
+        tocLinks.forEach(l => l.classList.remove('active'));
+        const id = '#' + en.target.id;
+        const link = document.querySelector(`nav.toc a[href="${id}"]`);
+        if (link) link.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-30% 0px -55% 0px', threshold: 0.01 });
+  sections.forEach(s => s && obs.observe(s));
+
+  // ---------- Canvas: 单列清晰执行轨迹 ----------
+  (function () {
+    const canvas = document.getElementById('flow-canvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+
+    // 8 个核心节点，单列流程
+    const nodes = [
+      { id: 'enter',  label: '① 入口',                       sub: 'state, config',                  x:  90, y: 180, color: '#8b5cf6' },
+      { id: 'guard',  label: '② plan_status 检查',           sub: '!= unconfirmed ?',               x: 240, y: 180, color: '#f59e0b', kind: 'decision' },
+      { id: 'early',  label: '③ 早退',                       sub: 'return {}',                       x: 240, y: 320, color: '#64748b', kind: 'terminal' },
+      { id: 'cfg',    label: '④ 加载配置',                   sub: 'Configuration + Agent',           x: 420, y: 180, color: '#22d3ee' },
+      { id: 'prompt', label: '⑤ 挂载提示词',                 sub: 'set_step_prompt(plan_instructions)', x: 600, y: 180, color: '#22d3ee' },
+      { id: 'llm',    label: '⑥ LLM 生成',                   sub: 'agent.step → markdown plan',     x: 780, y: 180, color: '#a78bfa' },
+      { id: 'post',   label: '⑦ 后处理',                     sub: 'Post.extract_pattern',           x: 950, y: 180, color: '#10b981' },
+      { id: 'write',  label: '⑧ 写 state 4 字段',            sub: 'plan / status / messages',        x: 950, y: 320, color: '#10b981', kind: 'terminal' }
+    ];
+
+    // 每个模式下高亮哪些节点
+    const modeMap = {
+      all:  ['enter','guard','cfg','prompt','llm','post','write'],
+      skip: ['enter','guard','early'],
+      run:  ['enter','guard','cfg','prompt','llm','post','write']
+    };
+
+    let mode = 'all';
+
+    function get(id) { return nodes.find(n => n.id === id); }
+
+    function dim(s) {
+      return modeMap[mode].includes(s.id) ? 1.0 : 0.18;
+    }
+
+    function drawBox(s, w, h, r, fill, stroke, alpha) {
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.beginPath();
+      ctx.moveTo(s.x - w/2 + r, s.y - h/2);
+      ctx.arcTo(s.x + w/2, s.y - h/2, s.x + w/2, s.y + h/2, r);
+      ctx.arcTo(s.x + w/2, s.y + h/2, s.x - w/2, s.y + h/2, r);
+      ctx.arcTo(s.x - w/2, s.y + h/2, s.x - w/2, s.y - h/2, r);
+      ctx.arcTo(s.x - w/2, s.y - h/2, s.x + w/2, s.y - h/2, r);
+      ctx.closePath();
+      ctx.fillStyle = fill; ctx.fill();
+      ctx.strokeStyle = stroke; ctx.lineWidth = 2; ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawNode(s, t) {
+      const a = dim(s);
+      const isActive = Math.sin(t / 380 + s.x * 0.02) > 0.55 && a > 0.5;
+      const w = 150, h = 56;
+
+      if (s.kind === 'decision') {
+        // diamond
+        ctx.save();
+        ctx.globalAlpha = a;
+        ctx.beginPath();
+        ctx.moveTo(s.x, s.y - 32);
+        ctx.lineTo(s.x + 80, s.y);
+        ctx.lineTo(s.x, s.y + 32);
+        ctx.lineTo(s.x - 80, s.y);
+        ctx.closePath();
+        ctx.fillStyle = 'rgba(17,24,39,0.9)'; ctx.fill();
+        ctx.strokeStyle = s.color; ctx.lineWidth = 2.5; ctx.stroke();
+        ctx.fillStyle = '#f1f5f9';
+        ctx.font = 'bold 13px ui-monospace, Menlo, monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(s.label, s.x, s.y - 4);
+        ctx.font = '11px ui-monospace, Menlo, monospace';
+        ctx.fillStyle = '#cbd5e1';
+        ctx.fillText(s.sub, s.x, s.y + 12);
+        ctx.restore();
+        return;
+      }
+
+      if (s.kind === 'terminal') {
+        drawBox(s, w, h, 12, 'rgba(100,116,139,.12)', s.color, a);
+      } else {
+        drawBox(s, w, h, 12, 'rgba(17,24,39,0.92)', s.color, a);
+      }
+
+      // pulse halo for active
+      if (isActive) {
+        ctx.save();
+        ctx.globalAlpha = 0.4 * a;
+        ctx.shadowBlur = 16;
+        ctx.shadowColor = s.color;
+        drawBox(s, w + 4, h + 4, 14, 'transparent', s.color, 0.5 * a);
+        ctx.restore();
+      }
+
+      // text
+      ctx.save();
+      ctx.globalAlpha = a;
+      ctx.textAlign = 'center';
+      ctx.font = 'bold 13px ui-monospace, Menlo, monospace';
+      ctx.fillStyle = '#f1f5f9';
+      ctx.fillText(s.label, s.x, s.y - 6);
+      ctx.font = '11px ui-monospace, Menlo, monospace';
+      ctx.fillStyle = '#cbd5e1';
+      ctx.fillText(s.sub, s.x, s.y + 12);
+      ctx.restore();
+    }
+
+    function arrow(x1, y1, x2, y2, color, alpha, dashed) {
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      if (dashed) ctx.setLineDash([5, 4]);
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      // arrow head
+      const ang = Math.atan2(y2 - y1, x2 - x1);
+      ctx.beginPath();
+      ctx.moveTo(x2, y2);
+      ctx.lineTo(x2 - 9 * Math.cos(ang - Math.PI/7), y2 - 9 * Math.sin(ang - Math.PI/7));
+      ctx.lineTo(x2 - 9 * Math.cos(ang + Math.PI/7), y2 - 9 * Math.sin(ang + Math.PI/7));
+      ctx.closePath();
+      ctx.fillStyle = color;
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawEdges() {
+      // main path: enter → guard (right)
+      arrow(get('enter').x + 15, get('enter').y, get('guard').x - 80, get('guard').y, '#94a3b8', 0.9);
+      // guard → early (down)  早退分支
+      const isSkip = mode === 'skip';
+      arrow(get('guard').x, get('guard').y + 32, get('early').x, get('early').y - 28, '#f59e0b', isSkip ? 1.0 : 0.25);
+      // guard → cfg (right) 否分支
+      const isRun = mode === 'run' || mode === 'all';
+      arrow(get('guard').x + 80, get('guard').y, get('cfg').x - 75, get('cfg').y, '#94a3b8', isRun ? 0.9 : 0.2);
+      // cfg → prompt
+      arrow(get('cfg').x + 75, get('cfg').y, get('prompt').x - 75, get('prompt').y, '#94a3b8', isRun ? 0.9 : 0.2);
+      // prompt → llm
+      arrow(get('prompt').x + 75, get('prompt').y, get('llm').x - 75, get('llm').y, '#94a3b8', isRun ? 0.9 : 0.2);
+      // llm → post
+      arrow(get('llm').x + 75, get('llm').y, get('post').x - 75, get('post').y, '#94a3b8', isRun ? 0.9 : 0.2);
+      // post → write (down)
+      arrow(get('post').x, get('post').y + 28, get('write').x, get('write').y - 28, '#10b981', isRun ? 0.9 : 0.2);
+
+      // 决策标签：Y/N
+      ctx.save();
+      ctx.font = 'bold 13px ui-monospace, Menlo, monospace';
+      ctx.fillStyle = '#fbbf24';
+      ctx.fillText('Y', get('guard').x + 4, get('guard').y + 50);
+      ctx.fillStyle = '#a7f3d0';
+      ctx.fillText('N', get('guard').x + 50, get('guard').y + 8);
+      ctx.restore();
+    }
+
+    function loop(now) {
+      const t = now;
+      ctx.clearRect(0, 0, W, H);
+      // bg grid
+      ctx.save();
+      ctx.strokeStyle = 'rgba(148,163,184,0.05)';
+      ctx.lineWidth = 1;
+      for (let x = 0; x < W; x += 40) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+      }
+      for (let y = 0; y < H; y += 40) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+      }
+      ctx.restore();
+
+      // legend
+      ctx.save();
+      ctx.font = '12px ui-monospace, Menlo, monospace';
+      ctx.fillStyle = '#94a3b8';
+      ctx.textAlign = 'left';
+      ctx.fillText('节点编号 = 函数体内的执行顺序    灰色 = 当前模式不经过', 18, 24);
+      ctx.restore();
+
+      drawEdges();
+      nodes.forEach(s => drawNode(s, t));
+
+      requestAnimationFrame(loop);
+    }
+
+    document.querySelectorAll('.ctrl-row button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.ctrl-row button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        mode = btn.dataset.mode;
+      });
+    });
+
+    requestAnimationFrame(loop);
+  })();
+</script>
+</body>
+</html>

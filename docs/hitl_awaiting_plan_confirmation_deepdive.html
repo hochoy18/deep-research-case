@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>awaiting_plan_confirmation 详解 — Deep Research Case HITL</title>
+  <!-- Mermaid -->
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+  <style>
+    :root{
+      --bg:#0b1220;
+      --panel:#111a2e;
+      --panel-2:#16223c;
+      --line:#1e2c4a;
+      --line-2:#27375e;
+      --text:#e2e8f0;
+      --muted:#94a3b8;
+      --accent:#38bdf8;
+      --accent-2:#a78bfa;
+      --good:#22c55e;
+      --warn:#f59e0b;
+      --bad:#ef4444;
+      --human:#fb923c;
+      --frontend:#60a5fa;
+      --backend:#a78bfa;
+      --llm:#f472b6;
+      --node:#22d3ee;
+      --pause:#facc15;
+      --write:#22c55e;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.6}
+    .wrap{max-width:1180px;margin:0 auto;padding:36px 24px 96px}
+    header.hero{
+      background:linear-gradient(135deg,#111a2e 0%,#312e81 55%,#0b1220 100%);
+      border:1px solid var(--line);
+      border-radius:18px;
+      padding:30px 34px;
+      margin-bottom:28px;
+      position:relative;
+      overflow:hidden;
+    }
+    header.hero::after{
+      content:"";
+      position:absolute;right:-80px;top:-80px;width:280px;height:280px;
+      background:radial-gradient(circle,rgba(250,204,21,.18),transparent 70%);
+      pointer-events:none;
+    }
+    header.hero h1{margin:0 0 8px;font-size:28px;letter-spacing:.5px}
+    header.hero p{margin:0;color:var(--muted);font-size:14px;max-width:760px}
+    .tag{
+      display:inline-block;padding:4px 10px;border-radius:999px;font-size:12px;border:1px solid var(--line);
+      background:rgba(56,189,248,.08);color:var(--accent);margin:10px 6px 0 0
+    }
+    .tag.pause{background:rgba(250,204,21,.10);color:var(--pause);border-color:#facc1544}
+    h2{
+      font-size:20px;margin:38px 0 14px;padding:9px 14px;border-left:4px solid var(--accent);
+      background:rgba(56,189,248,.06);border-radius:4px
+    }
+    h3{font-size:16px;margin:18px 0 8px;color:var(--accent-2)}
+    h4{font-size:14px;margin:14px 0 6px;color:#cbd5e1}
+    .panel{
+      background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:20px 22px;margin:14px 0
+    }
+    .panel.pause{
+      border-color:#facc1544;
+      background:linear-gradient(180deg,rgba(250,204,21,.04),var(--panel) 60%);
+    }
+    .legend{display:flex;gap:14px;flex-wrap:wrap;margin:10px 0 4px}
+    .legend span{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+    .swatch{width:14px;height:14px;border-radius:3px;display:inline-block}
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+    .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+    @media (max-width:880px){.grid2,.grid3{grid-template-columns:1fr}}
+    table{width:100%;border-collapse:collapse;font-size:13px}
+    th,td{padding:10px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+    th{background:var(--panel-2);color:#cbd5e1;font-weight:600}
+    tr:hover td{background:rgba(56,189,248,.04)}
+    code,kbd{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#0b1220;color:#e2e8f0;padding:2px 6px;border-radius:4px;font-size:12px;border:1px solid var(--line)}
+    pre{background:#0b1220;padding:14px;border-radius:10px;border:1px solid var(--line);font-size:12px;overflow:auto;line-height:1.55}
+    pre code{background:transparent;border:0;padding:0}
+    .mermaid{background:#0b1220;border:1px solid var(--line);border-radius:10px;padding:18px;overflow:auto}
+    .canvas-host{background:#0b1220;border:1px solid var(--line);border-radius:10px;padding:8px;display:flex;justify-content:center}
+    .pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;border:1px solid var(--line);margin:2px}
+    .pill.human{background:rgba(251,146,60,.15);color:var(--human);border-color:#fb923c44}
+    .pill.frontend{background:rgba(96,165,250,.15);color:var(--frontend);border-color:#60a5fa44}
+    .pill.backend{background:rgba(167,139,250,.15);color:var(--backend);border-color:#a78bfa44}
+    .pill.llm{background:rgba(244,114,182,.15);color:var(--llm);border-color:#f472b644}
+    .pill.node{background:rgba(34,211,238,.15);color:var(--node);border-color:#22d3ee44}
+    .pill.status{background:rgba(250,204,21,.15);color:var(--pause);border-color:#facc1544}
+    .pill.write{background:rgba(34,197,94,.15);color:var(--write);border-color:#22c55e44}
+    .step-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin:12px 0}
+    .step-card{background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:12px}
+    .step-card b{color:var(--accent)}
+    .step-card small{display:block;color:var(--muted);margin-top:4px}
+    .controls{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
+    .controls button{background:var(--panel-2);color:var(--text);border:1px solid var(--line);border-radius:6px;padding:7px 13px;cursor:pointer;font-size:12px;font-family:inherit}
+    .controls button:hover{background:#1e2c4a}
+    .controls button.active{background:var(--pause);color:#0b1220;border-color:var(--pause)}
+    .small{font-size:12px;color:var(--muted)}
+    .callout{
+      border-left:4px solid var(--pause);
+      background:rgba(250,204,21,.06);
+      padding:12px 14px;border-radius:6px;margin:10px 0;font-size:13px;
+    }
+    .callout strong{color:var(--pause)}
+    footer{color:var(--muted);font-size:12px;margin-top:44px;text-align:center}
+    .scroll-x{overflow-x:auto}
+    .num{display:inline-block;min-width:24px;text-align:center;background:var(--panel-2);border:1px solid var(--line);border-radius:6px;padding:1px 6px;margin-right:6px;color:var(--accent);font-family:ui-monospace,monospace;font-size:12px}
+    .toc{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 4px}
+    .toc a{display:inline-block;padding:5px 10px;border:1px solid var(--line);background:var(--panel);border-radius:6px;text-decoration:none;color:var(--text);font-size:12px}
+    .toc a:hover{background:#1e2c4a;color:var(--accent)}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+
+    <!-- HERO -->
+    <header class="hero">
+      <h1>🟡 <code>awaiting_plan_confirmation</code> 详解</h1>
+      <p>聚焦 LangGraph 后端这个 HITL 中断节点本身：它是什么、如何"暂停"图、由谁驱动恢复、与 <code>plan_status</code> / <code>messages</code> / <code>plan</code> 等字段如何联动；用 Mermaid + SVG + Canvas 三视角可视化。</p>
+      <div>
+        <span class="tag pause">核心节点 awaiting_plan_confirmation</span>
+        <span class="tag">backend: LangGraph StateGraph</span>
+        <span class="tag">frontend: React + useStream</span>
+        <span class="tag">HITL 软中断（无内置 interrupt）</span>
+        <span class="tag">状态字段由前端拼接、后端只读不存</span>
+      </div>
+      <div class="toc">
+        <a href="#sec-def">1. 是什么</a>
+        <a href="#sec-source">2. 源码</a>
+        <a href="#sec-state">3. 字段状态机</a>
+        <a href="#sec-flow">4. 时序 / 流程图</a>
+        <a href="#sec-pause">5. SVG 视角的暂停回路</a>
+        <a href="#sec-canvas">6. Canvas 字段写入动画</a>
+        <a href="#sec-modifier">7. 修改主体一览表</a>
+        <a href="#sec-step">8. 一步步拆解</a>
+        <a href="#sec-pitfalls">9. 现状与坑</a>
+        <a href="#sec-takeaway">10. 一句话总结</a>
+      </div>
+    </header>
+
+    <!-- 1. 是什么 -->
+    <h2 id="sec-def">1. <code>awaiting_plan_confirmation</code> 是什么</h2>
+    <div class="panel pause">
+      <h3>一句话定义</h3>
+      <p>它是一个 <b>"什么都不做"的占位节点</b>，让 LangGraph StateGraph 在这里停下来，等待前端从浏览器侧发起下一次 <code>thread.submit({...})</code>。整个 HITL 中断机制的核心就是：</p>
+      <ul>
+        <li><b>节点本体</b>：<code>lambda state, config: state</code> —— 返回 state 本身，不修改任何字段，也不路由到任何下游节点（graph.py:362）。</li>
+        <li><b>进入条件</b>：在 <code>evaluate_plan</code> 路由函数里，当 <code>state.get("plan_status", "unconfirmed") == "unconfirmed"</code> 时返回字符串字面量 <code>"awaiting_plan_confirmation"</code>（graph.py:98）。</li>
+        <li><b>恢复条件</b>：前端发起新的 <code>thread.submit(...)</code>，把 <code>plan_status</code> 字段以 <code>"confirmed"</code> 提交 → 下一次进入 <code>generate_plan</code> 时该节点因为 <code>plan_status != "unconfirmed"</code> 直接 <code>return {}</code>（graph.py:58-59），图就会再次走到 <code>evaluate_plan</code>，这时走另一条分支。</li>
+        <li><b>性质</b>：<b>不是</b> LangGraph 内置的 <code>interrupt(...)</code>，而是项目自创的"软中断"——图本身从不真正阻塞，只是停在 <code>awaiting_plan_confirmation</code> 上，靠前端推一次新消息来推动它继续。</li>
+      </ul>
+      <div class="callout">
+        <strong>关键洞见：</strong> 整个 HITL 状态机里 <b>没有持久化</b>，<code>plan_status</code> 不是后端存起来的，而是<b>前端每次发起 submit 时重新拼装</b>塞进去的。后端 <code>generate_plan</code> / <code>evaluate_plan</code> 只是"读取 → 判断 → 路由"。所以这个"中断"其实是前端主导、后端顺从的协作模式。
+      </div>
+    </div>
+
+    <!-- 2. 源码 -->
+    <h2 id="sec-source">2. 源码（逐行解读）</h2>
+    <div class="grid2">
+      <div class="panel">
+        <h3>2.1 后端：节点定义</h3>
+        <p class="small">文件：<code>backend/src/agent/graph.py:362</code></p>
+<pre><code>builder.add_node(
+    "awaiting_plan_confirmation",
+    lambda state, config: state   # ← 整个节点体就是返回 state
+)</code></pre>
+        <p class="small">返回 <code>state</code> 而不是 <code>{}</code> 不会触发 reducer 写入；图执行引擎视该节点为"无副作用"，下一个节点的输入就是当前 state。</p>
+      </div>
+      <div class="panel">
+        <h3>2.2 后端：进入条件（路由）</h3>
+        <p class="small">文件：<code>backend/src/agent/graph.py:96-98</code></p>
+<pre><code>def evaluate_plan(state, config):
+    if state.get("plan_status", "unconfirmed") == "unconfirmed":
+        logger.info("等待用户确认...")
+        return "awaiting_plan_confirmation"   # ← 字面量字符串</code></pre>
+        <p class="small">LangGraph <code>add_conditional_edges</code> 把函数返回值当成下一节点名（graph.py:368-370）。</p>
+      </div>
+      <div class="panel">
+        <h3>2.3 后端：守门（generate_plan 内的反向短路）</h3>
+        <p class="small">文件：<code>backend/src/agent/graph.py:58-59</code></p>
+<pre><code>def generate_plan(state, config):
+    if state.get("plan_status", "unconfirmed") != "unconfirmed":
+        return {}   # ← 直接跳过生成</code></pre>
+        <p class="small">这是恢复路径上另一侧的钩子：当下一次进入图，<code>plan_status</code> 已经不是 "unconfirmed"，就<b>不调 LLM</b>，避免重复生成计划。</p>
+      </div>
+      <div class="panel">
+        <h3>2.4 前端：等待标志位</h3>
+        <p class="small">文件：<code>frontend/src/App.tsx:16, 41, 166</code></p>
+<pre><code>const [awaitingPlanConfirmation, setAwaitingPlanConfirmation] =
+    useState("unconfirmed");   // ← 初始默认就是 "unconfirmed"
+
+// onUpdateEvent:
+if (event.generate_plan) {
+    setAwaitingPlanConfirmation("confirmed");  // 收到 generate_plan 事件后置 confirmed
+}
+
+// handleSubmit:
+thread.submit({
+    ...
+    plan_status: awaitingPlanConfirmation,   // ← 每次提交都把当前标志塞进 state
+});</code></pre>
+        <p class="small">前端 <b>本地记忆</b> 用户当前是否处于"等待确认"阶段，下一次 submit 时翻转为 "confirmed"，从而让后端跳过 generate_plan。</p>
+      </div>
+    </div>
+
+    <!-- 3. 字段状态机 -->
+    <h2 id="sec-state">3. 字段状态机（围绕 <code>awaiting_plan_confirmation</code> 翻转）</h2>
+    <div class="panel">
+      <p>下图用 Mermaid stateDiagram 描述 <code>plan_status</code> 在节点之间的状态翻转。注意 <code>awaiting_plan_confirmation</code> 这个节点<b>不写任何字段</b>，它只读 <code>plan_status</code>；<code>plan_status</code> 的"翻转"实际上发生在 <b>前端 submit 那一刻</b>。</p>
+      <div class="mermaid">
+stateDiagram-v2
+    [*] --> unconfirmed : 首次进入 generate_plan，plan_status = "unconfirmed"
+
+    unconfirmed --> plan_just_generated : generate_plan 写入 plan / plan_messages<br/>plan_status 仍是 "unconfirmed"
+    plan_just_generated --> waiting : evaluate_plan: plan_status == "unconfirmed" →<br/>return "awaiting_plan_confirmation"
+    waiting --> waiting : 节点 lambda(state)=state<br/>(不写字段)
+
+    waiting --> confirmed : 用户点 "initiate research" / 输入"需求确认"<br/>前端 handleSubmit 把 plan_status="confirmed"<br/>提交到后端
+    waiting --> unconfirmed : 用户修改后用自由文本提交<br/>PlanReflection.satisfy = false<br/>replan 节点把 plan_status 写回 "unconfirmed"
+
+    confirmed --> generating_query : generate_plan 节点看到 confirmed → return {}<br/>evaluate_plan 路由到 generate_query
+    generating_query --> searching : web_search × N (Send)
+    searching --> critiquing : critique 节点
+    critiquing --> searching : !is_sufficient && loop<max
+    critiquing --> finalizing : is_sufficient || loop>=max
+    finalizing --> [*]
+
+    note right of waiting
+        ★ 这是 awaiting_plan_confirmation 节点
+        它是图执行暂停点；
+        字段 plan_status 由前端重新提交时决定
+    end note
+      </div>
+      <p class="small">解读：<b>橙色 <code>waiting</code></b> 状态对应的就是 <code>awaiting_plan_confirmation</code> 节点本身。等待期间 <code>plan_status</code> 字段值是 <code>"unconfirmed"</code>（这是该节点进入条件决定的）；<b>离开</b>等待态的只有两条路径——(a) 前端把状态翻成 <code>"confirmed"</code>，或 (b) 用户反馈让 <code>replan</code> 节点把状态写回 <code>"unconfirmed"</code>。两条路径都是后端 <b>读</b>前端塞进 submit payload 的 <code>plan_status</code>。</p>
+    </div>
+
+    <!-- 4. 时序 / 流程图 -->
+    <h2 id="sec-flow">4. 时序图（人 / 前端 / 后端 / LLM）</h2>
+    <div class="panel">
+      <p>完整 HITL 两轮交互。注意「前端拼装 <code>plan_status</code> → 后端节点读取」这条核心链路。</p>
+      <div class="mermaid">
+sequenceDiagram
+    autonumber
+    participant U as 👤 用户
+    participant FE as 🖥️ 前端 (React)
+    participant BE as ⚙️ LangGraph 后端
+    participant LLM as 🤖 LLM (Qwen)
+
+    rect rgb(255,247,237)
+      Note over U,LLM: Phase 1 — 计划生成（首轮）
+      U->>FE: 输入研究主题 + 选择 effort/model
+      FE->>FE: awaitingPlanConfirmation = "unconfirmed"（初始值）
+      FE->>BE: thread.submit({messages, plan_status:"unconfirmed", effort→query_count/loops, model})
+      BE->>LLM: generate_plan(plan_instructions)
+      LLM-->>BE: plan markdown
+      BE-->>BE: 写 plan / plan_messages / messages / plan_status="unconfirmed"
+      BE->>BE: evaluate_plan → "awaiting_plan_confirmation"
+      BE-->>FE: SSE event.generate_plan(plan)
+      FE-->>FE: onUpdateEvent: setAwaitingPlanConfirmation("confirmed")
+      FE-->>U: 渲染计划 + "initiate research" 按钮
+    end
+
+    rect rgb(254,249,195)
+      Note over U,LLM: Phase 2 — 软中断态 awaiting_plan_confirmation
+      U->>FE: (a) 点 "initiate research" 或 (b) 输入文本按探索
+      FE->>FE: handleSubmit 把当前 awaitingPlanConfirmation 字段塞入 payload
+      Note right of FE: "confirmed"（按钮路径）<br/>或 "unconfirmed"（修改路径）
+    end
+
+    rect rgb(240,253,244)
+      Note over U,LLM: Phase 3 — 后端读 plan_status 决定走法
+      BE->>BE: generate_plan(state)
+      alt plan_status == "confirmed"（按钮路径）
+        BE->>BE: return {} —— 不调 LLM，跳过生成
+        BE->>BE: evaluate_plan → GENERATE_SEARCH_NODE
+      else plan_status == "unconfirmed"（修改路径）
+        BE->>LLM: generate_plan(plan_instructions) —— 重做计划
+        LLM-->>BE: 新 plan
+        BE->>BE: evaluate_plan → evaluate_plan_reflection
+        BE->>LLM: PlanReflection.satisfy?
+        alt satisfy=true
+          BE->>BE: GENERATE_SEARCH_NODE
+        else satisfy=false
+          BE->>BE: replan → 再回 generate_plan
+        end
+      end
+    end
+
+    rect rgb(239,246,255)
+      Note over U,LLM: Phase 4 — 主调研循环（自动机）
+      loop research_loop_count < max
+        BE->>LLM: generate_query → search_query[]
+        BE->>BE: Send → web_search × N
+        BE->>BE: critique → is_sufficient?
+      end
+      BE->>LLM: final_answer → markdown 报告
+      BE-->>FE: event.finalize_answer(messages, sources_gathered)
+    end
+      </div>
+    </div>
+
+    <!-- 5. SVG 视角的暂停回路 -->
+    <h2 id="sec-pause">5. SVG 视角的暂停回路</h2>
+    <div class="panel">
+      <p>把整个图翻译成 SVG：用橙色菱形突出 <code>awaiting_plan_confirmation</code>，用箭头标出进入 / 离开 / 重入三条路径。注意 <b>"等待" 不是一个特殊的 LangGraph 机制</b>，而是一个普通节点 + 一个普通函数返回值；图引擎不会因为你"卡"在 awaiting_plan_confirmation 就报错，它只是把这个节点视为完成并把控制权交回给调度循环（前端 / SDK）。</p>
+      <svg viewBox="0 0 980 560" width="100%" style="background:#0b1220;border:1px solid var(--line);border-radius:10px">
+        <defs>
+          <marker id="arr3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="#94a3b8"/>
+          </marker>
+          <marker id="arr-amber" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="#facc15"/>
+          </marker>
+          <marker id="arr-cyan" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="#22d3ee"/>
+          </marker>
+          <marker id="arr-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="#22c55e"/>
+          </marker>
+        </defs>
+
+        <!-- START -->
+        <circle cx="60" cy="40" r="11" fill="#22c55e"/>
+        <text x="80" y="44" font-size="12" fill="#cbd5e1">START</text>
+
+        <!-- generate_plan -->
+        <rect x="20" y="90" width="170" height="50" rx="10" fill="#a78bfa22" stroke="#a78bfa"/>
+        <text x="105" y="112" font-size="13" fill="#ddd6fe" text-anchor="middle">generate_plan</text>
+        <text x="105" y="128" font-size="10" fill="#a78bfa" text-anchor="middle">graph.py:44</text>
+
+        <!-- evaluate_plan -->
+        <polygon points="320,115 410,90 500,115 410,140" fill="#a78bfa22" stroke="#a78bfa"/>
+        <text x="410" y="113" font-size="12" fill="#ddd6fe" text-anchor="middle">evaluate_plan</text>
+        <text x="410" y="128" font-size="10" fill="#a78bfa" text-anchor="middle">graph.py:78</text>
+
+        <!-- awaiting_plan_confirmation (主角) -->
+        <rect x="290" y="190" width="240" height="76" rx="12" fill="#facc1522" stroke="#facc15" stroke-width="2.5"/>
+        <text x="410" y="216" font-size="14" fill="#fde68a" text-anchor="middle" font-weight="bold">awaiting_plan_confirmation</text>
+        <text x="410" y="236" font-size="11" fill="#fde68a" text-anchor="middle">lambda state, config: state</text>
+        <text x="410" y="252" font-size="10" fill="#facc15" text-anchor="middle">graph.py:362 ★ 软中断点</text>
+
+        <!-- replan -->
+        <rect x="560" y="190" width="170" height="50" rx="10" fill="#a78bfa22" stroke="#a78bfa"/>
+        <text x="645" y="216" font-size="13" fill="#ddd6fe" text-anchor="middle">replan</text>
+        <text x="645" y="232" font-size="10" fill="#a78bfa" text-anchor="middle">graph.py:363</text>
+
+        <!-- generate_query -->
+        <rect x="20" y="190" width="200" height="50" rx="10" fill="#a78bfa22" stroke="#a78bfa"/>
+        <text x="120" y="216" font-size="13" fill="#ddd6fe" text-anchor="middle">generate_query</text>
+        <text x="120" y="232" font-size="10" fill="#a78bfa" text-anchor="middle">graph.py:121</text>
+
+        <!-- web_search -->
+        <rect x="20" y="290" width="200" height="50" rx="10" fill="#22d3ee22" stroke="#22d3ee"/>
+        <text x="120" y="316" font-size="13" fill="#a5f3fc" text-anchor="middle">web_search × N (Send)</text>
+        <text x="120" y="332" font-size="10" fill="#22d3ee" text-anchor="middle">graph.py:172</text>
+
+        <!-- critique -->
+        <polygon points="320,315 410,290 500,315 410,340" fill="#facc1522" stroke="#facc15"/>
+        <text x="410" y="313" font-size="12" fill="#fde68a" text-anchor="middle">critique</text>
+        <text x="410" y="328" font-size="10" fill="#facc15" text-anchor="middle">graph.py:220</text>
+
+        <!-- final_answer -->
+        <rect x="290" y="395" width="240" height="50" rx="10" fill="#a78bfa22" stroke="#a78bfa"/>
+        <text x="410" y="421" font-size="13" fill="#ddd6fe" text-anchor="middle">final_answer</text>
+        <text x="410" y="437" font-size="10" fill="#a78bfa" text-anchor="middle">graph.py:306</text>
+
+        <!-- END -->
+        <circle cx="410" cy="500" r="11" fill="#22c55e"/>
+        <text x="430" y="504" font-size="12" fill="#cbd5e1">END</text>
+
+        <!-- 用户按钮 -->
+        <rect x="780" y="90" width="180" height="60" rx="10" fill="#fb923c22" stroke="#fb923c"/>
+        <text x="870" y="115" font-size="12" fill="#fed7aa" text-anchor="middle">👤 用户按钮</text>
+        <text x="870" y="131" font-size="10" fill="#fb923c" text-anchor="middle">"initiate research"</text>
+
+        <!-- 前端 await state -->
+        <rect x="780" y="200" width="180" height="60" rx="10" fill="#60a5fa22" stroke="#60a5fa"/>
+        <text x="870" y="222" font-size="12" fill="#bfdbfe" text-anchor="middle">🖥️ 前端 useState</text>
+        <text x="870" y="240" font-size="10" fill="#60a5fa" text-anchor="middle">awaitingPlanConfirmation</text>
+
+        <!-- LLM box -->
+        <rect x="780" y="320" width="180" height="80" rx="10" fill="#f472b622" stroke="#f472b6"/>
+        <text x="870" y="345" font-size="12" fill="#fbcfe8" text-anchor="middle">🤖 LLM</text>
+        <text x="870" y="362" font-size="10" fill="#f472b6" text-anchor="middle">plan_instructions</text>
+        <text x="870" y="378" font-size="10" fill="#f472b6" text-anchor="middle">plan_reflection_instructions</text>
+
+        <!-- Arrows -->
+        <!-- START -> generate_plan -->
+        <line x1="55" y1="51" x2="105" y2="90" stroke="#94a3b8" marker-end="url(#arr3)"/>
+        <!-- generate_plan -> evaluate_plan -->
+        <line x1="190" y1="115" x2="320" y2="115" stroke="#94a3b8" marker-end="url(#arr3)"/>
+        <!-- evaluate_plan -> awaiting (orange - main path) -->
+        <path d="M410,140 L410,190" stroke="#facc15" stroke-width="2.5" marker-end="url(#arr-amber)"/>
+        <text x="420" y="170" font-size="11" fill="#fde68a" font-weight="bold">plan_status=="unconfirmed"</text>
+
+        <!-- evaluate_plan -> generate_query -->
+        <path d="M320,115 Q250,160 220,190" stroke="#94a3b8" fill="none" marker-end="url(#arr3)"/>
+        <text x="222" y="160" font-size="10" fill="#cbd5e1">关键词/满足 → GENERATE_SEARCH_NODE</text>
+
+        <!-- evaluate_plan -> replan -->
+        <line x1="500" y1="115" x2="560" y2="215" stroke="#94a3b8" marker-end="url(#arr3)"/>
+        <text x="510" y="160" font-size="10" fill="#cbd5e1">replan</text>
+
+        <!-- awaiting -> 用户按钮 -->
+        <path d="M530,228 Q700,200 780,170" stroke="#22d3ee" stroke-width="1.6" fill="none" marker-end="url(#arr-cyan)" stroke-dasharray="5 3"/>
+        <text x="600" y="180" font-size="10" fill="#67e8f9">前端用 onUpdateEvent 收到 generate_plan 事件</text>
+
+        <!-- 用户按钮 -> 前端 state -->
+        <line x1="870" y1="150" x2="870" y2="200" stroke="#94a3b8" marker-end="url(#arr3)"/>
+        <text x="878" y="180" font-size="10" fill="#94a3b8">setAwaitingPlanConfirmation("confirmed")</text>
+
+        <!-- 前端 state -> generate_plan (回环) -->
+        <path d="M780,250 Q500,80 190,100" stroke="#22c55e" stroke-width="1.8" fill="none" marker-end="url(#arr-green)" stroke-dasharray="6 4"/>
+        <text x="380" y="62" font-size="11" fill="#22c55e" font-weight="bold">前端 thread.submit(plan_status:"confirmed") → 重入 generate_plan</text>
+
+        <!-- generate_query -> web_search -->
+        <line x1="120" y1="240" x2="120" y2="290" stroke="#94a3b8" marker-end="url(#arr3)"/>
+        <!-- web_search -> critique -->
+        <path d="M220,315 Q260,315 320,315" stroke="#94a3b8" fill="none" marker-end="url(#arr3)"/>
+        <!-- critique -> web_search loop -->
+        <path d="M410,290 Q120,360 120,340" stroke="#facc15" fill="none" marker-end="url(#arr-amber)"/>
+        <text x="180" y="360" font-size="10" fill="#fde68a">follow_up_queries</text>
+        <!-- critique -> final_answer -->
+        <line x1="410" y1="340" x2="410" y2="395" stroke="#94a3b8" marker-end="url(#arr3)"/>
+        <text x="420" y="375" font-size="10" fill="#cbd5e1">is_sufficient</text>
+        <!-- final_answer -> END -->
+        <line x1="410" y1="445" x2="410" y2="490" stroke="#94a3b8" marker-end="url(#arr3)"/>
+
+        <!-- replan -> generate_plan -->
+        <path d="M645,190 Q645,90 190,100" stroke="#94a3b8" fill="none" stroke-dasharray="3 3" marker-end="url(#arr3)"/>
+        <text x="380" y="130" font-size="10" fill="#94a3b8">replan → plan_status="unconfirmed" → 回 generate_plan</text>
+
+        <!-- generate_plan <-> LLM -->
+        <path d="M780,360 Q700,80 190,90" stroke="#f472b6" fill="none" marker-end="url(#arr3)" stroke-dasharray="2 2"/>
+        <text x="650" y="345" font-size="10" fill="#f472b6">调 LLM 写计划 / PlanReflection 判定</text>
+
+        <!-- 标签 -->
+        <rect x="20" y="510" width="940" height="40" rx="8" fill="transparent" stroke="#facc15" stroke-dasharray="2 4"/>
+        <text x="32" y="535" font-size="12" fill="#fde68a">★ 橙色虚线 (前端→后端→前端) 是 "软中断" 的实际机制：节点本身不阻塞，靠前端发起 submit 触发下一次执行；</text>
+      </svg>
+      <p class="small">图例：实线 = LangGraph 节点之间路由；<span style="color:#22c55e">绿色虚线</span> = 前端 submit 触发的重入回路；<span style="color:#22d3ee">青色虚线</span> = SSE 事件回流；<span style="color:#f472b6">粉色虚线</span> = LLM 调用；<span style="color:#facc15;font-weight:bold">橙色实线</span> = 主路径上进入 <code>awaiting_plan_confirmation</code> 的条件分支。</p>
+    </div>
+
+    <!-- 6. Canvas 字段写入动画 -->
+    <h2 id="sec-canvas">6. Canvas 字段写入动画（可点播 5 个阶段）</h2>
+    <div class="panel">
+      <p>横向是<b>参与修改字段的 actor（前端 / 各 LangGraph 节点 / LLM）</b>，纵向是<b>OverallState 中的字段</b>。每个橙色实心圆点表示"该 actor 在这一阶段会向这个字段写入"。点击按钮切换阶段：</p>
+      <div class="controls">
+        <button data-stage="0" class="active">① 首次 submit → generate_plan</button>
+        <button data-stage="1">② 进入 awaiting_plan_confirmation</button>
+        <button data-stage="2">③ 前端把 plan_status 翻 confirmed 重新 submit</button>
+        <button data-stage="3">④ 后端跳过生成，evaluate_plan 路由</button>
+        <button data-stage="4">⑤ generate_query → web_search → critique → final_answer</button>
+      </div>
+      <div class="canvas-host">
+        <canvas id="fieldCanvas" width="1080" height="520" style="width:100%;max-width:1080px"></canvas>
+      </div>
+      <p class="small" id="stageHint" style="margin-top:8px"></p>
+      <p class="small" style="margin-top:6px">★ 重点：第 ② 阶段 <code>awaiting_plan_confirmation</code> 节点本身<b>不会向任何字段写入</b>——圆点只可能出现在"前端 setAwaitingPlanConfirmation"列上，但前端写的是 React 本地 state，不进入 graph state。</p>
+    </div>
+
+    <!-- 7. 修改主体表 -->
+    <h2 id="sec-modifier">7. 字段修改主体一览（围绕 awaiting_plan_confirmation 路由）</h2>
+    <div class="panel">
+      <p>下表把后端 LangGraph 节点、前端 React、本地 React state 三类修改主体区分开。"写入时机" 一栏标注了<b>是否在 <code>awaiting_plan_confirmation</code> 节点的"上游 / 下游 / 同级"</b>。</p>
+      <div class="scroll-x">
+      <table>
+        <thead>
+          <tr>
+            <th>字段</th>
+            <th>类型 / Reducer</th>
+            <th>默认</th>
+            <th>写入主体</th>
+            <th>读取主体</th>
+            <th>与 awaiting_plan_confirmation 的关系</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="pill status">plan_status</span></td>
+            <td><code>str</code>（覆盖）</td>
+            <td><code>"unconfirmed"</code></td>
+            <td>
+              <span class="pill frontend">前端 handleSubmit</span>：每次拼装时塞入（首次 <code>"unconfirmed"</code>，后续 <code>"confirmed"</code>）<br/>
+              <span class="pill node">generate_plan</span>：写 <code>"unconfirmed"</code><br/>
+              <span class="pill node">replan</span>：强制写 <code>"unconfirmed"</code><br/>
+              <span class="pill frontend">前端 useState</span>：本地 React state（不入 graph）
+            </td>
+            <td>
+              <span class="pill node">generate_plan</span>：<code>!= "unconfirmed"</code> 时直接 <code>return {}</code><br/>
+              <span class="pill node">evaluate_plan</span>：决定是否路由到 <code>awaiting_plan_confirmation</code>
+            </td>
+            <td><b>核心开关</b>。<code>== "unconfirmed"</code> 时路由到此节点；离开此节点完全靠前端重提交时翻转为 <code>"confirmed"</code>。</td>
+          </tr>
+          <tr>
+            <td><span class="pill status">plan</span></td>
+            <td><code>str</code>（覆盖）</td>
+            <td><code>""</code></td>
+            <td><span class="pill node">generate_plan</span>：写入 LLM 生成的 markdown</td>
+            <td>
+              <span class="pill node">evaluate_plan</span>：判断 <code>not plan</code> → replan<br/>
+              <span class="pill node">generate_query</span> / <span class="pill node">critique</span> / <span class="pill node">final_answer</span>：作为 <code>research_proposal</code> 注入 prompt
+            </td>
+            <td>此节点<b>不写不读 plan</b>。但因为 evaluate_plan 路径判断依赖 plan，间接影响下一次进入 awaiting_plan_confirmation 的可能。</td>
+          </tr>
+          <tr>
+            <td><span class="pill status">plan_messages</span></td>
+            <td><code>Annotated[list, add_messages]</code></td>
+            <td><code>[]</code></td>
+            <td><span class="pill node">generate_plan</span>：AIMessage(plan)</td>
+            <td><span class="pill node">generate_plan</span>：在 <code>get_research_topic</code> 里被 ignore，避免 plan 文本被当作 research_topic</td>
+            <td>此节点无关。作用是确保如果进入 replan → 再次 generate_plan，旧的 plan 文本不会污染新一轮的 research_topic。</td>
+          </tr>
+          <tr>
+            <td><span class="pill status">messages</span></td>
+            <td><code>Annotated[list, add_messages]</code></td>
+            <td><code>[]</code></td>
+            <td>
+              <span class="pill frontend">前端 thread.submit</span>：每轮追加 HumanMessage<br/>
+              <span class="pill node">generate_plan</span>：AIMessage(plan)<br/>
+              <span class="pill node">final_answer</span>：AIMessage(report)
+            </td>
+            <td>
+              <span class="pill node">evaluate_plan</span>：<code>get_last_user_response</code> 提取"需求确认"/"开始研究"<br/>
+              <span class="pill node">generate_query</span>：<code>get_research_topic</code> 拼上下文
+            </td>
+            <td>此节点无关。但是用户对此节点的反应（按按钮 / 输入文字）会落到 messages 字段，再由 evaluate_plan 在下一轮读出来。</td>
+          </tr>
+          <tr>
+            <td><span class="pill status">search_query / web_search_result / sources_gathered</span></td>
+            <td><code>Annotated[list, operator.add]</code></td>
+            <td><code>[]</code></td>
+            <td>
+              <span class="pill node">generate_query</span>：SearchQueryList.query<br/>
+              <span class="pill node">web_search × N</span>：追加
+            </td>
+            <td><span class="pill node">critique</span> / <span class="pill node">final_answer</span></td>
+            <td>此节点<b>上游</b>。一旦前端提交 <code>"confirmed"</code> 并通过 generate_query 路径，这些字段开始被填充——意味着流程已"过桥"，不再走软中断。</td>
+          </tr>
+          <tr>
+            <td><span class="pill status">initial_search_query_count / max_research_loops</span></td>
+            <td><code>int</code>（覆盖）</td>
+            <td>Configuration 默认 2 / 2</td>
+            <td><span class="pill frontend">前端 handleSubmit</span>：effort 翻译</td>
+            <td><span class="pill node">generate_query</span> / <span class="pill node">critique</span></td>
+            <td>此节点无关。但每次前端重提交都会重新覆盖这两个值（不影响语义，仅控制后续循环）。</td>
+          </tr>
+          <tr>
+            <td><span class="pill status">reasoning_model</span></td>
+            <td><code>str</code>（覆盖）</td>
+            <td><code>configurable.answer_model</code></td>
+            <td><span class="pill frontend">前端 handleSubmit</span></td>
+            <td><span class="pill node">critique</span> / <span class="pill node">final_answer</span></td>
+            <td>此节点无关。</td>
+          </tr>
+          <tr>
+            <td><span class="pill status">research_loop_count</span></td>
+            <td><code>int</code>（覆盖）</td>
+            <td><code>0</code></td>
+            <td><span class="pill node">critique</span>：每进入一次 +1</td>
+            <td><span class="pill node">route_evaluate</span></td>
+            <td>此节点无关。</td>
+          </tr>
+          <tr>
+            <td><span class="pill status">is_sufficient / knowledge_gap / follow_up_queries</span></td>
+            <td>bool / str / list</td>
+            <td>—</td>
+            <td><span class="pill node">critique</span></td>
+            <td><span class="pill node">route_evaluate</span></td>
+            <td>此节点无关。</td>
+          </tr>
+        </tbody>
+      </table>
+      </div>
+    </div>
+
+    <!-- 8. 一步步拆解 -->
+    <h2 id="sec-step">8. 一步步拆解（人 / 前端 / 后端 各自的动作）</h2>
+    <div class="panel">
+      <div class="step-grid">
+
+        <div class="step-card">
+          <span class="pill human">人</span>
+          <b>Step 1</b> 在 InputForm 输入研究主题 + 选择 effort/model，点「探索」。
+          <small>例：「企业级 AI Agent 落地方案深度调研」，effort=中。</small>
+        </div>
+
+        <div class="step-card">
+          <span class="pill frontend">前端</span>
+          <b>Step 2</b> InputForm.handleInternalSubmit → App.handleSubmit。
+          <small>读 <code>awaitingPlanConfirmation</code> 初始值 <code>"unconfirmed"</code>，与 effort/model 一起拼装 payload。</small>
+        </div>
+
+        <div class="step-card">
+          <span class="pill frontend">前端</span>
+          <b>Step 3</b> 调用 <code>thread.submit({...})</code>，把 payload 通过 SSE 推给 LangGraph API。
+          <small>关键字段：<code>messages</code> 追加 HumanMessage、<code>plan_status="unconfirmed"</code>、<code>initial_search_query_count=3</code>、<code>max_research_loops=3</code>、<code>reasoning_model</code>。</small>
+        </div>
+
+        <div class="step-card">
+          <span class="pill backend">后端</span>
+          <b>Step 4</b> LangGraph 进入 <code>generate_plan</code>。<code>plan_status=="unconfirmed"</code>，<b>不短路</b>，调 LLM 写计划。
+          <small>写回 <code>plan</code>、<code>plan_messages</code>、<code>messages</code>（AIMessage）。<code>plan_status</code> 仍写 <code>"unconfirmed"</code>。</small>
+        </div>
+
+        <div class="step-card">
+          <span class="pill backend">后端</span>
+          <b>Step 5</b> <code>evaluate_plan</code> 路由：<code>plan_status=="unconfirmed"</code> → 返回字符串 <code>"awaiting_plan_confirmation"</code>。
+          <small>这是此节点唯一的进入路径。</small>
+        </div>
+
+        <div class="step-card">
+          <span class="pill backend">后端</span>
+          <b>Step 6</b> <code>awaiting_plan_confirmation</code> 节点执行 <code>lambda state, config: state</code>。
+          <small>不写字段、不路由、不报错；图引擎视为完成，把控制权交回 SDK。</small>
+        </div>
+
+        <div class="step-card">
+          <span class="pill backend">后端</span>
+          <b>Step 7</b> SSE 流上发出 <code>event.generate_plan</code> 事件（含 plan 文本）。
+          <small>前端 useStream.onUpdateEvent 收到。</small>
+        </div>
+
+        <div class="step-card">
+          <span class="pill frontend">前端</span>
+          <b>Step 8</b> App.onUpdateEvent：<code>setAwaitingPlanConfirmation("confirmed")</code> + 追加 ProcessedEvent。
+          <small>这一步是<b>前端主动把"等待态"翻转为"可继续"</b>，是后续 submit 时跳过 generate_plan 的前提。</small>
+        </div>
+
+        <div class="step-card">
+          <span class="pill frontend">前端</span>
+          <b>Step 9</b> ChatMessagesView 渲染：检测到 activityForThisBubble 里有 <code>title === "生成计划"</code> → 显示 AI 消息 markdown + "initiate research" 按钮。
+          <small>按钮绑定 handleStartResearch：理论上要 setInputValue("需求确认") + submitInput("需求确认")（详见第 9 节）。</small>
+        </div>
+
+        <div class="step-card">
+          <span class="pill human">人</span>
+          <b>Step 10</b> 用户做三种动作之一。
+          <small>
+            (a) 点按钮 → 触发 handleStartResearch → 提交 <code>"需求确认"</code><br/>
+            (b) 在 InputForm 输入修改意见 → 提交自由文本<br/>
+            (c) 刷新页面 → 重置所有状态
+          </small>
+        </div>
+
+        <div class="step-card">
+          <span class="pill frontend">前端</span>
+          <b>Step 11</b> handleSubmit：把 <code>awaitingPlanConfirmation</code>（此时 <code>"confirmed"</code>）作为 <code>plan_status</code> 塞进 payload。
+          <small>对路径 (a)：按钮 → setInputValue + submitInput → onSubmit → handleSubmit → submit。<br/>
+          对路径 (b)：用户输入 → handleInternalSubmit → onSubmit → handleSubmit → submit。</small>
+        </div>
+
+        <div class="step-card">
+          <span class="pill backend">后端</span>
+          <b>Step 12</b> 新一轮进入 <code>generate_plan</code>。<code>plan_status=="confirmed"</code> → 直接 <code>return {}</code> 跳过 LLM。
+          <small>这是 generate_plan 内 <code>if state.get("plan_status", "unconfirmed") != "unconfirmed": return {}</code> 的反向短路。</small>
+        </div>
+
+        <div class="step-card">
+          <span class="pill backend">后端</span>
+          <b>Step 13</b> <code>evaluate_plan</code> 二次路由：<br/>
+          <small>
+            • 消息含 <code>"开始研究"</code> / <code>"需求确认"</code> → 直接 generate_query<br/>
+            • 否则 JsonAgent + plan_reflection_instructions 判断 satisfy<br/>
+            • satisfy=true → generate_query；satisfy=false → replan（写回 plan_status="unconfirmed"）→ 再次 generate_plan
+          </small>
+        </div>
+
+        <div class="step-card">
+          <span class="pill backend">后端</span>
+          <b>Step 14</b> 进入主流程：generate_query → Send → web_search × N → critique → (循环) → final_answer。
+          <small>此时图已经不再走 awaiting_plan_confirmation（HITL 已"过桥"）。</small>
+        </div>
+
+        <div class="step-card">
+          <span class="pill frontend">前端</span>
+          <b>Step 15</b> useStream 持续收到事件（generate_query / web_research / reflection / finalize_answer），ActivityTimeline 实时刷新；finalize_answer 后历史活动存档到 historicalActivities。
+          <small>用户可在 InputForm 继续输入追加消息，后续走相同路径但不再回到 awaiting_plan_confirmation（除非用户显式让 PlanReflection.satisfy=false 触发 replan）。</small>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- 9. 现状与坑 -->
+    <h2 id="sec-pitfalls">9. 现状、坑与改进方向</h2>
+    <div class="panel">
+      <h3>9.1 「initiate research」按钮目前是"哑"的</h3>
+      <p><code>ChatMessagesView.handleStartResearch</code> 内部用了 <code>inputFormRef.current.setInputValue("需求确认")</code> 和 <code>inputFormRef.current.submitInput("需求确认")</code>，但是 <code>InputForm.tsx</code> 既没用 <code>React.forwardRef</code> 也没用 <code>useImperativeHandle</code>，所以这两个方法在 ref 上都是 <code>undefined</code>：</p>
+<pre><code>// frontend/src/components/ChatMessagesView.tsx:302-311
+const handleStartResearch = () => {
+  if (inputFormRef.current &amp;&amp; typeof inputFormRef.current.setInputValue === 'function') {
+    inputFormRef.current.setInputValue("需求确认");
+    setResearchStarted(true);
+    if (typeof inputFormRef.current.submitInput === 'function') {
+      inputFormRef.current.submitInput("需求确认");
+    }
+  }
+  // ↑ 由于 InputForm 没有暴露这两个方法，整段是 no-op
+};</code></pre>
+      <p class="small">结果：点击按钮后 React 状态 <code>researchStarted</code> 永远不会被置为 true，按钮 label 也不会变；要真正"开始研究"只能自己在 InputForm 里手动输入 <code>"需求确认"</code> 或 <code>"开始研究"</code> 再点探索。</p>
+
+      <h3>9.2 前端 <code>awaitingPlanConfirmation</code> 是单 bit 状态机</h3>
+      <p>仅有两个值："unconfirmed" / "confirmed"。重新加载页面后会回到初始值。如果用户在 awaiting_plan_confirmation 期间切换 tab 后回来，无法从 UI 区分"是否已经生成过计划"。</p>
+
+      <h3>9.3 后端 <code>plan_status</code> 没有持久化</h3>
+      <p>LangGraph 的图本身没有用 checkpointer，每次 submit 都是无状态的。完全靠前端记忆 + 每次重提交来"伪造"状态。这对开发期简单可调试，但生产环境若要做"用户离开再回来能恢复"则需要补 PostgreSQL/SqliteSaver。</p>
+
+      <h3>9.4 plan_messages 写重复</h3>
+      <p>每次 <code>generate_plan</code> 都会 <code>return {"plan_messages": [AIMessage(content=response)]}</code>，由于 <code>add_messages</code> reducer 是按 id 去重的，如果没有显式 id，AIMessage 会被累加——这一点 <code>frontend/src/components/ChatMessagesView.tsx</code> 的"判断最后一条 AI 消息是否含生成计划"逻辑依赖去重后的最新一条。</p>
+
+      <h3>9.5 PlanReflection.satisfy=false 之后的回路是隐式的</h3>
+      <p>用户输入修改意见 → LLM 判定不满足 → <code>replan</code> 节点把 <code>plan_status="unconfirmed"</code> → 再次进入 <code>generate_plan</code> → 重做计划 → 再次进入 <code>awaiting_plan_confirmation</code>。这一轮回路由 evaluate_plan 拼接完成，<b>用户会看到第二次 "生成计划" 事件</b>，前端需要正确把它再次渲染为"研究计划"分支（带按钮），而不是当成普通 AI 消息。</p>
+
+      <h3>9.6 改进方向</h3>
+      <ul>
+        <li>给 InputForm 加 <code>React.forwardRef</code> + <code>useImperativeHandle({ setInputValue, submitInput })</code>，让按钮真正生效。</li>
+        <li>把 <code>plan_status</code> 改为更语义化的枚举：<code>"drafting" | "awaiting_review" | "approved" | "revising"</code>，方便 UI 区分状态。</li>
+        <li>考虑加 LangGraph 的 <code>interrupt</code> 工具，把"等待"做成硬中断（需要配 checkpointer）；但会改变当前的"前端拼装、后端读取"模型，需要重新设计调用方。</li>
+      </ul>
+    </div>
+
+    <!-- 10. 一句话总结 -->
+    <h2 id="sec-takeaway">10. 一句话总结</h2>
+    <div class="panel pause">
+      <p><b><code>awaiting_plan_confirmation</code> 本身是一个"什么也不做"的 lambda 节点</b>；它"暂停"图的能力完全来自于 <code>evaluate_plan</code> 路由函数 <code>return "awaiting_plan_confirmation"</code> 这一行——而从该节点"恢复"则完全靠<b>前端在 <code>thread.submit</code> 时把 <code>plan_status</code> 字段从 <code>"unconfirmed"</code> 翻成 <code>"confirmed"</code></b>，让 <code>generate_plan</code> 的反向短路触发跳过生成。<b>后端不参与状态管理</b>：后端只在每次 submit 时"读"一次字段、"判断"一次路由；状态本身由前端 React 本地 <code>useState</code> 维护 + 每次重新拼接回 payload。</p>
+      <p class="small">这种设计的本质：把 LangGraph 当成"按调用执行的纯函数管道"，HITL 状态用 React state + URL 不变量表达，graph 本身保持简单（只有 1 个 lambda 节点 + 1 个路由分支 + 1 个状态字段）。</p>
+    </div>
+
+    <footer>
+      © 2026 Deep Research Case · awaiting_plan_confirmation Deep Dive · 由 MiniMax-M3 基于源码静态分析自动生成 · 文件位于 <code>docs/hitl_awaiting_plan_confirmation_deepdive.html</code>
+    </footer>
+  </div>
+
+  <!-- ============== SCRIPTS ============== -->
+  <script>
+    // ---- Mermaid init ----
+    mermaid.initialize({startOnLoad:true, theme:'dark', themeVariables:{fontFamily:'inherit', primaryColor:'#16223c', primaryTextColor:'#e2e8f0', primaryBorderColor:'#60a5fa', lineColor:'#94a3b8', tertiaryColor:'#0b1220'}, flowchart:{curve:'basis'}, sequence:{actorMargin:50}});
+
+    // ---- Canvas 字段-actor 网格 ----
+    const stages = [
+      {
+        title: '① 首次 submit → generate_plan',
+        hint: '前端 handleSubmit 把 plan_status="unconfirmed" + 各种字段塞入 payload；generate_plan 节点写 plan / plan_messages / messages，plan_status 仍保持 "unconfirmed"。',
+        writes: [
+          { field: 'messages',                    actor: '前端 thread.submit',           color: '#60a5fa' },
+          { field: 'plan',                        actor: 'generate_plan (LLM)',          color: '#a78bfa' },
+          { field: 'plan_status',                 actor: '前端 / generate_plan',         color: '#60a5fa' },
+          { field: 'plan_messages',               actor: 'generate_plan',                color: '#a78bfa' },
+          { field: 'initial_search_query_count',  actor: '前端 effort→',                 color: '#60a5fa' },
+          { field: 'max_research_loops',          actor: '前端 effort→',                 color: '#60a5fa' },
+          { field: 'reasoning_model',             actor: '前端 handleSubmit',            color: '#60a5fa' },
+        ],
+      },
+      {
+        title: '② 进入 awaiting_plan_confirmation',
+        hint: '★ 该节点本身 = lambda(state)=state；不写任何字段。前端唯一的"动作"是把本地 React state awaitingPlanConfirmation 翻成 "confirmed"，但本地 React state 不进 graph state。',
+        writes: [
+          // 显式标注：没有写
+          { field: '__NONE__', actor: '(该节点不写任何 graph 字段)', color: '#475569' },
+        ],
+      },
+      {
+        title: '③ 前端把 plan_status 翻 confirmed 重新 submit',
+        hint: '用户在 InputForm 输入 "需求确认" 或自由文本 → handleSubmit 读取 awaitingPlanConfirmation="confirmed" → thread.submit 把 plan_status="confirmed" 发给后端。',
+        writes: [
+          { field: 'messages',                    actor: '前端 thread.submit',           color: '#60a5fa' },
+          { field: 'plan_status',                 actor: '前端 thread.submit',           color: '#60a5fa' },
+          { field: 'initial_search_query_count',  actor: '前端 (覆盖)',                  color: '#60a5fa' },
+          { field: 'max_research_loops',          actor: '前端 (覆盖)',                  color: '#60a5fa' },
+          { field: 'reasoning_model',             actor: '前端 (覆盖)',                  color: '#60a5fa' },
+        ],
+      },
+      {
+        title: '④ 后端跳过生成，evaluate_plan 路由',
+        hint: 'generate_plan 看到 plan_status=="confirmed" → return {}；evaluate_plan 看 plan 存在 + 消息含"需求确认/开始研究"或 PlanReflection.satisfy=true → generate_query；否则 → replan（写回 unconfirmed）→ 重入 generate_plan。',
+        writes: [
+          { field: 'plan_status',                 actor: 'replan (若走 replan 分支)',   color: '#facc15' },
+          { field: 'plan',                        actor: 'generate_plan (若走 replan)',  color: '#a78bfa' },
+        ],
+      },
+      {
+        title: '⑤ generate_query → web_search → critique → final_answer',
+        hint: '主调研循环：generate_query 写 search_query；web_search × N 追加 search_query/web_search_result/sources_gathered；critique 写 research_loop_count/is_sufficient/follow_up_queries；final_answer 写 messages + sources_gathered (过滤后)。',
+        writes: [
+          { field: 'search_query',                actor: 'generate_query',               color: '#a78bfa' },
+          { field: 'search_query',                actor: 'web_search × N',               color: '#22d3ee' },
+          { field: 'web_search_result',           actor: 'web_search × N',               color: '#22d3ee' },
+          { field: 'sources_gathered',            actor: 'web_search × N',               color: '#22d3ee' },
+          { field: 'research_loop_count',         actor: 'critique',                     color: '#facc15' },
+          { field: 'is_sufficient',               actor: 'critique',                     color: '#facc15' },
+          { field: 'knowledge_gap',               actor: 'critique',                     color: '#facc15' },
+          { field: 'follow_up_queries',           actor: 'critique',                     color: '#facc15' },
+          { field: 'sources_gathered',            actor: 'final_answer (过滤后)',        color: '#a78bfa' },
+          { field: 'messages',                    actor: 'final_answer',                 color: '#a78bfa' },
+        ],
+      },
+    ];
+
+    const fields = ['messages','plan','plan_status','plan_messages','search_query','web_search_result','sources_gathered','initial_search_query_count','max_research_loops','research_loop_count','reasoning_model','is_sufficient'];
+    const canvas = document.getElementById('fieldCanvas');
+    const ctx = canvas.getContext('2d');
+
+    function draw(stageIdx){
+      const stage = stages[stageIdx];
+      const W = canvas.width, H = canvas.height;
+      ctx.clearRect(0,0,W,H);
+      ctx.fillStyle = '#0b1220';
+      ctx.fillRect(0,0,W,H);
+
+      // Title
+      ctx.fillStyle = '#fde68a';
+      ctx.font = 'bold 15px sans-serif';
+      ctx.fillText(stage.title, 20, 26);
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '11px sans-serif';
+      ctx.fillText('★ 实心圆点 = 该 actor 在此阶段会向这个字段写入；橙黄星 = 主角 awaiting_plan_confirmation 节点不写任何字段', 20, 44);
+
+      const actors = [
+        { key: 'frontend',      label: '🖥️ 前端 (React)',  color: '#60a5fa' },
+        { key: 'generate_plan', label: 'generate_plan',     color: '#a78bfa' },
+        { key: 'await',         label: 'awaiting_plan_confirmation', color: '#facc15' },
+        { key: 'replan',        label: 'replan',            color: '#facc15' },
+        { key: 'evaluate_plan', label: 'evaluate_plan',     color: '#a78bfa' },
+        { key: 'generate_query',label: 'generate_query',    color: '#a78bfa' },
+        { key: 'web_search',    label: 'web_search × N',    color: '#22d3ee' },
+        { key: 'critique',      label: 'critique',          color: '#facc15' },
+        { key: 'final_answer',  label: 'final_answer',      color: '#a78bfa' },
+      ];
+      const colW = (W-200) / actors.length;
+
+      // columns
+      actors.forEach((a,i)=>{
+        const x = 200 + i*colW;
+        const isMain = a.key === 'await';
+        ctx.fillStyle = isMain ? 'rgba(250,204,21,0.08)' : a.color + '14';
+        ctx.strokeStyle = isMain ? '#facc15' : a.color;
+        ctx.lineWidth = isMain ? 2 : 1;
+        ctx.fillRect(x, 60, colW-10, H-80);
+        ctx.strokeRect(x, 60, colW-10, H-80);
+        ctx.fillStyle = isMain ? '#fde68a' : a.color;
+        ctx.font = '11px sans-serif';
+        ctx.fillText(a.label, x+8, 76);
+        if(isMain){
+          ctx.font = '10px sans-serif';
+          ctx.fillText('(本图主角)', x+8, 92);
+        }
+      });
+
+      // rows
+      const rowH = (H-110) / fields.length;
+      fields.forEach((f,i)=>{
+        const y = 100 + i*rowH;
+        ctx.fillStyle = i%2===0 ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.04)';
+        ctx.fillRect(0, y, W, rowH);
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = '11px monospace';
+        ctx.fillText(f, 10, y + rowH/2 + 4);
+        ctx.strokeStyle = '#1e293b';
+        ctx.beginPath();
+        ctx.moveTo(200, y+rowH);
+        ctx.lineTo(W, y+rowH);
+        ctx.stroke();
+      });
+
+      // plot writes
+      if(stage.writes[0] && stage.writes[0].field === '__NONE__'){
+        // special stage 2: draw "no write" indicator across the row
+        ctx.fillStyle = 'rgba(250,204,21,0.10)';
+        ctx.fillRect(200, 60, W-200, H-80);
+        ctx.fillStyle = '#fde68a';
+        ctx.font = 'bold 14px sans-serif';
+        ctx.fillText('✕  无字段写入 — 该节点是 lambda(state, config) = state', 220, H/2);
+        ctx.font = '12px sans-serif';
+        ctx.fillStyle = '#94a3b8';
+        ctx.fillText('（前端本地 React state awaitingPlanConfirmation 翻成 "confirmed"，但不进 graph state）', 220, H/2+22);
+      } else {
+        stage.writes.forEach(w => {
+          const rowIdx = fields.indexOf(w.field);
+          if(rowIdx < 0) return;
+          const yMid = 100 + rowIdx*rowH + rowH/2;
+          const actorKey = w.actor.includes('web_search') ? 'web_search'
+                          : w.actor.includes('前端') ? 'frontend'
+                          : w.actor.includes('generate_plan') ? 'generate_plan'
+                          : w.actor.includes('generate_query') ? 'generate_query'
+                          : w.actor.includes('critique') ? 'critique'
+                          : w.actor.includes('final_answer') ? 'final_answer'
+                          : w.actor.includes('replan') ? 'replan'
+                          : w.actor.includes('evaluate_plan') ? 'evaluate_plan'
+                          : 'await';
+          const actorIdx = actors.findIndex(a => a.key === actorKey);
+          if(actorIdx < 0) return;
+          const xMid = 200 + actorIdx*colW + (colW-10)/2;
+          ctx.beginPath();
+          ctx.arc(xMid, yMid, 9, 0, Math.PI*2);
+          ctx.fillStyle = w.color;
+          ctx.fill();
+          ctx.strokeStyle = '#0b1220';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+          ctx.fillStyle = '#e2e8f0';
+          ctx.font = '9px sans-serif';
+          // label on the right of the dot if space allows
+          ctx.fillText(w.actor, Math.min(xMid+14, W-180), yMid+3);
+        });
+      }
+
+      document.getElementById('stageHint').innerText = stage.hint;
+    }
+
+    document.querySelectorAll('.controls button').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        document.querySelectorAll('.controls button').forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active');
+        draw(parseInt(btn.dataset.stage));
+      });
+    });
+    draw(0);
+  </script>
+</body>
+</html>

@@ -13,15 +13,13 @@ import {
   ProcessedEvent,
 } from "@/components/ActivityTimeline"; // Assuming ActivityTimeline is in the same dir or adjust path
 
-import remarkGfm from 'remark-gfm';
-
-
 // Markdown component props type from former ReportView
 type MdComponentProps = {
   className?: string;
   children?: ReactNode;
   [key: string]: any;
 };
+import remarkGfm from 'remark-gfm';
 
 // Markdown components (from former ReportView.tsx)
 const mdComponents = {
@@ -109,65 +107,32 @@ const mdComponents = {
   hr: ({ className, ...props }: MdComponentProps) => (
     <hr className={cn("border-neutral-600 my-4", className)} {...props} />
   ),
-  tbody: ({ className, children, ...props }: MdComponentProps) => {
-    return (
-      <tbody className={cn("divide-y divide-neutral-700", className)} {...props}>
+  table: ({ className, children, ...props }: MdComponentProps) => (
+    <div className="my-3 overflow-x-auto">
+      <table className={cn("border-collapse w-full", className)} {...props}>
         {children}
-      </tbody>
-    );
-  },
-  thead: ({ className, children, ...props }: MdComponentProps) => {
-    return (
-      <thead className={cn("bg-neutral-800", className)} {...props}>
-        {children}
-      </thead>
-    );
-  },
-  table: ({ className, children, ...props }: MdComponentProps) => {
-    // 为了解决 "this.setData is not a function" 错误，我们需要特殊处理 table 组件
-    // 移除可能导致冲突的特殊属性
-    const { node, ...restProps } = props;
-    return (
-      <div className="my-3 overflow-x-auto rounded-lg border border-neutral-700">
-        <table className={cn("border-collapse w-full text-sm", className)} {...restProps}>
-          {children}
-        </table>
-      </div>
-    );
-  },
-  th: ({ className, children, ...props }: MdComponentProps) => {
-    return (
-      <th
-        className={cn(
-          "px-4 py-2 text-left font-bold text-neutral-200",
-          className
-        )}
-        {...props}
-      >
-        {children}
-      </th>
-    );
-  },
-  td: ({ className, children, ...props }: MdComponentProps) => {
-    return (
-      <td
-        className={cn("px-4 py-2 text-neutral-300", className)}
-        {...props}
-      >
-        {children}
-      </td>
-    );
-  },
-  tr: ({ className, children, ...props }: MdComponentProps) => {
-    return (
-      <tr
-        className={cn("hover:bg-neutral-750", className)}
-        {...props}
-      >
-        {children}
-      </tr>
-    );
-  },
+      </table>
+    </div>
+  ),
+  th: ({ className, children, ...props }: MdComponentProps) => (
+    <th
+      className={cn(
+        "border border-neutral-600 px-3 py-2 text-left font-bold",
+        className
+      )}
+      {...props}
+    >
+      {children}
+    </th>
+  ),
+  td: ({ className, children, ...props }: MdComponentProps) => (
+    <td
+      className={cn("border border-neutral-600 px-3 py-2", className)}
+      {...props}
+    >
+      {children}
+    </td>
+  ),
 };
 
 // Props for HumanMessageBubble
@@ -181,14 +146,11 @@ const HumanMessageBubble: React.FC<HumanMessageBubbleProps> = ({
   message,
   mdComponents,
 }) => {
-  // 添加调试信息
-  console.log('Rendering human message with content:', message.content);
-
   return (
     <div
       className={`text-white rounded-3xl break-words min-h-7 bg-neutral-700 max-w-[100%] sm:max-w-[90%] px-4 pt-3 rounded-br-lg`}
     >
-      <ReactMarkdown  remarkPlugins={[remarkGfm]}  components={mdComponents}>
+      <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>
         {typeof message.content === "string"
           ? message.content
           : JSON.stringify(message.content)}
@@ -226,26 +188,23 @@ const AiMessageBubble: React.FC<AiMessageBubbleProps> = ({
   researchStarted,
   showStartResearchButton,
 }) => {
-  // 添加调试信息
-  console.log('Rendering AI message with content:', message.content);
-
   // Determine which activity events to show and if it's for a live loading message
   const activityForThisBubble =
     isLastMessage && isOverallLoading ? liveActivity : historicalActivity;
   const isLiveActivityForThisBubble = isLastMessage && isOverallLoading;
 
-  // 判断是否包含 title 为 "Generating Plan" 的事件
+  // 判断是否包含 title 为 "生成研究计划..." 的事件
   const hasGeneratingSearchPlan = (activityForThisBubble || []).some(
-    (event) => event.title === "Generating Plan"
+    (event) => event.title === "生成计划"
   );
   const timelineTitle = hasGeneratingSearchPlan ? "initiate research" : "researching";
 
   return (
     <div className={`relative break-words flex flex-col`}>
-      {/* 如果是"研究计划"且有onStartResearch，只展示ReactMarkdown，不展示ActivityTimeline和Button */}
-      {timelineTitle === "Generating Plan" && onStartResearch ? (
+      {/* 如果是“研究计划”且有onStartResearch，只展示ReactMarkdown，不展示ActivityTimeline和Button */}
+      {timelineTitle === "生成计划" && onStartResearch ? (
         <div className="mb-3 border-b border-neutral-700 pb-3 text-xs">
-          <ReactMarkdown  remarkPlugins={[remarkGfm]} components={mdComponents}>
+          <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>
             {typeof message.content === "string"
               ? message.content
               : JSON.stringify(message.content)}
@@ -278,7 +237,7 @@ const AiMessageBubble: React.FC<AiMessageBubbleProps> = ({
             </div>
           )}
           {/* 只有不满足 研究计划 且 onStartResearch 时才渲染内容和复制按钮 */}
-          <ReactMarkdown  remarkPlugins={[remarkGfm]}  components={mdComponents}>
+          <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>
             {typeof message.content === "string"
               ? message.content
               : JSON.stringify(message.content)}
@@ -362,7 +321,7 @@ export function ChatMessagesView({
               if (message.type !== "human") {
                 const isLast = idx === messages.length - 1;
                 const activityForThisBubble = isLast && isLoading ? liveActivityEvents : historicalActivities[message.id!];
-                if ((activityForThisBubble || []).some((event) => event.title === "Generating Plan")) {
+                if ((activityForThisBubble || []).some((event) => event.title === "生成计划")) {
                   lastResearchProposalIdx = idx;
                 }
               }
@@ -374,7 +333,7 @@ export function ChatMessagesView({
               let activityForThisBubble = isLast && isLoading ? liveActivityEvents : historicalActivities[message.id!];
               if (message.type !== "human" && activityForThisBubble) {
                 hasGeneratingSearchPlan = (activityForThisBubble || []).some(
-                  (event) => event.title === "Generating Plan"
+                  (event) => event.title === "生成计划"
                 );
                 showStartResearch = hasGeneratingSearchPlan && index === lastResearchProposalIdx;
               }
@@ -427,7 +386,7 @@ export function ChatMessagesView({
                   ) : (
                     <div className="flex items-center justify-start h-full">
                       <Loader2 className="h-5 w-5 animate-spin text-neutral-400 mr-2" />
-                      <span>处理中，因为要搜索的资料很多，请耐心等候...</span>
+                      <span>处理中...</span>
                     </div>
                   )}
                 </div>

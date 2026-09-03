@@ -3,10 +3,13 @@ from langchain_core.messages import AnyMessage, AIMessage, HumanMessage
 from loguru import logger
 
 
-def get_research_topic(messages: List[AnyMessage]) -> str:
+def get_research_topic(messages: List[AnyMessage], ignore_contexts: List[str]=None) -> str:
     """
     从messages中获取research主题。
     """
+    # check if request has a history and combine the messages into a single string
+    if not ignore_contexts:
+        ignore_contexts = []
     if len(messages) == 1:
         research_topic = messages[-1].content
     else:
@@ -14,10 +17,15 @@ def get_research_topic(messages: List[AnyMessage]) -> str:
         for message in messages:
             if isinstance(message, HumanMessage):
                 research_topic += f"User: {message.content}\n"
-            elif isinstance(message, AIMessage):
+            elif isinstance(message, AIMessage) and message.content not in ignore_contexts:
                 research_topic += f"Assistant: {message.content}\n"
     return research_topic
 
+def get_last_user_response(messages: List[AnyMessage]) -> str:
+    user_messages = [msg for msg in messages if isinstance(msg, HumanMessage)]
+    if user_messages:
+        return f"User: {user_messages[-1].content}\n"
+    return ""
 
 def resolve_urls(urls_to_resolve: List[Any], id: int) -> Dict[str, str]:
     """

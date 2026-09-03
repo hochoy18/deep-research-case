@@ -21,3 +21,9 @@ class Reflection(BaseModel):
     follow_up_queries: List[str] = Field(
         description="解决知识差距的后续查询列表."
     )
+
+
+class PlanReflection(BaseModel):
+    satisfy: bool = Field(
+        description="用户对生成的研究计划是否满意."
+    )
