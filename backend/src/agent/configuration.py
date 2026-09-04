@@ -3,6 +3,7 @@ import json
 from pydantic import BaseModel, Field
 from typing import Any, Optional, List
 from langchain_core.runnables import RunnableConfig
+from loguru import logger
 
 
 class ModelConfig(BaseModel):
@@ -20,20 +21,21 @@ def load_available_models_from_env() -> List[ModelConfig]:
     if not models_json:
         # 默认模型列表
         return [
-            ModelConfig(model_id="qwen3.6-flash", display_name="Qwen-Flash", icon="Zap", icon_color="yellow-400"),
-            ModelConfig(model_id="qwen3.6-plus", display_name="Qwen-Plus", icon="Zap", icon_color="orange-400"),
-            ModelConfig(model_id="qwen3.7-max", display_name="Qwen-Max", icon="Cpu", icon_color="purple-400"),
+            ModelConfig(model_id="qwen3.6-flash-2026-04-16", display_name="Qwen-Flash", icon="Zap", icon_color="yellow-400"),
+            ModelConfig(model_id="qwen3.6-plus-2026-04-02", display_name="Qwen-Plus", icon="Zap", icon_color="orange-400"),
+            ModelConfig(model_id="qwen3.7-max-2026-05-20", display_name="Qwen-Max", icon="Cpu", icon_color="purple-400"),
         ]
     
     try:
         models_data = json.loads(models_json)
+        # logger.info(f"从环境变量加载模型列表： {models_data}")
         return [ModelConfig(**model) for model in models_data]
     except Exception as e:
         print(f"警告: 解析AVAILABLE_MODELS失败，使用默认模型列表。错误: {e}")
         return [
-            ModelConfig(model_id="qwen3.6-flash", display_name="Qwen-Flash", icon="Zap", icon_color="yellow-400"),
-            ModelConfig(model_id="qwen3.6-plus", display_name="Qwen-Plus", icon="Zap", icon_color="orange-400"),
-            ModelConfig(model_id="qwen3.7-max", display_name="Qwen-Max", icon="Cpu", icon_color="purple-400"),
+            ModelConfig(model_id="qwen3.6-flash-2026-04-16", display_name="Qwen-Flash", icon="Zap", icon_color="yellow-400"),
+            ModelConfig(model_id="qwen3.6-plus-2026-04-02", display_name="Qwen-Plus", icon="Zap", icon_color="orange-400"),
+            ModelConfig(model_id="qwen3.7-max-2026-05-20", display_name="Qwen-Max", icon="Cpu", icon_color="purple-400"),
         ]
 
 
@@ -41,8 +43,8 @@ def get_default_model_id() -> str:
     """获取默认模型ID（模型列表的最后一项）"""
     models = load_available_models_from_env()
     if models:
-        return models[-1].model_id
-    return "qwen3.7-max"  # 兜底默认值
+        return models[1].model_id
+    return "qwen3.7-max-2026-05-20"  # 兜底默认值
 
 
 class Configuration(BaseModel):

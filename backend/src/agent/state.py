@@ -22,6 +22,14 @@ class OverallState(TypedDict):
     max_research_loops: int
     research_loop_count: int
     reasoning_model: str
+    # WriterAgent 内部状态
+    report_outline: str
+    report_draft: str
+    # ResearchAgent 循环控制
+    is_sufficient: bool
+    knowledge_gap: str
+    follow_up_queries: Annotated[list, operator.add]
+    number_of_ran_queries: int
 
 
 class ReflectionState(TypedDict):

@@ -122,19 +122,19 @@ export const InputForm: React.FC<InputFormProps> = ({
                   value="low"
                   className="hover:bg-neutral-600 focus:bg-neutral-600 cursor-pointer"
                 >
-                  低
+                  快速
                 </SelectItem>
                 <SelectItem
                   value="medium"
                   className="hover:bg-neutral-600 focus:bg-neutral-600 cursor-pointer"
                 >
-                  中
+                  均衡
                 </SelectItem>
                 <SelectItem
                   value="high"
                   className="hover:bg-neutral-600 focus:bg-neutral-600 cursor-pointer"
                 >
-                  高
+                  全面
                 </SelectItem>
               </SelectContent>
             </Select>

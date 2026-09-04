@@ -75,7 +75,7 @@ def get_web_search_rate_limiter(max_qps: float = None) -> RateLimiter:
 
 class Agent:
     step_prompt = """{prompt}"""
-    def __init__(self, model_id="qwen2.5-72b-instruct"):
+    def __init__(self, model_id="deepseek-v4-flash"):
         self.llm = OpenAICompatibleLLM(model_id=model_id)
 
     def __call__(self, prompt):
@@ -110,10 +110,14 @@ class Agent:
 
 
 class JsonAgent(Agent):
-    def __init__(self, model_id="qwen2.5-72b-instruct", keys=None):
+    def __init__(self, model_id="deepseek-v4-flash", keys=None):
         super().__init__(model_id)
         self.keys = keys
 
+    # JsonAgent.post_process方法中，self.keys参数可接收Pydantic模型类
+    # 通过self.keys(**result)
+    # 将解析的JSON字典解包传入模型构造函数
+    # Pydantic会自动进行字段验证和类型转换
     def post_process(self, response):
         result = json.loads(Post.extract_pattern(response, pattern="json"))
         if not self.keys:
@@ -196,6 +200,7 @@ class WebSearchAgent(MCPAgent):
                     time.sleep(2)
                 continue
         return None
+
     def post_process(self, response):
         if response is None:
             raise Exception("Web搜索结果不正确")
