@@ -57,4 +57,7 @@ convention = "google"
 dev = [
     "langgraph-cli[inmem]>=0.1.71",
     "pytest>=8.3.5",
+    # Used by ``test/test_token.py`` to BPE-tokenize ``logs/tmp.txt``.
+    # Install with: ``uv pip install tiktoken`` (or ``uv sync --group dev``).
+    "tiktoken>=0.7",
 ]

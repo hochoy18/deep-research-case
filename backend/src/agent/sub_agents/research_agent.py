@@ -114,7 +114,7 @@ def _critique(state: OverallState, config: RunnableConfig) -> dict:
     """评估收集到的信息是否充足。"""
     configurable = Configuration.from_runnable_config(config)
     state["research_loop_count"] = state.get("research_loop_count", 0) + 1
-    reasoning_model = state.get("reasoning_model", configurable.reflection_model)
+    reasoning_model = state.get("reasoning_model", '')  if state.get("reasoning_model",'') == '' else configurable.reflection_model
     logger.info(f"[ResearchAgent] _critique评估使用模型: {reasoning_model}")
     agent = JsonAgent(model_id=reasoning_model, keys=Reflection)
     agent.set_step_prompt(reflection_instructions)
