@@ -75,10 +75,14 @@ def get_web_search_rate_limiter(max_qps: float = None) -> RateLimiter:
 
 class Agent:
     step_prompt = """{prompt}"""
-    def __init__(self, model_id="deepseek-v4-flash"):
+    def __init__(self,
+                 name: str,
+                 model_id="deepseek-v4-flash"):
+        self.name = name
         self.llm = OpenAICompatibleLLM(model_id=model_id)
 
     def __call__(self, prompt):
+        logger.info(f"...Call LLM for get response, agent name is {self.name}")
         response = self.llm.generate_response(prompt)
         return response
 
@@ -110,8 +114,10 @@ class Agent:
 
 
 class JsonAgent(Agent):
-    def __init__(self, model_id="deepseek-v4-flash", keys=None):
-        super().__init__(model_id)
+    def __init__(self,
+                 name: str,
+                 model_id="deepseek-v4-flash", keys=None):
+        super().__init__(name, model_id)
         self.keys = keys
 
     # JsonAgent.post_process方法中，self.keys参数可接收Pydantic模型类
@@ -160,6 +166,9 @@ class MCPAgent(Agent):
 
 
 class WebSearchAgent(MCPAgent):
+    def __init__(self, name: str="Web搜索Agent"):
+        super().__init__(name)
+
     def step(self, prompt, **kwargs):
         try:
             step_prompt = self.step_prompt.format(prompt=prompt)

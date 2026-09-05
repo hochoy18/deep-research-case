@@ -45,7 +45,9 @@ def generate_plan(state: OverallState, config: RunnableConfig) -> dict:
         return {}
 
     configurable = Configuration.from_runnable_config(config)
-    agent = Agent(model_id=configurable.query_generator_model)
+    agent = Agent(
+        name="计划生成Agent",
+        model_id=configurable.query_generator_model)
     agent.set_step_prompt(plan_instructions)
     response = agent.step(
         current_date=get_current_date(),
@@ -94,7 +96,9 @@ def evaluate_plan(state: OverallState, config: RunnableConfig) -> str:
         logger.info("[MainGraph] 计划已明确确认 → 研究")
         return RESEARCH_AGENT_NODE
 
-    agent = JsonAgent(model_id=configurable.query_generator_model, keys=PlanReflection)
+    agent = JsonAgent(
+        name="计划评估Agent",
+        model_id=configurable.query_generator_model, keys=PlanReflection)
     agent.set_step_prompt(plan_reflection_instructions)
     result = agent.step(
         research_proposal=state.get("plan", ""),

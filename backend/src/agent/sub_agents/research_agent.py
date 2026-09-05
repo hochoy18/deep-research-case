@@ -47,7 +47,9 @@ def _generate_queries(state: OverallState, config: RunnableConfig) -> dict:
     if state.get("initial_search_query_count") is None:
         state["initial_search_query_count"] = configurable.number_of_initial_queries
     logger.info(f"[ResearchAgent] _generate_queries使用模型: {configurable.query_generator_model}")
-    agent = JsonAgent(model_id=configurable.query_generator_model, keys=SearchQueryList)
+    agent = JsonAgent(
+        name="查询生成Agent",
+        model_id=configurable.query_generator_model, keys=SearchQueryList)
     agent.set_step_prompt(query_writer_instructions)
     result = agent.step(
         current_date=get_current_date(),
@@ -93,7 +95,9 @@ def _web_search(state: WebSearchState, config: RunnableConfig) -> dict:
         ensure_ascii=False, indent=4,
     )
     logger.info(f"[ResearchAgent] _web_search 使用模型: {configurable.query_generator_model}")
-    agent = Agent(model_id=configurable.query_generator_model)
+    agent = Agent(
+        name="Web Search 汇总Agent",
+        model_id=configurable.query_generator_model)
     agent.set_step_prompt(web_searcher_instructions)
     summary = agent.step(
         query=state["search_query"],
@@ -116,7 +120,9 @@ def _critique(state: OverallState, config: RunnableConfig) -> dict:
     state["research_loop_count"] = state.get("research_loop_count", 0) + 1
     reasoning_model = state.get("reasoning_model", '')  if state.get("reasoning_model",'') == '' else configurable.reflection_model
     logger.info(f"[ResearchAgent] _critique评估使用模型: {reasoning_model}")
-    agent = JsonAgent(model_id=reasoning_model, keys=Reflection)
+    agent = JsonAgent(
+        name="Web Search 结果 评估 Agent",
+        model_id=reasoning_model, keys=Reflection)
     agent.set_step_prompt(reflection_instructions)
     result = agent.step(
         current_date=get_current_date(),

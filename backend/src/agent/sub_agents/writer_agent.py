@@ -44,7 +44,9 @@ def _outline(state: OverallState, config: RunnableConfig) -> dict:
     reasoning_model = state.get("reasoning_model") or configurable.answer_model
     logger.info(f"[WriterAgent] outline using model={reasoning_model}")
 
-    agent = Agent(model_id=reasoning_model)
+    agent = Agent(
+        name="报告大纲撰写Agent",
+        model_id=reasoning_model)
     agent.set_step_prompt(outline_instructions)
     raw = agent.step(
         research_topic=get_research_topic(state["messages"]),
@@ -64,7 +66,9 @@ def _draft(state: OverallState, config: RunnableConfig) -> dict:
 
     outline_text = state.get("report_outline", "")
 
-    agent = Agent(model_id=reasoning_model)
+    agent = Agent(
+        name="报告草稿撰写Agent",
+        model_id=reasoning_model)
     agent.set_step_prompt(draft_instructions)
     raw = agent.step(
         current_date=get_current_date(),
@@ -87,7 +91,9 @@ def _cite_and_polish(state: OverallState, config: RunnableConfig) -> dict:
     draft_text = state.get("report_draft", "")
 
     # Step A — LLM polish pass
-    agent = Agent(model_id=reasoning_model)
+    agent = Agent(
+        name="报告润色Agent",
+        model_id=reasoning_model)
     agent.set_step_prompt(polish_instructions)
     raw = agent.step(
         research_topic=get_research_topic(state["messages"]),
