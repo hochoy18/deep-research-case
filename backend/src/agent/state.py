@@ -30,6 +30,12 @@ class OverallState(TypedDict):
     knowledge_gap: str
     follow_up_queries: Annotated[list, operator.add]
     number_of_ran_queries: int
+    # 评论循环状态 (Critic ↔ Writer 修订循环)
+    critic_feedback: str
+    critic_score: float
+    ready_for_polish: bool
+    revision_count: int
+    max_revisions: int
 
 
 class ReflectionState(TypedDict):

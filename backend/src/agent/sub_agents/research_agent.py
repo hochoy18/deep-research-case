@@ -121,7 +121,7 @@ def _critique(state: OverallState, config: RunnableConfig) -> dict:
     reasoning_model = state.get("reasoning_model", '')  if state.get("reasoning_model",'') == '' else configurable.reflection_model
     logger.info(f"[ResearchAgent] _critique评估使用模型: {reasoning_model}")
     agent = JsonAgent(
-        name="Web Search 结果 评估 Agent",
+        name="WebSearch评估Agent",
         model_id=reasoning_model, keys=Reflection)
     agent.set_step_prompt(reflection_instructions)
     result = agent.step(

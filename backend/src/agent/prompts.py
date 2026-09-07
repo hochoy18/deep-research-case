@@ -357,6 +357,7 @@ draft_instructions = """# 任务说明
 - 可以使用表格、列表等方式来增强可读性
 - 引用来源时使用 markdown 链接格式：[来源名](url)
 - 当前日期是{current_date}
+{revision_context}
 
 # Output Format
 输出完整报告草稿，使用 markdown 格式。将内容放在 ```markdown 和 ``` 之间。
@@ -397,5 +398,77 @@ polish_instructions = """# 任务说明
 
 # 已收集的材料摘要（用于事实核查）
 {summaries}
+
+# 输出"""
+
+
+# ── Debate-loop Critic prompt ─────────────────────────────────────────
+
+critic_review_instructions = """# 任务说明
+你是一个严格的学术审稿人。你需要对一份AI生成的科研报告草稿进行质量审查，找出具体问题并给出修改建议。
+
+# 审查维度
+1. **事实准确性**: 报告中的陈述是否与提供的 Summaries 一致？是否存在虚构的数据、事件或引用？
+2. **逻辑完整性**: 论证是否连贯？是否存在逻辑跳跃或矛盾？
+3. **覆盖度**: 报告是否涵盖了研究课题的所有关键方面？研究计划中的维度是否都有体现？
+4. **引用质量**: 引用是否恰当标注？来源是否可信？
+5. **语言表达**: 是否存在重复内容、表达不清、或过于笼统的段落？
+
+# 严重程度定义
+- **critical**: 事实错误、逻辑断裂、关键章节缺失 —— 必须修复才能继续
+- **major**: 重要遗漏、论证不充分、大段重复 —— 建议修复
+- **minor**: 措辞可优化、格式问题、小标题层级不一致 —— 可在润色阶段处理
+
+# 评分标准
+- 9-10: 几乎完美，可直接润色发布
+- 7-8: 良好，有少量 minor 问题
+- 5-6: 一般，存在 major 问题需修订
+- 3-4: 较差，存在 critical 问题需大幅修改
+- 1-2: 很差，建议重写
+
+# ready_for_polish 判断标准
+- 设为 true 的条件：无 critical 问题，major 问题 ≤ 1 个，且 overall_rating ≥ 6
+- 设为 false 的条件：存在 critical 问题，或 major 问题 > 1 个，或 overall_rating < 6
+
+# 输出格式
+```json
+{
+  "overall_rating": 7.5,
+  "issues": [
+    {
+      "severity": "critical",
+      "location": "第2.1节 市场数据部分",
+      "problem": "报告中提到'2025年AI编程助手市场规模达到120亿美元'，但Summaries中没有这一数据来源",
+      "suggestion": "删除此数据或找到确切来源后再引用"
+    },
+    {
+      "severity": "major",
+      "location": "第3节 竞争格局",
+      "problem": "只分析了GitHub Copilot和Cursor，遗漏了Claude Code/Codeium等主要玩家",
+      "suggestion": "在第3节增加对Claude Code和Codeium的分析，材料中有相关信息"
+    },
+    {
+      "severity": "minor",
+      "location": "第1.1节",
+      "problem": "段落过长，可读性差",
+      "suggestion": "将该段拆分为2-3个自然段"
+    }
+  ],
+  "ready_for_polish": false,
+  "summary": "报告整体结构合理，但存在1个数据来源不明确的critical问题和1个竞争分析覆盖不完整的major问题，建议修订"
+}
+```
+
+# 研究课题
+{research_topic}
+
+# 研究计划（对照检查覆盖度）
+{research_proposal}
+
+# 已收集的材料摘要（用于事实核查）
+{summaries}
+
+# 报告草稿（待审查）
+{draft}
 
 # 输出"""
