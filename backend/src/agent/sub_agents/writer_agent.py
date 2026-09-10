@@ -1,16 +1,13 @@
-"""WriterAgent 子图，带有辩论循环优化功能。
+"""WriterAgent sub-graph with debate-loop refinement.
 
-它封装了报告撰写流程，采用迭代式评论员 ↔ 作者修改机制：
+Encapsulates the report-writing pipeline with iterative Critic ↔ Writer revision:
+  1. outline         — design chapter structure
+  2. draft           — write (or revise) content
+  3. critic_review   — score the draft and return structured feedback
+  4. cite_and_polish — replace short URLs, deduplicate sources, final polish
 
-1. 提纲 — 设计章节结构
-
-2. 草稿 — 撰写（或修改）内容
-
-3. 评论员评审 — 对草稿进行评分并返回结构化反馈
-
-4. 引用和润色 — 替换短链接、去重来源、最终润色
-
-辩论循环（草稿 ↔ 评论员评审）重复进行，直到评论员满意（ready_for_polish=True）或达到 max_revisions 次数上限。
+The debate loop (draft ↔ critic_review) repeats until the Critic is satisfied
+(ready_for_polish=True) or max_revisions is reached.
 """
 
 from __future__ import annotations
@@ -44,26 +41,29 @@ _DRAFT = "draft"
 _CRITIC_REVIEW = "critic_review"
 _CITE_AND_POLISH = "cite_and_polish"
 
+# ── constants ──────────────────────────────────────────────────────────
 DEFAULT_MAX_REVISIONS = 3
 
 
-def _outline(state: OverallState, config: RunnableConfig) -> dict:
-    """根据研究主题和计划，生成结构化的报告大纲。"""
+# ═══════════════════════════════════════════════════════════════════════
+# Node implementations
+# ═══════════════════════════════════════════════════════════════════════
+
+async def _outline(state: OverallState, config: RunnableConfig) -> dict:
+    """Generate a structured report outline from the research topic and plan."""
     configurable = Configuration.from_runnable_config(config)
     reasoning_model = state.get("reasoning_model") or configurable.answer_model
-    logger.info(f"[WriterAgent] outline using model={reasoning_model}")
+    logger.info(f"[WriterAgent] outline 准备使用模型={reasoning_model}")
 
-    agent = Agent(
-        name="报告大纲撰写Agent",
-        model_id=reasoning_model)
+    agent = Agent(model_id=reasoning_model)
     agent.set_step_prompt(outline_instructions)
-    raw = agent.step(
+    raw = await agent.astep(
         research_topic=get_research_topic(state["messages"]),
         research_proposal=state.get("plan", ""),
         summaries="\n---\n\n".join(state["web_search_result"]),
     )
     outline = Post.extract_pattern(raw, pattern="markdown")
-    logger.info(f"[WriterAgent] outline 已生成 ({len(outline)} 字)")
+    logger.info(f"[WriterAgent] outline generated ({len(outline)} chars)")
     return {
         "report_outline": outline,
         "revision_count": 0,
@@ -71,19 +71,23 @@ def _outline(state: OverallState, config: RunnableConfig) -> dict:
     }
 
 
-def _draft(state: OverallState, config: RunnableConfig) -> dict:
-    """根据大纲撰写报告正文草稿。"""
+async def _draft(state: OverallState, config: RunnableConfig) -> dict:
+    """Draft (or revise) the full report following the outline.
+
+    On first pass (no feedback), writes from scratch.
+    On revision passes, incorporates the Critic's structured feedback and
+    increments the revision counter.
+    """
     configurable = Configuration.from_runnable_config(config)
     reasoning_model = state.get("reasoning_model") or configurable.answer_model
-    logger.info(f"[WriterAgent] drafting using model={reasoning_model}")
-
+    logger.info(f"[WriterAgent] _draft 准备使用模型={reasoning_model}")
     feedback = state.get("critic_feedback", "")
     outline_text = state.get("report_outline", "")
     is_revision = bool(feedback)
     revision = state.get("revision_count", 0) + (1 if is_revision else 0)
 
     if is_revision:
-        logger.info(f"[WriterAgent] 修改稿 (revision {revision})")
+        logger.info(f"[WriterAgent] revising draft (revision {revision})")
         revision_context = (
             f"\n# 修订说明 (第 {revision} 次修订)\n"
             f"请根据以下审稿意见修改上一版草稿：\n\n"
@@ -93,15 +97,13 @@ def _draft(state: OverallState, config: RunnableConfig) -> dict:
         )
         return_update = {"revision_count": revision, "critic_feedback": ""}
     else:
-        logger.info(f"[WriterAgent] 从零开始撰写草稿")
+        logger.info(f"[WriterAgent] drafting from scratch")
         revision_context = ""
         return_update = {}
 
-    agent = Agent(
-        name="报告草稿撰写Agent",
-        model_id=reasoning_model)
+    agent = Agent(model_id=reasoning_model)
     agent.set_step_prompt(draft_instructions)
-    raw = agent.step(
+    raw = await agent.astep(
         current_date=get_current_date(),
         research_topic=get_research_topic(state["messages"]),
         research_proposal=state.get("plan", ""),
@@ -110,33 +112,41 @@ def _draft(state: OverallState, config: RunnableConfig) -> dict:
         revision_context=revision_context,
     )
     draft = Post.extract_pattern(raw, pattern="markdown")
-    logger.info(f"[WriterAgent] draft 已生成 ({len(draft)} 字)")
+    logger.info(f"[WriterAgent] draft generated ({len(draft)} chars)")
     return {**return_update, "report_draft": draft}
 
 
-def _critic_review(state: OverallState, config: RunnableConfig) -> dict:
-    """评论员审阅草稿并提供结构化反馈。
+async def _critic_review(state: OverallState, config: RunnableConfig) -> dict:
+    """Critic reviews the draft and returns structured feedback.
 
-    使用 JsonAgent 和 CritiqueResult 模式生成结构化输出。
+    Uses JsonAgent with CritiqueResult schema for structured output.
     """
     configurable = Configuration.from_runnable_config(config)
     reasoning_model = state.get("reasoning_model") or configurable.answer_model
-    logger.info(f"[WriterAgent] critic reviewing draft using model={reasoning_model}")
+    logger.info(f"[WriterAgent] critic reviewing draft 准备使用模型={reasoning_model}")
 
     draft_text = state.get("report_draft", "")
 
-    agent = JsonAgent(
-        name="评论员Review-Agent",
-        model_id=reasoning_model, keys=CritiqueResult)
+    agent = JsonAgent(model_id=reasoning_model, keys=CritiqueResult)
     agent.set_step_prompt(critic_review_instructions)
-    result: CritiqueResult = agent.step(
+    result = await agent.astep(
         research_topic=get_research_topic(state["messages"]),
         research_proposal=state.get("plan", ""),
         summaries="\n---\n\n".join(state["web_search_result"]),
         draft=draft_text,
     )
+    if not isinstance(result, CritiqueResult):
+        logger.warning(
+            f"[WriterAgent] 审稿模型调用失败（返回类型={type(result).__name__}），"
+            f"跳过审稿直接进入润色"
+        )
+        return {
+            "critic_feedback": "",
+            "critic_score": 8.0,
+            "ready_for_polish": True,
+        }
 
-    # 针对修改稿的点评反馈
+    # Format critique feedback for the Writer's revision pass
     if result.issues:
         issues_text = "\n".join(
             f"- [{iss.severity.upper()}] {iss.location}: {iss.problem}\n"
@@ -153,12 +163,12 @@ def _critic_review(state: OverallState, config: RunnableConfig) -> dict:
     )
 
     logger.info(
-        f"[WriterAgent] 审稿评分={result.overall_rating}/10, "
+        f"[WriterAgent] critic score={result.overall_rating}/10, "
         f"issues={len(result.issues)} "
         f"(critical={sum(1 for i in result.issues if i.severity=='critical')}, "
-        f"主要的={sum(1 for i in result.issues if i.severity=='major')}, "
-        f"次要的={sum(1 for i in result.issues if i.severity=='minor')}), "
-        f"准备润色={result.ready_for_polish}"
+        f"major={sum(1 for i in result.issues if i.severity=='major')}, "
+        f"minor={sum(1 for i in result.issues if i.severity=='minor')}), "
+        f"ready_for_polish={result.ready_for_polish}"
     )
 
     return {
@@ -171,46 +181,89 @@ def _critic_review(state: OverallState, config: RunnableConfig) -> dict:
 def _route_after_critic(state: OverallState, config: RunnableConfig) -> str:
     """决定：继续修改或进入终审润色。
 
-    进入润色的条件：
-      - Critic 明确标记 ready_for_polish，或
-      - revision_count >= max_revisions（安全兜底）
+    三重退出保险（设计理由：不能完全信任 LLM Critic 的自评，
+    Critic 和 Writer 可能共用同一模型，存在"自己审自己"的偏差）：
+
+      1. Critic 明确标记 ready_for_polish — LLM 判断质量合格
+      2. critic_score >= 8.0 — 质量达标，即使 Critic 标记未 ready 也提前退出
+      3. critic_score >= 6.0 且 revision_count >= 1 — 至少改过一次且评分及格
+      4. revision_count >= max_revisions — 安全兜底，强制退出
 
     否则回到 draft 继续修改。
     """
     revision = state.get("revision_count", 0)
     max_rev = state.get("max_revisions", DEFAULT_MAX_REVISIONS)
     ready = state.get("ready_for_polish", False)
+    score = state.get("critic_score", 0.0)
 
+    # 条件1: Critic 明确标记 ready_for_polish → 直接通过
     if ready:
-        logger.info(f"[WriterAgent] Critic ready_for_polish → polish")
+        logger.info(
+            f"[WriterAgent] Critic ready_for_polish (score={score:.1f}/10) → polish"
+        )
         return _CITE_AND_POLISH
 
+    # 条件2: 评分 >= 8.0 → 质量达标，即使 Critic 标记未 ready 也提前退出
+    if score >= 8.0:
+        logger.info(
+            f"[WriterAgent] score threshold met ({score:.1f}/10 >= 8.0) → polish"
+        )
+        return _CITE_AND_POLISH
+
+    # 条件3: 评分 >= 6.0 且至少修订过一次 → 合格退出
+    if score >= 6.0 and revision >= 1:
+        logger.info(
+            f"[WriterAgent] qualified exit (score={score:.1f}/10 >= 6.0, "
+            f"revision={revision}) → polish"
+        )
+        return _CITE_AND_POLISH
+
+    # 条件4: 达到最大修订次数 → 安全兜底
     if revision >= max_rev:
-        logger.info(f"[WriterAgent] 已达到最大修改次数 ({revision}/{max_rev}) → polish")
+        logger.info(
+            f"[WriterAgent] max revisions reached ({revision}/{max_rev}, "
+            f"score={score:.1f}/10) → polish"
+        )
         return _CITE_AND_POLISH
 
-    logger.info(f"[WriterAgent] needs revision (rev={revision}/{max_rev}) → draft")
+    logger.info(
+        f"[WriterAgent] needs revision "
+        f"(rev={revision}/{max_rev}, score={score:.1f}/10) → draft"
+    )
     return _DRAFT
 
 
-def _cite_and_polish(state: OverallState, config: RunnableConfig) -> dict:
-    """将短链接替换为真实链接，删除重复来源，润色语言。"""
+async def _cite_and_polish(state: OverallState, config: RunnableConfig) -> dict:
+    """Finalise: LLM polish + replace short URLs with real URLs + deduplicate sources."""
     configurable = Configuration.from_runnable_config(config)
     reasoning_model = state.get("reasoning_model") or configurable.answer_model
-    logger.info(f"[WriterAgent] polishing using model={reasoning_model}")
+    logger.info(f"[WriterAgent] polishing 准备使用模型={reasoning_model}")
 
     draft_text = state.get("report_draft", "")
 
     # Step A — LLM polish pass
-    agent = Agent(
-        name="报告润色Agent",
-        model_id=reasoning_model)
+    agent = Agent(model_id=reasoning_model)
     agent.set_step_prompt(polish_instructions)
-    raw = agent.step(
-        research_topic=get_research_topic(state["messages"]),
-        draft=draft_text,
-        summaries="\n---\n\n".join(state["web_search_result"]),
-    )
+
+    # 如果配置中注入了 token 回调，则使用流式调用
+    emit_token = config.get("configurable", {}).get("_emit_token")
+    if emit_token:
+
+        async def on_token(text: str) -> None:
+            await emit_token(text, "cite_and_polish")
+
+        raw = await agent.astream_step(
+            on_token,
+            research_topic=get_research_topic(state["messages"]),
+            draft=draft_text,
+            summaries="\n---\n\n".join(state["web_search_result"]),
+        )
+    else:
+        raw = await agent.astep(
+            research_topic=get_research_topic(state["messages"]),
+            draft=draft_text,
+            summaries="\n---\n\n".join(state["web_search_result"]),
+        )
     polished = Post.extract_pattern(raw, pattern="markdown")
 
     unique_sources = []
@@ -220,8 +273,8 @@ def _cite_and_polish(state: OverallState, config: RunnableConfig) -> dict:
             unique_sources.append(source)
 
     logger.info(
-        f"[WriterAgent] 已润色 ({len(polished)} 字), "
-        f"{len(unique_sources)} 个引用来源, "
+        f"[WriterAgent] polished ({len(polished)} chars), "
+        f"{len(unique_sources)} sources cited, "
         f"{state.get('revision_count', 0)} revision(s)"
     )
     return {
@@ -231,15 +284,15 @@ def _cite_and_polish(state: OverallState, config: RunnableConfig) -> dict:
 
 
 # ═══════════════════════════════════════════════════════════════════════
-# 构建子图（带循环）
+# Build the sub-graph (with debate loop)
 # ═══════════════════════════════════════════════════════════════════════
 
 _builder = StateGraph(OverallState, config_schema=Configuration)
 
-_builder.add_node(_OUTLINE, _outline) # 生成大纲
-_builder.add_node(_DRAFT, _draft)  # 写草稿 / 修订
-_builder.add_node(_CRITIC_REVIEW, _critic_review) # 审稿
-_builder.add_node(_CITE_AND_POLISH, _cite_and_polish) # 终稿
+_builder.add_node(_OUTLINE, _outline)
+_builder.add_node(_DRAFT, _draft)
+_builder.add_node(_CRITIC_REVIEW, _critic_review)
+_builder.add_node(_CITE_AND_POLISH, _cite_and_polish)
 
 # Flow: outline → draft → critic → (loop or polish)
 _builder.add_edge(START, _OUTLINE)
@@ -254,9 +307,7 @@ _builder.add_edge(_CITE_AND_POLISH, END)
 
 writer_agent_graph = _builder.compile(name="WriterAgent")
 
-if __name__ == "__main__":
-    from IPython.display import Image, display
-    try:
-        display(Image(writer_agent_graph.get_graph().draw_mermaid_png(output_file_path="./WriterAgent子图.png")))
-    except Exception:
-        pass
+try:
+    display(Image(writer_agent_graph.get_graph().draw_mermaid_png(output_file_path="./WriterAgent子图.png")))
+except Exception:
+    pass

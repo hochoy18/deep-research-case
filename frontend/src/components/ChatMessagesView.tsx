@@ -202,7 +202,7 @@ const AiMessageBubble: React.FC<AiMessageBubbleProps> = ({
   return (
     <div className={`relative break-words flex flex-col`}>
       {/* 如果是“研究计划”且有onStartResearch，只展示ReactMarkdown，不展示ActivityTimeline和Button */}
-      {timelineTitle === "生成计划" && onStartResearch ? (
+      {hasGeneratingSearchPlan && onStartResearch ? (
         <div className="mb-3 border-b border-neutral-700 pb-3 text-xs">
           <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>
             {typeof message.content === "string"

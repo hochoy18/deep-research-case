@@ -1,7 +1,7 @@
-// API配置
-export const API_BASE_URL = import.meta.env.DEV
-  ? "http://localhost:2024"
-  : "http://localhost:8123";
+// API配置 - 使用相对路径，通过 Vite 代理转发到后端
+// 开发模式走 Vite proxy (/api → localhost:2024)
+// 生产模式由 LangGraph runtime 直接服务
+export const API_BASE_URL = "";
 
 // 模型配置接口
 export interface ModelConfig {
@@ -14,7 +14,9 @@ export interface ModelConfig {
 // 获取可用模型列表
 export async function fetchAvailableModels(): Promise<ModelConfig[]> {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/models`);
+    const response = await fetch(`${API_BASE_URL}/api/models`, {
+      credentials: "include",
+    });
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }

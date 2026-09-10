@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ResearchAgent 子图详解 · Deep Research</title>
+<!-- Mermaid -->
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<style>
+  :root {
+    --bg-0: #0b0f1a;
+    --bg-1: #111827;
+    --bg-2: #1a2236;
+    --line: #243049;
+    --text: #e6edf7;
+    --muted: #97a3bd;
+    --primary: #8b5cf6;
+    --primary-2: #6366f1;
+    --accent: #22d3ee;
+    --accent-2: #06b6d4;
+    --warn: #f59e0b;
+    --ok: #10b981;
+    --danger: #ef4444;
+    --code-bg: #0a1020;
+    --shadow: 0 10px 30px rgba(0,0,0,.35);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+                 "Microsoft YaHei", Roboto, Helvetica, Arial, sans-serif;
+    background:
+      radial-gradient(1200px 600px at 10% -10%, rgba(139,92,246,.18), transparent 60%),
+      radial-gradient(1000px 500px at 110% 10%, rgba(34,211,238,.15), transparent 60%),
+      var(--bg-0);
+    color: var(--text);
+    line-height: 1.7;
+    min-height: 100vh;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* Hero */
+  .hero {
+    padding: 56px 16px 32px;
+    text-align: center;
+    border-bottom: 1px solid var(--line);
+    background: linear-gradient(180deg, rgba(139,92,246,.10), transparent 60%);
+  }
+  .hero .badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 999px;
+    background: rgba(139,92,246,.18);
+    color: #c4b5fd;
+    border: 1px solid rgba(139,92,.35);
+    font-size: 12px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+  .hero h1 {
+    margin: 0 0 8px;
+    font-size: clamp(28px, 4vw, 42px);
+    letter-spacing: -0.5px;
+    background: linear-gradient(90deg, #c4b5fd, #67e8f9);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .hero p.lead { color: var(--muted); margin: 0 auto; max-width: 760px; }
+
+  /* Layout */
+  .layout {
+    display: grid;
+    grid-template-columns: 260px minmax(0, 1fr);
+    gap: 24px;
+    max-width: 1320px;
+    margin: 0 auto;
+    padding: 32px 16px;
+  }
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; }
+    .toc { position: static !important; }
+  }
+
+  /* TOC */
+  .toc {
+    position: sticky;
+    top: 24px;
+    align-self: start;
+    background: linear-gradient(180deg, var(--bg-1), var(--bg-2));
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 16px 18px;
+    box-shadow: var(--shadow);
+    max-height: calc(100vh - 48px);
+    overflow: auto;
+  }
+  .toc h3 {
+    margin: 0 0 10px;
+    font-size: 13px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+  }
+  .toc ol { margin: 0; padding-left: 20px; }
+  .toc li { margin: 6px 0; }
+  .toc a { color: var(--text); font-size: 14px; }
+  .toc a:hover { color: var(--accent); }
+
+  /* Content */
+  .content { min-width: 0; }
+  section {
+    background: linear-gradient(180deg, var(--bg-1), var(--bg-2));
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 24px 26px;
+    box-shadow: var(--shadow);
+    margin-bottom: 22px;
+  }
+  section h2 {
+    margin-top: 0;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--line);
+    font-size: 22px;
+    letter-spacing: -0.2px;
+  }
+  section h3 { margin-top: 22px; font-size: 17px; color: #c7d2fe; }
+  section h4 { margin-top: 16px; font-size: 15px; color: #a5b4fc; }
+  section p { color: var(--text); }
+  .muted { color: var(--muted); }
+
+  /* Code */
+  code {
+    font-family: "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+    background: var(--code-bg);
+    border: 1px solid var(--line);
+    padding: 1px 6px;
+    border-radius: 6px;
+    font-size: 13px;
+  }
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 14px 16px;
+    overflow: auto;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  pre code { background: none; border: none; padding: 0; }
+
+  /* Tables */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 14px 0;
+    font-size: 14px;
+  }
+  th, td {
+    border: 1px solid var(--line);
+    padding: 8px 12px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th { background: rgba(139,92,246,.10); color: #c4b5fd; }
+  tbody tr:nth-child(even) { background: rgba(255,255,255,.02); }
+
+  /* Pills */
+  .pill {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    margin-right: 6px;
+    border: 1px solid var(--line);
+    background: rgba(255,255,255,.04);
+    color: var(--muted);
+  }
+  .pill.ok    { color: var(--ok);    border-color: rgba(16,185,129,.35); background: rgba(16,185,129,.10); }
+  .pill.warn  { color: var(--warn);  border-color: rgba(245,158,11,.35); background: rgba(245,158,11,.10); }
+  .pill.danger{ color: var(--danger);border-color: rgba(239,68,68,.35);  background: rgba(239,68,68,.10); }
+  .pill.info  { color: var(--accent);border-color: rgba(34,211,238,.35); background: rgba(34,211,238,.10); }
+
+  /* Mermaid */
+  .mermaid {
+    background: rgba(255,255,255,.02);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 16px;
+    margin: 14px 0;
+    text-align: center;
+    overflow: auto;
+  }
+
+  /* Callout */
+  .callout {
+    border-left: 3px solid var(--accent);
+    background: rgba(34,211,238,.06);
+    padding: 12px 16px;
+    border-radius: 0 8px 8px 0;
+    margin: 14px 0;
+  }
+  .callout.warn { border-color: var(--warn); background: rgba(245,158,11,.06); }
+  .callout.tip  { border-color: var(--ok); background: rgba(16,185,129,.06); }
+
+  footer {
+    text-align: center;
+    color: var(--muted);
+    font-size: 13px;
+    padding: 24px 16px 40px;
+  }
+
+  section[id] { scroll-margin-top: 16px; }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="badge">Deep Research · Sub-Agent</div>
+  <h1>ResearchAgent 子图详解</h1>
+  <p class="lead">研究循环的核心：查询生成 → 并行搜索 → 评估反思，KB 闭环 + 重排 + LLM 摘要</p>
+</div>
+
+<div class="layout">
+
+  <!-- ========== 目录 ========== -->
+  <aside class="toc">
+    <h3>目录</h3>
+    <ol>
+      <li><a href="#overview">一、文件总览</a></li>
+      <li><a href="#loop">二、研究循环总览</a></li>
+      <li><a href="#kb-singleton">三、KB 单例管理</a></li>
+      <li><a href="#generate-queries">四、节点 1：_generate_queries</a></li>
+      <li><a href="#fan-out">五、节点 2：_fan_out_to_web_search</a></li>
+      <li><a href="#web-search">六、节点 3：_web_search</a></li>
+      <li><a href="#critique">七、节点 4：_critique</a></li>
+      <li><a href="#route">八、路由：_route_after_critique</a></li>
+      <li><a href="#graph-build">九、图构建</a></li>
+      <li><a href="#state">十、OverallState 字段变化</a></li>
+      <li><a href="#calls">十一、关键调用关系</a></li>
+      <li><a href="#sequence">十二、完整调用时序</a></li>
+      <li><a href="#design">十三、核心设计要点</a></li>
+    </ol>
+  </aside>
+
+  <main class="content">
+
+    <!-- ========== 一、文件总览 ========== -->
+    <section id="overview">
+      <h2>一、文件总览</h2>
+      <p>
+        <code>research_agent.py</code>（343 行）定义了 Deep Research 的<strong>核心研究子图</strong>，
+        由父图（<code>graph.py</code>）通过 <code>builder.add_node("research", research_agent_graph)</code> 调用。
+      </p>
+
+      <h3>模块组成</h3>
+      <div class="mermaid">
+flowchart LR
+    A["research_agent.py<br/>(343 行)"] --> B["导入与配置<br/>:1-56"]
+    A --> C["KB 单例<br/>:58-82"]
+    A --> D["节点函数<br/>:84-323"]
+    A --> E["图构建<br/>:326-337"]
+
+    D --> D1["_generate_queries<br/>:89-167"]
+    D --> D2["_fan_out_to_web_search<br/>:170-175"]
+    D --> D3["_web_search<br/>:178-261"]
+    D --> D4["_critique<br/>:264-306"]
+    D --> D5["_route_after_critique<br/>:309-323"]
+
+    E --> F["research_agent_graph<br/>编译产物"]
+
+    style F fill:#0a4f3a,stroke:#10b981,color:#e6edf7
+      </div>
+
+      <h3>核心职责</h3>
+      <table>
+        <thead><tr><th>模块</th><th>职责</th><th>行号</th></tr></thead>
+        <tbody>
+          <tr><td>KB 单例</td><td>延迟初始化 Milvus 客户端 + LLM 抽取器</td><td>58-82</td></tr>
+          <tr><td>_generate_queries</td><td>把主题分解为 N 个搜索查询（KB 检索 + LLM）</td><td>89-167</td></tr>
+          <tr><td>_fan_out_to_web_search</td><td>用 LangGraph Send API 并行分发</td><td>170-175</td></tr>
+          <tr><td>_web_search</td><td>单条查询：搜索 + 重排 + 摘要 + 写 KB</td><td>178-261</td></tr>
+          <tr><td>_critique</td><td>LLM 评估信息充分性</td><td>264-306</td></tr>
+          <tr><td>_route_after_critique</td><td>路由：退出或继续搜索</td><td>309-323</td></tr>
+          <tr><td>图构建</td><td>StateGraph 编译</td><td>326-337</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ========== 二、研究循环总览 ========== -->
+    <section id="loop">
+      <h2>二、研究循环总览</h2>
+      <p>核心循环：查询生成 → 并行搜索 → 评估反思 → 路由决策</p>
+
+      <div class="mermaid">
+flowchart TD
+    S[START] --> GQ["generate_queries<br/>1 次"]
+    GQ -->|"Send 并行扇出"| W1["web_search<br/>(id=0, Q1)"]
+    GQ -->|"Send"| W2["web_search<br/>(id=1, Q2)"]
+    GQ -->|"Send"| W3["web_search<br/>(id=2, Q3)"]
+    W1 --> C["critique"]
+    W2 --> C
+    W3 --> C
+    C --> R{"is_sufficient OR<br/>research_loop_count >= max_loops?"}
+    R -->|"是"| E["END<br/>→ 父图 write"]
+    R -->|"否"| W4["web_search<br/>(id=N, follow_up_queries)"]
+    W4 --> C
+
+    style E fill:#0a4f3a,stroke:#10b981,color:#e6edf7
+    style GQ fill:#1a2236,stroke:#8b5cf6,color:#e6edf7
+    style W1 fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+    style W2 fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+    style W3 fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+      </div>
+
+      <div class="callout">
+        <strong>典型执行模式</strong>：<br/>
+        ① <code>generate_queries</code>（1 次）<br/>
+        ② <code>web_search</code>（并行 N 个）<br/>
+        ③ <code>critique</code>（1 次）<br/>
+        ④ 路由：若不充分 → 用 <code>follow_up_queries</code> 回到 ②<br/>
+        ⑤ 路由：若充分或达 max_loops → END
+      </div>
+    </section>
+
+    <!-- ========== 三、KB 单例管理 ========== -->
+    <section id="kb-singleton">
+      <h2>三、KB 单例管理（:58-82）</h2>
+      <p>延迟初始化 Milvus 客户端 + LLM 抽取器，进程内共享一个连接。</p>
+
+      <h3>核心代码（简化）</h3>
+      <pre><code>_kb_store: FactStore | None = None          # Milvus 客户端
+_kb_extractor: FactExtractor | None = None  # LLM 抽 facts
+
+def _get_kb_store() -> FactStore | None:
+    """延迟初始化 + 失败降级为 False sentinel"""
+    global _kb_store
+    if _kb_store is None:
+        try:
+            _kb_store = FactStore()                # 连接 Milvus
+        except (KBConnectionError, KBConfigError):
+            _kb_store = False                       # 失败 → sentinel
+    return _kb_store if _kb_store is not False else None
+
+def _get_kb_extractor() -> FactExtractor:
+    """延迟初始化 + 无降级"""
+    global _kb_extractor
+    if _kb_extractor is None:
+        _kb_extractor = FactExtractor()
+    return _kb_extractor</code></pre>
+
+      <h3>关键设计</h3>
+      <table>
+        <thead><tr><th>设计</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong>延迟初始化</strong></td>
+            <td>首次调用时才连接 Milvus，避免启动期阻塞</td>
+          </tr>
+          <tr>
+            <td><strong>失败降级</strong></td>
+            <td>FactStore 连接失败 → <code>False</code> sentinel → 后续代码用 <code>if store:</code> 跳过 KB 功能</td>
+          </tr>
+          <tr>
+            <td><strong>共享单例</strong></td>
+            <td>整个进程一个 Milvus 连接，避免重复建立</td>
+          </tr>
+          <tr>
+            <td><strong>Extraction 无降级</strong></td>
+            <td>FactExtractor（仅 LLM 调用）失败时无 sentinel，需要让上层捕获</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ========== 四、节点 1：generate_queries ========== -->
+    <section id="generate-queries">
+      <h2>四、节点 1：_generate_queries（:89-167）</h2>
+      <p>把研究主题分解为 N 个独立的搜索查询，并注入 KB 已有事实。</p>
+
+      <h3>核心代码（简化）</h3>
+      <pre><code>async def _generate_queries(state, config):
+    # 1. 读配置
+    configurable = Configuration.from_runnable_config(config)
+    if state.get("initial_search_query_count") is None:
+        state["initial_search_query_count"] = configurable.number_of_initial_queries
+
+    # 2. KB 检索（避免重复搜索）
+    known_facts_text = ""
+    store = _get_kb_store()
+    if store:
+        mode = get_mode()
+        topic = get_research_topic(state["messages"])
+        freshness = state.get("fresh_level", "medium")
+        max_age = FRESHNESS_MAX_AGE.get(freshness, 30)
+        hits = store.query(topic, top_k=20, min_confidence=0.6, max_age_days=max_age, ...)
+        known_facts_text = format_kb_hits(hits)
+
+    # 3. LLM 生成查询
+    agent = JsonAgent(model_id=configurable.query_generator_model, keys=SearchQueryList)
+    result = agent.step(
+        current_date=...,
+        research_topic=topic,
+        number_queries=state["initial_search_query_count"],
+        research_proposal=state.get("plan", ""),
+        known_facts=known_facts_text,
+    )
+
+    # 4. 降级处理
+    if not isinstance(result, SearchQueryList):
+        return {"search_query": [get_research_topic(state["messages"])]}
+    return {"search_query": result.query}</code></pre>
+
+      <h3>流程图</h3>
+      <div class="mermaid">
+flowchart TD
+    A["进入 _generate_queries"] --> B["读 config 获取模型"]
+    B --> C["state 缺省值兜底<br/>initial_search_query_count"]
+    C --> D{"KB 可用?"}
+    D -->|"否"| G
+    D -->|"是"| E["store.query 查询 KB"]
+    E --> F["format hits → known_facts_text"]
+    F --> G["LLM 生成 SearchQueryList"]
+    G --> H{"是 SearchQueryList?"}
+    H -->|"否"| I["降级:<br/>用主题作为单条查询"]
+    H -->|"是"| J["返回 search_query"]
+
+    style J fill:#0a4f3a,stroke:#10b981,color:#e6edf7
+    style I fill:#4a3a14,stroke:#f59e0b,color:#fde68a
+      </div>
+
+      <h3>KB 检索细节（:101-146）</h3>
+      <table>
+        <thead><tr><th>步骤</th><th>代码</th><th>作用</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td><code>store = _get_kb_store()</code></td><td>获取 Milvus 单例</td></tr>
+          <tr><td>2</td><td><code>mode = get_mode()</code></td><td>读 <code>KB_LIFECYCLE_MODE</code> 环境变量</td></tr>
+          <tr><td>3</td><td><code>freshness = state.get("fresh_level", "medium")</code></td><td>从 plan 阶段传递的新鲜度等级</td></tr>
+          <tr><td>4</td><td><code>max_age = FRESHNESS_MAX_AGE.get(freshness, 30)</code></td><td>按 fresh_level 计算最大允许 fact 年龄（天）</td></tr>
+          <tr><td>5</td><td><code>hits = store.query(topic, top_k=20, ...)</code></td><td>向量检索 + 可选 rerank + 新鲜度过滤</td></tr>
+        </tbody>
+      </table>
+
+      <h3>KB 异常分类</h3>
+      <pre><code>except (KBConnectionError, KBEmbeddingError) as exc:
+    logger.warning(...)         # 瞬时错误：跳过本次
+except (KBConfigError, KBEmbeddingFatalError) as exc:
+    logger.error(...)           # 永久错误：需人工修复
+except Exception as exc:
+    logger.warning(...)         # 未知错误：跳过</code></pre>
+
+      <h3>LLM prompt 注入</h3>
+      <p>使用 <code>JsonAgent</code> + <code>SearchQueryList</code> schema（强制结构化输出）：</p>
+      <table>
+        <thead><tr><th>注入变量</th><th>来源</th></tr></thead>
+        <tbody>
+          <tr><td><code>current_date</code></td><td><code>get_current_date()</code></td></tr>
+          <tr><td><code>research_topic</code></td><td>state.messages 提取</td></tr>
+          <tr><td><code>number_queries</code></td><td><code>state["initial_search_query_count"]</code></td></tr>
+          <tr><td><code>research_proposal</code></td><td><code>state.get("plan", "")</code></td></tr>
+          <tr><td><code>known_facts</code></td><td>KB 检索结果格式化（避免重复搜索）</td></tr>
+        </tbody>
+      </table>
+
+      <div class="callout warn">
+        <strong>降级策略</strong>（:162-165）：LLM 返回非 SearchQueryList → 用主题作为单条查询 → 不阻断流程
+      </div>
+    </section>
+
+    <!-- ========== 五、节点 2：fan_out ========== -->
+    <section id="fan-out">
+      <h2>五、节点 2：_fan_out_to_web_search（:170-175）</h2>
+      <p>用 LangGraph <code>Send</code> API 把每个查询并行扇出到一个独立的 <code>_web_search</code> 实例。</p>
+
+      <h3>核心代码（简化）</h3>
+      <pre><code>def _fan_out_to_web_search(state: QueryGenerationState) -> list[Send]:
+    return [
+        Send(_WEB_SEARCH, {"search_query": q, "id": int(idx)})
+        for idx, q in enumerate(state["search_query"])
+    ]</code></pre>
+
+      <h3>LangGraph Send API 说明</h3>
+      <ul>
+        <li>不是普通边，是<strong>动态并行分发</strong></li>
+        <li>每个 <code>Send</code> 创建一个独立的 <code>_web_search</code> 副本</li>
+        <li>所有副本<strong>并行执行</strong></li>
+        <li>副本输出按 <code>operator.add</code> reducer 累积到主 state</li>
+      </ul>
+
+      <h3>并行扇出示意图</h3>
+      <div class="mermaid">
+flowchart LR
+    SQ["search_query:<br/>[Q1, Q2, Q3]"] -->|"Send × 3"| W1["_web_search<br/>(id=0, Q1)"]
+    SQ -->|"Send"| W2["_web_search<br/>(id=1, Q2)"]
+    SQ -->|"Send"| W3["_web_search<br/>(id=2, Q3)"]
+    W1 -->|"operator.add"| OUT["sources_gathered<br/>web_search_result"]
+    W2 --> OUT
+    W3 --> OUT
+
+    style W1 fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+    style W2 fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+    style W3 fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+      </div>
+
+      <div class="callout tip">
+        <strong>性能收益</strong>：3 个查询从 O(3t) 降到 O(t)，典型提速 2-3 倍。
+      </div>
+    </section>
+
+    <!-- ========== 六、节点 3：web_search ========== -->
+    <section id="web-search">
+      <h2>六、节点 3：_web_search（:178-261）</h2>
+      <p>单条查询的完整流程：搜索 → 重排 → URL 缩短 → LLM 摘要 → 写 KB。</p>
+
+      <h3>流程图</h3>
+      <div class="mermaid">
+flowchart TD
+    A["进入 _web_search"] --> B["WebSearchAgent.step<br/>调用 MCP 搜索 10 条"]
+    B --> C{"搜索为空?"}
+    C -->|"是"| Z["返回空结果"]
+    C -->|"否"| D["交叉编码器 rerank<br/>可选"]
+    D --> E["URL 缩短<br/>resolve_urls"]
+    E --> F["LLM 摘要<br/>Agent.step"]
+    F --> G{"KB 可用?"}
+    G -->|"否"| J
+    G -->|"是"| H["FactExtractor.extract<br/>LLM 抽 facts"]
+    H --> I["store.add_facts<br/>写入 Milvus"]
+    I --> J["返回 sources_gathered<br/>+ web_search_result"]
+
+    style J fill:#0a4f3a,stroke:#10b981,color:#e6edf7
+      </div>
+
+      <h3>详细步骤表</h3>
+      <table>
+        <thead><tr><th>步骤</th><th>行号</th><th>模块</th><th>操作</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>:181-182</td><td>WebSearchAgent</td><td><code>step(prompt=query, count=10)</code> 调用 MCP 搜索</td></tr>
+          <tr><td>2</td><td>:184-190</td><td>（异常路径）</td><td>搜索结果为空 → 返回空 summary</td></tr>
+          <tr><td>3</td><td>:193-213</td><td>reranker</td><td><code>documents = title + snippet</code>，<code>reranker.rerank(...)</code> 可选精排</td></tr>
+          <tr><td>4</td><td>:215</td><td>utils</td><td><code>resolve_urls(response, state["id"])</code> 生成短链</td></tr>
+          <tr><td>5</td><td>:220-233</td><td>Agent</td><td>LLM 把多条搜索结果汇总为一段摘要</td></tr>
+          <tr><td>6</td><td>:233</td><td>post</td><td><code>Post.extract_pattern(summary, "text")</code> 清理围栏</td></tr>
+          <tr><td>7</td><td>:237-255</td><td>kb</td><td>FactExtractor 抽 facts → Milvus 写入</td></tr>
+        </tbody>
+      </table>
+
+      <h3>KB 写入细节（:237-255）</h3>
+      <pre><code>extractor = _get_kb_extractor()
+facts = extractor.extract(summary, research_topic=topic)
+# ↑ 内部：LLM 抽 facts + 解析为 JSON + 限制最多 10 条
+
+# 短链接还原为真实 URL（避免 KB 中存过期引用）
+short2long = {v: k for k, v in long2short.items()}
+for f in facts:
+    f["source_url"] = short2long.get(f["source_url"], f["source_url"])
+    f["research_topic"] = topic
+
+store.add_facts(facts)  # embedding + Milvus insert</code></pre>
+
+      <h3>WebSearchAgent 内部链路</h3>
+      <div class="mermaid">
+flowchart TD
+    A[_web_search] --> B[WebSearchAgent.step]
+    B --> C{"get_cached<br/>search_cache.py"}
+    C -->|"命中"| D[返回缓存结果]
+    C -->|"未命中"| E[速率限制器<br/>12 QPS]
+    E --> F[MCP 搜索<br/>Application.call]
+    F --> G[set_cached<br/>写入缓存]
+    G --> H[返回结果]
+      </div>
+
+      <h3>Reranker 调用（可选）</h3>
+      <div class="mermaid">
+flowchart LR
+    A["_web_search 拿到 N 条结果"] --> B{"reranker.web_enabled?"}
+    B -->|"否"| C[跳过精排]
+    B -->|"是"| D["构造 documents<br/>title + snippet"]
+    D --> E["reranker.rerank<br/>cross-encoder"]
+    E --> F[按 score 重排]
+      </div>
+
+      <h3>KB 异常处理（与 _generate_queries 一致）</h3>
+      <pre><code>except (KBConnectionError, KBEmbeddingError) as exc:
+    logger.warning(...)         # 瞬时错误
+except (KBConfigError, KBEmbeddingFatalError) as exc:
+    logger.error(...)           # 永久错误
+except Exception as exc:
+    logger.warning(...)         # 未知错误</code></pre>
+    </section>
+
+    <!-- ========== 七、节点 4：critique ========== -->
+    <section id="critique">
+      <h2>七、节点 4：_critique（:264-306）</h2>
+      <p>LLM 评估当前收集的信息是否充分，决定是否继续搜索。</p>
+
+      <h3>核心代码（简化）</h3>
+      <pre><code>async def _critique(state, config):
+    state["research_loop_count"] = state.get("research_loop_count", 0) + 1
+    reasoning_model = state.get("reasoning_model") or configurable.reflection_model
+
+    agent = JsonAgent(model_id=reasoning_model, keys=Reflection)
+    result = agent.step(
+        current_date=...,
+        number_queries=state["initial_search_query_count"],
+        research_topic=...,
+        summaries="\n\n---\n\n".join(state["web_search_result"]),
+        research_proposal=state.get("plan", ""),
+    )
+
+    if not isinstance(result, Reflection):
+        # LLM 失败 → 视为不足，继续搜索
+        return {"is_sufficient": False, ...}
+
+    return {
+        "is_sufficient": result.is_sufficient,
+        "knowledge_gap": result.knowledge_gap,
+        "follow_up_queries": result.follow_up_queries,
+        "research_loop_count": state["research_loop_count"],
+        "number_of_ran_queries": len(state["search_query"]),
+        "max_research_loops": state.get("max_research_loops", configurable.max_research_loops),
+    }</code></pre>
+
+      <h3><code>Reflection</code> schema</h3>
+      <pre><code>class Reflection(TypedDict):
+    is_sufficient: bool            # 信息够不够？
+    knowledge_gap: str             # 还缺什么？
+    follow_up_queries: list[Query] # 下一步该搜什么？</code></pre>
+
+      <h3>关键字段</h3>
+      <table>
+        <thead><tr><th>字段</th><th>作用</th><th>下游使用</th></tr></thead>
+        <tbody>
+          <tr><td><code>research_loop_count</code></td><td>循环次数 +1</td><td>路由判断是否达上限</td></tr>
+          <tr><td><code>is_sufficient</code></td><td>是否充分</td><td>路由判断退出</td></tr>
+          <tr><td><code>knowledge_gap</code></td><td>知识缺口</td><td>前端展示 / debug</td></tr>
+          <tr><td><code>follow_up_queries</code></td><td>下一轮查询</td><td>路由节点扇出新一轮</td></tr>
+          <tr><td><code>number_of_ran_queries</code></td><td>已执行查询数</td><td>下一轮 id 续编</td></tr>
+        </tbody>
+      </table>
+
+      <div class="callout warn">
+        <strong>降级策略</strong>：LLM 返回非 <code>Reflection</code> → 视为"信息不足"，返回默认 <code>follow_up_queries=[]</code>，下一轮无新查询（自然退化为 0 增量）
+      </div>
+    </section>
+
+    <!-- ========== 八、路由节点 ========== -->
+    <section id="route">
+      <h2>八、路由：_route_after_critique（:309-323）</h2>
+      <p>决定返回再搜索还是退出子图。是<strong>同步函数</strong>（不是 async），只返回路由决策。</p>
+
+      <h3>核心代码（简化）</h3>
+      <pre><code>def _route_after_critique(state, config):
+    configurable = Configuration.from_runnable_config(config)
+    max_loops = state.get("max_research_loops") or configurable.max_research_loops
+
+    if state["is_sufficient"] or state["research_loop_count"] >= max_loops:
+        return END                              # 退出子图 → 父图 writer
+    else:
+        # 继续搜索：用 follow_up_queries 并行扇出
+        return [
+            Send(_WEB_SEARCH, {
+                "search_query": q,
+                "id": state["number_of_ran_queries"] + int(idx)
+            })
+            for idx, q in enumerate(state["follow_up_queries"])
+        ]</code></pre>
+
+      <h3>路由决策图</h3>
+      <div class="mermaid">
+flowchart TD
+    A["critique 完成"] --> B{"is_sufficient OR<br/>research_loop_count >= max_loops?"}
+    B -->|"是"| END["END<br/>退出子图<br/>→ 父图进入 writer"]
+    B -->|"否"| C["并行扇出新一轮 web_search<br/>用 follow_up_queries"]
+    C --> W["_web_search ×N"]
+    W --> D["再 critique"]
+    D --> B
+
+    style END fill:#0a4f3a,stroke:#10b981,color:#e6edf7
+    style C fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+      </div>
+
+      <h3>关键细节</h3>
+      <ul>
+        <li><code>state["number_of_ran_queries"] + int(idx)</code> —— 续编 id，避免与上轮重复</li>
+        <li>路由返回值可以是 <code>END</code> 或 <code>list[Send]</code>（动态路由）</li>
+        <li><strong>同步函数</strong>：因为只是返回路由决策，不涉及 IO</li>
+      </ul>
+
+      <h3>双重退出保险</h3>
+      <table>
+        <thead><tr><th>条件</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><code>is_sufficient=True</code></td>
+            <td>LLM 判断信息已充分</td>
+          </tr>
+          <tr>
+            <td><code>research_loop_count >= max_loops</code></td>
+            <td>达到循环上限（防 LLM 永远说"不充分"导致死循环）</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ========== 九、图构建 ========== -->
+    <section id="graph-build">
+      <h2>九、图构建（:326-337）</h2>
+      <p>用 LangGraph <code>StateGraph</code> 编译子图。</p>
+
+      <h3>核心代码</h3>
+      <pre><code>_builder = StateGraph(OverallState, config_schema=Configuration)
+
+_builder.add_node(_GENERATE_QUERIES, _generate_queries)        # "generate_queries"
+_builder.add_node(_WEB_SEARCH, _web_search)                    # "web_search"
+_builder.add_node(_CRITIQUE, _critique)                        # "critique"
+
+_builder.add_edge(START, _GENERATE_QUERIES)
+_builder.add_conditional_edges(_GENERATE_QUERIES, _fan_out_to_web_search, [_WEB_SEARCH])
+_builder.add_edge(_WEB_SEARCH, _CRITIQUE)
+_builder.add_conditional_edges(_CRITIQUE, _route_after_critique, [_WEB_SEARCH, END])
+
+research_agent_graph = _builder.compile(name="ResearchAgent")</code></pre>
+
+      <h3>子图完整结构</h3>
+      <div class="mermaid">
+flowchart TD
+    S[START] --> GQ["generate_queries<br/>(1 次)"]
+    GQ -->|"Send 并行扇出"| WS1["web_search<br/>(id=0, Q1)"]
+    GQ -->|"Send"| WS2["web_search<br/>(id=1, Q2)"]
+    GQ -->|"Send"| WS3["web_search<br/>(id=2, Q3)"]
+    WS1 --> C["critique"]
+    WS2 --> C
+    WS3 --> C
+    C -->|"路由"| R{"is_sufficient<br/>OR<br/>达到 max_loops?"}
+    R -->|"是"| E["END<br/>→ 父图 write"]
+    R -->|"否"| WS4["web_search<br/>(id=N, follow_up_queries)"]
+    WS4 --> C
+
+    style E fill:#0a4f3a,stroke:#10b981,color:#e6edf7
+    style GQ fill:#1a2236,stroke:#8b5cf6,color:#e6edf7
+    style WS1 fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+    style WS2 fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+    style WS3 fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+      </div>
+
+      <h3>边类型说明</h3>
+      <table>
+        <thead><tr><th>边</th><th>类型</th><th>作用</th></tr></thead>
+        <tbody>
+          <tr><td><code>START → generate_queries</code></td><td>普通边</td><td>入口固定</td></tr>
+          <tr><td><code>generate_queries → [web_search]</code></td><td>条件边（Send）</td><td>动态并行扇出</td></tr>
+          <tr><td><code>web_search → critique</code></td><td>普通边</td><td>所有 web_search 完成 → critique</td></tr>
+          <tr><td><code>critique → [web_search | END]</code></td><td>条件边</td><td>路由：循环 or 退出</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ========== 十、OverallState 字段变化 ========== -->
+    <section id="state">
+      <h2>十、OverallState 字段变化</h2>
+      <p>本子图涉及的 state 字段操作。</p>
+
+      <div class="mermaid">
+flowchart LR
+    subgraph Q1["_generate_queries"]
+        A1["search_query:<br/>新增 list"]
+        A2["initial_search_query_count:<br/>兜底赋值"]
+    end
+
+    subgraph Q2["_web_search ×N"]
+        B1["sources_gathered:<br/>operator.add 累积"]
+        B2["web_search_result:<br/>operator.add 累积"]
+        B3["search_query:<br/>单条 query（副本）"]
+    end
+
+    subgraph Q3["_critique"]
+        C1["research_loop_count: +1"]
+        C2["is_sufficient"]
+        C3["knowledge_gap"]
+        C4["follow_up_queries"]
+        C5["number_of_ran_queries"]
+        C6["max_research_loops"]
+    end
+
+    Q1 --> Q2
+    Q2 --> Q3
+    Q3 -.->|"不充分"| Q2
+
+    style A1 fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+    style B1 fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+    style B2 fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+    style C1 fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+      </div>
+
+      <h3>字段写入详情</h3>
+      <table>
+        <thead><tr><th>字段</th><th>写入节点</th><th>Reducer</th><th>作用</th></tr></thead>
+        <tbody>
+          <tr><td><code>search_query</code></td><td>_generate_queries</td><td><code>operator.add</code></td><td>查询列表</td></tr>
+          <tr><td><code>sources_gathered</code></td><td>_web_search</td><td><code>operator.add</code></td><td>所有来源 URL</td></tr>
+          <tr><td><code>web_search_result</code></td><td>_web_search</td><td><code>operator.add</code></td><td>所有摘要</td></tr>
+          <tr><td><code>research_loop_count</code></td><td>_critique</td><td>赋值</td><td>循环计数</td></tr>
+          <tr><td><code>is_sufficient</code></td><td>_critique</td><td>赋值</td><td>路由判断</td></tr>
+          <tr><td><code>knowledge_gap</code></td><td>_critique</td><td>赋值</td><td>知识缺口</td></tr>
+          <tr><td><code>follow_up_queries</code></td><td>_critique</td><td><code>operator.add</code></td><td>下一轮查询</td></tr>
+        </tbody>
+      </table>
+
+      <div class="callout">
+        <strong><code>operator.add</code> reducer</strong>：每个 <code>_web_search</code> 副本的输出会被合并到主 state，是并行扇出的关键。
+      </div>
+    </section>
+
+    <!-- ========== 十一、关键调用关系 ========== -->
+    <section id="calls">
+      <h2>十一、关键调用关系</h2>
+
+      <h3>11.1 KB 模块调用（"读旧写新"闭环）</h3>
+      <div class="mermaid">
+flowchart LR
+    A["_generate_queries"] -->|"读旧 facts"| B["FactStore.query<br/>kb/fact_store.py"]
+    A2["_web_search"] -->|"写新 facts"| B2["FactStore.add_facts"]
+    A2 -->|"抽 facts"| C["FactExtractor.extract<br/>kb/extractor.py"]
+    B2 --> D[("Milvus<br/>research_facts")]
+    C --> B2
+    B --> D
+      </div>
+
+      <h3>11.2 模型选择</h3>
+      <table>
+        <thead><tr><th>节点</th><th>模型来源</th><th>备注</th></tr></thead>
+        <tbody>
+          <tr><td><code>_generate_queries</code></td><td><code>configurable.query_generator_model</code></td><td>默认 query_generator_model</td></tr>
+          <tr><td><code>_web_search</code>（摘要）</td><td><code>configurable.query_generator_model</code></td><td>同一生成器模型</td></tr>
+          <tr><td><code>_critique</code></td><td><code>state["reasoning_model"] or configurable.reflection_model</code></td><td>用户可指定，否则默认</td></tr>
+          <tr><td><code>FactExtractor.extract</code></td><td>独立 LLM 调用</td><td>抽 facts 用</td></tr>
+        </tbody>
+      </table>
+
+      <h3>11.3 完整依赖关系</h3>
+      <div class="mermaid">
+flowchart TD
+    A[ResearchAgent] --> B[LLM]
+    A --> C[WebSearchAgent]
+    A --> D[Milvus]
+    A --> E[Reranker]
+
+    C --> F[search_cache<br/>Redis]
+    C --> G[MCP 工具]
+
+    B --> H[base_agent.Agent]
+    B --> I[base_agent.JsonAgent]
+
+    D --> J[kb.fact_store.FactStore]
+    D --> K[kb.extractor.FactExtractor]
+    K --> B
+
+    style A fill:#1a2236,stroke:#8b5cf6,color:#e6edf7
+    style B fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+    style D fill:#1a3a2a,stroke:#10b981,color:#e6edf7
+      </div>
+    </section>
+
+    <!-- ========== 十二、完整调用时序 ========== -->
+    <section id="sequence">
+      <h2>十二、完整调用时序</h2>
+
+      <div class="mermaid">
+sequenceDiagram
+    autonumber
+    participant Main as 父图<br/>(graph.py)
+    participant Sub as ResearchAgent 子图
+    participant GQ as _generate_queries
+    participant WS as _web_search
+    participant Cr as _critique
+    participant LLM as LLM API
+    participant SR as WebSearchAgent
+    participant MCP as MCP 工具
+    participant KB as Milvus
+    participant RR as Reranker
+
+    Main->>Sub: astream 进入子图
+    Sub->>GQ: 执行
+    GQ->>KB: query(topic) 检索已有 facts
+    KB-->>GQ: hits
+    GQ->>LLM: JsonAgent.step(generate queries)
+    LLM-->>GQ: SearchQueryList
+    GQ-->>Sub: return search_query
+
+    Note over Sub: Send API 并行分发
+    par 对每个 query
+        Sub->>WS: 实例 1 (id=0, Q1)
+        Sub->>WS: 实例 2 (id=1, Q2)
+        Sub->>WS: 实例 3 (id=2, Q3)
+    end
+
+    WS->>SR: step(query, count=10)
+    SR->>MCP: Application.call (搜索)
+    MCP-->>SR: results
+    SR-->>WS: 搜索结果
+    WS->>RR: rerank (可选)
+    RR-->>WS: reranked
+    WS->>LLM: Agent.step (摘要)
+    LLM-->>WS: summary
+    WS->>KB: FactExtractor.extract + add_facts
+    WS-->>Sub: sources_gathered + web_search_result
+
+    Sub->>Cr: 执行
+    Cr->>LLM: JsonAgent.step(评估)
+    LLM-->>Cr: Reflection
+
+    alt is_sufficient OR 达到 max_loops
+        Cr-->>Sub: route → END
+        Sub-->>Main: 返回父图
+    else 不充分
+        Cr-->>Sub: route → Send follow_up_queries
+        Sub->>WS: 新一轮并行搜索
+    end
+      </div>
+    </section>
+
+    <!-- ========== 十三、核心设计要点 ========== -->
+    <section id="design">
+      <h2>十三、核心设计要点</h2>
+
+      <h3>13.1 并行扇出 vs 顺序执行</h3>
+      <div class="mermaid">
+flowchart LR
+    subgraph Sequential["顺序执行"]
+        S1["generate_queries"] --> S2["web_search Q1"]
+        S2 --> S3["web_search Q2"]
+        S3 --> S4["web_search Q3"]
+        S4 --> S5["critique"]
+    end
+
+    subgraph Parallel["并行执行（本项目）"]
+        P1["generate_queries"] -->|"Send × 3"| P2["web_search Q1"]
+        P1 --> P3["web_search Q2"]
+        P1 --> P4["web_search Q3"]
+        P2 --> P5["critique"]
+        P3 --> P5
+        P4 --> P5
+    end
+      </div>
+
+      <h3>13.2 KB 闭环</h3>
+      <div class="mermaid">
+flowchart LR
+    A["第 1 轮搜索"] -->|"抽 facts"| B["Milvus"]
+    B -->|"检索 facts"| C["第 2 轮 LLM prompt"]
+    C -->|"避免重复搜索"| A2["第 2 轮搜索"]
+    A2 -->|"抽 facts"| B
+      </div>
+
+      <h3>13.3 异常防御层级</h3>
+      <table>
+        <thead><tr><th>层</th><th>处理</th></tr></thead>
+        <tbody>
+          <tr><td>KB 连接失败</td><td><code>_get_kb_store</code> 返回 <code>False</code> sentinel → 后续 <code>if store:</code> 跳过</td></tr>
+          <tr><td>KB 临时错误</td><td><code>except (KBConnectionError, KBEmbeddingError)</code> warn 跳过</td></tr>
+          <tr><td>KB 永久错误</td><td><code>except (KBConfigError, KBEmbeddingFatalError)</code> error 跳过</td></tr>
+          <tr><td>LLM 调用失败</td><td><code>JsonAgent.step</code> 返回非预期类型 → 降级为默认查询</td></tr>
+          <tr><td>LLM 3 次重试失败</td><td><code>Agent.step</code> 返回空字符串</td></tr>
+          <tr><td>WebSearchAgent 失败</td><td><code>_retry_with_classified_errors</code> 3 次重试</td></tr>
+          <tr><td>MCP 搜索失败</td><td><code>WebSearchAgent.step</code> 异常 → <code>_web_search</code> 返回空 summary</td></tr>
+        </tbody>
+      </table>
+
+      <h3>13.4 数据流动（核心循环）</h3>
+      <div class="mermaid">
+flowchart LR
+    A["OverallState<br/>(in)"] --> B["_generate_queries"]
+    B -->|"search_query: List[str]"| C["_web_search ×N"]
+    C -->|"sources_gathered<br/>web_search_result<br/>(operator.add)"| D["_critique"]
+    D -->|"is_sufficient<br/>knowledge_gap<br/>follow_up_queries"| E{"路由"}
+    E -->|"充分/达上限"| F["END"]
+    E -->|"不充分"| C
+
+    style F fill:#0a4f3a,stroke:#10b981,color:#e6edf7
+      </div>
+
+      <h3>13.5 Potential Issues（潜在改进点）</h3>
+      <ul>
+        <li><strong>KB 抽 facts 是同步阻塞 LLM 调用</strong>（<code>_web_search</code> 内）：多个 KB 抽取并行会触发多个 LLM 请求，可能限流</li>
+        <li><strong>没有超时控制</strong>：单个 <code>_web_search</code> 节点可能因 MCP 卡住而长时间挂起</li>
+        <li><strong><code>_route_after_critique</code> 是同步函数但内部使用 Send</strong>：理论上 OK，但若 config 解析失败会抛异常而非返回默认路由</li>
+        <li><strong>KB 错误只 log 不抛出</strong>：上游无法感知 KB 不可用，需要通过其他方式监控</li>
+      </ul>
+    </section>
+
+  </main>
+</div>
+
+<footer>
+  Deep Research Backend · ResearchAgent 子图详解 · 基于 src/agent/sub_agents/research_agent.py
+</footer>
+
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'dark',
+    themeVariables: {
+      primaryColor: '#1a2236',
+      primaryTextColor: '#e6edf7',
+      primaryBorderColor: '#8b5cf6',
+      lineColor: '#22d3ee',
+      secondaryColor: '#111827',
+      tertiaryColor: '#0a1020',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif',
+    },
+    flowchart: { curve: 'basis', padding: 12 },
+    sequence: { actorMargin: 60, messageMargin: 40 },
+  });
+</script>
+
+</body>
+</html>

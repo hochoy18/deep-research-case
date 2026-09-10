@@ -37,15 +37,24 @@ def setup_logger(log_dir="logs", console_log_level="INFO", file_log_level="DEBUG
         
         # 注册程序退出时的处理函数，确保所有日志都被写入
         atexit.register(lambda: logger.complete() if hasattr(logger, 'complete') else None)
-    except Exception as e:
-        # 即使日志配置失败也确保基本的日志记录
+    except OSError as e:
+        # 文件系统错误（权限不足、磁盘满等）— 降级到纯控制台日志
         logger.remove()
         logger.add(
             sys.stderr,
             format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <red>日志配置错误: {message}</red>",
             level="DEBUG"
         )
-        logger.error(f"日志配置失败: {str(e)}")
+        logger.error(f"日志目录创建失败 (OSError): {e}")
+    except Exception as e:
+        # 其他意外异常 — 降级到纯控制台日志并记录完整错误
+        logger.remove()
+        logger.add(
+            sys.stderr,
+            format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <red>日志配置错误: {message}</red>",
+            level="DEBUG"
+        )
+        logger.error(f"日志配置失败 ({type(e).__name__}): {e}")
     
     return logger
 

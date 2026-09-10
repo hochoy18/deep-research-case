@@ -37,26 +37,43 @@ WRITER_AGENT_NODE = "write"
 
 
 
-def generate_plan(state: OverallState, config: RunnableConfig) -> dict:
-    """根据用户提交的主题生成研究计划。
-    仅当计划状态为“未确认”时运行；重新提交时跳过。
+async def generate_plan(state: OverallState, config: RunnableConfig) -> dict:
+    """Generate a research plan based on the user's topic.
+
+    Only runs when plan_status is "unconfirmed"; skipped on resubmit.
     """
     if state.get("plan_status", "unconfirmed") != "unconfirmed":
         return {}
 
     configurable = Configuration.from_runnable_config(config)
-    agent = Agent(
-        name="计划生成Agent",
-        model_id=configurable.query_generator_model)
+    agent = Agent(model_id=configurable.query_generator_model)
     agent.set_step_prompt(plan_instructions)
-    response = agent.step(
-        current_date=get_current_date(),
-        research_topic=get_research_topic(
-            state["messages"],
-            [m.content for m in state.get("plan_messages", [])],
-        ),
-        research_proposal=state.get("plan", ""),
-    )
+
+    # 如果配置中注入了 token 回调，则使用流式调用
+    emit_token = config.get("configurable", {}).get("_emit_token")
+    if emit_token:
+
+        async def on_token(text: str) -> None:
+            await emit_token(text, "generate_plan")
+
+        response = await agent.astream_step(
+            on_token,
+            current_date=get_current_date(),
+            research_topic=get_research_topic(
+                state["messages"],
+                [m.content for m in state.get("plan_messages", [])],
+            ),
+            research_proposal=state.get("plan", ""),
+        )
+    else:
+        response = await agent.astep(
+            current_date=get_current_date(),
+            research_topic=get_research_topic(
+                state["messages"],
+                [m.content for m in state.get("plan_messages", [])],
+            ),
+            research_proposal=state.get("plan", ""),
+        )
     response = Post.extract_pattern(response, pattern="markdown")
     logger.info(f"[MainGraph] 生成的计划 ({len(response)} 字)")
 
@@ -68,79 +85,112 @@ def generate_plan(state: OverallState, config: RunnableConfig) -> dict:
     }
 
 
-def evaluate_plan(state: OverallState, config: RunnableConfig) -> str:
-    """规划生成后的执行情况。
+async def evaluate_plan(state: OverallState, config: RunnableConfig) -> str:
+    """计划生成后的路由。
 
     返回值：
 
-    “awaiting_plan_confirmation” — 停止，等待人工输入
+    "awaiting_plan_confirmation" — 停止，等待人工输入
 
-    “replan” — 重新生成路线规划
+    "replan" — 重新生成路线规划
 
-    “research” — 规划已确认，前往 ResearchAgent 执行研究任务
+    "confirm_plan" — 计划已提交确认，进入评估节点
     """
-    configurable = Configuration.from_runnable_config(config)
-    plan = state.get("plan", None)
-
     if state.get("plan_status", "unconfirmed") == "unconfirmed":
         logger.info("[MainGraph] 等待用户确认计划")
         return "awaiting_plan_confirmation"
 
-    if not plan:
+    if not state.get("plan"):
         logger.info("[MainGraph] 没有计划可评估 → 重新计划")
         return "replan"
 
+    logger.info("[MainGraph] 计划已提交确认 → 评估")
+    return "confirm_plan"
+
+
+async def confirm_plan(state: OverallState, config: RunnableConfig) -> dict:
+    """评估计划确认并设置新鲜度等级。
+
+    仅当 plan_status 为 "confirmed"（用户已提交确认）时进入此节点。
+    根据用户消息中的关键词或 LLM 评估结果，决定是进入研究阶段还是重新规划。
+    """
+    configurable = Configuration.from_runnable_config(config)
     context = get_last_user_response(state["messages"])
 
     if "开始研究" in context or "需求确认" in context:
-        logger.info("[MainGraph] 计划已明确确认 → 研究")
-        return RESEARCH_AGENT_NODE
+        logger.info("[MainGraph] plan explicitly confirmed → research")
+        return {"fresh_level": "medium"}
 
-    agent = JsonAgent(
-        name="计划评估Agent",
-        model_id=configurable.query_generator_model, keys=PlanReflection)
+    agent = JsonAgent(model_id=configurable.query_generator_model, keys=PlanReflection)
     agent.set_step_prompt(plan_reflection_instructions)
-    result = agent.step(
+    result = await agent.astep(
         research_proposal=state.get("plan", ""),
         context=context,
     )
+    if not isinstance(result, PlanReflection):
+        logger.warning(
+            f"[MainGraph] 计划评估模型调用失败（返回类型={type(result).__name__}），"
+            f"默认进入研究阶段"
+        )
+        return {"fresh_level": "medium"}
     if result.satisfy:
-        logger.info("[MainGraph] 计划已意图识别确认 → 研究")
-        return RESEARCH_AGENT_NODE
+        logger.info("[MainGraph] plan implicitly confirmed → research")
+        return {"fresh_level": getattr(result, "fresh_level", "medium")}
 
     logger.info("[MainGraph] 计划未确认 → 重新计划")
-    return "replan"
+    return {"plan_status": "unconfirmed"}
 
-builder = StateGraph(OverallState, config_schema=Configuration)
 
-builder.add_node(GENERATE_PLAN_NODE, generate_plan)
-builder.add_node(
-    "replan",
-    lambda state, config: {"plan_status": "unconfirmed"},
-)
-builder.add_node(
-    "awaiting_plan_confirmation",
-    lambda state, config: state,
-)
+def route_after_confirm(state: OverallState) -> str:
+    """计划确认后的路由：进入研究阶段或重新规划。"""
+    if state.get("plan_status", "confirmed") == "unconfirmed":
+        return "replan"
+    return RESEARCH_AGENT_NODE
 
-# -- 子图节点 --
-builder.add_node(RESEARCH_AGENT_NODE, research_agent_graph)
-builder.add_node(WRITER_AGENT_NODE, writer_agent_graph)
+def build_graph(checkpointer=None):
+    """编译研究智能体图。
 
-builder.add_edge(START, GENERATE_PLAN_NODE)
-builder.add_conditional_edges(
-    GENERATE_PLAN_NODE,
-    evaluate_plan,
-    [RESEARCH_AGENT_NODE, "replan", "awaiting_plan_confirmation"],
-)
-builder.add_edge("replan", GENERATE_PLAN_NODE)
-builder.add_edge(RESEARCH_AGENT_NODE, WRITER_AGENT_NODE)
-builder.add_edge(WRITER_AGENT_NODE, END)
+    参数:
+        checkpointer: LangGraph checkpointer 实例。langgraph dev 模式下不传，
+                      自建服务传入 AsyncRedisSaver 等持久化实现。
+    """
+    builder = StateGraph(OverallState, config_schema=Configuration)
 
-graph = builder.compile(name="pro-research-agent")
+    builder.add_node(GENERATE_PLAN_NODE, generate_plan)
+    builder.add_node("confirm_plan", confirm_plan)
+    builder.add_node(
+        "replan",
+        lambda state, config: {"plan_status": "unconfirmed"},
+    )
+    builder.add_node(
+        "awaiting_plan_confirmation",
+        lambda state, config: state,
+    )
 
-if __name__ == "__main__":
-    try:
-        display(Image(graph.get_graph().draw_mermaid_png(output_file_path="./多Agent版.png")))
-    except Exception:
-        pass
+    # -- 子图节点 --
+    builder.add_node(RESEARCH_AGENT_NODE, research_agent_graph)
+    builder.add_node(WRITER_AGENT_NODE, writer_agent_graph)
+
+    builder.add_edge(START, GENERATE_PLAN_NODE)
+    builder.add_conditional_edges(
+        GENERATE_PLAN_NODE,
+        evaluate_plan,
+        ["confirm_plan", "replan", "awaiting_plan_confirmation"],
+    )
+    builder.add_conditional_edges(
+        "confirm_plan",
+        route_after_confirm,
+        [RESEARCH_AGENT_NODE, "replan"],
+    )
+    builder.add_edge("replan", GENERATE_PLAN_NODE)
+    builder.add_edge(RESEARCH_AGENT_NODE, WRITER_AGENT_NODE)
+    builder.add_edge(WRITER_AGENT_NODE, END)
+
+    return builder.compile(
+        name="pro-research-agent",
+        checkpointer=checkpointer,
+    )
+
+
+# langgraph dev 入口（不传 checkpointer，由平台自动注入）
+graph = build_graph()

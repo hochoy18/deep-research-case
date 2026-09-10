@@ -1,0 +1,1162 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>_process_one_task 函数详解 · Deep Research</title>
+<!-- Mermaid -->
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<style>
+  :root {
+    --bg-0: #0b0f1a;
+    --bg-1: #111827;
+    --bg-2: #1a2236;
+    --line: #243049;
+    --text: #e6edf7;
+    --muted: #97a3bd;
+    --primary: #8b5cf6;
+    --primary-2: #6366f1;
+    --accent: #22d3ee;
+    --accent-2: #06b6d4;
+    --warn: #f59e0b;
+    --ok: #10b981;
+    --danger: #ef4444;
+    --code-bg: #0a1020;
+    --shadow: 0 10px 30px rgba(0,0,0,.35);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+                 "Microsoft YaHei", Roboto, Helvetica, Arial, sans-serif;
+    background:
+      radial-gradient(1200px 600px at 10% -10%, rgba(139,92,246,.18), transparent 60%),
+      radial-gradient(1000px 500px at 110% 10%, rgba(34,211,238,.15), transparent 60%),
+      var(--bg-0);
+    color: var(--text);
+    line-height: 1.7;
+    min-height: 100vh;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* Hero */
+  .hero {
+    padding: 56px 16px 32px;
+    text-align: center;
+    border-bottom: 1px solid var(--line);
+    background: linear-gradient(180deg, rgba(139,92,246,.10), transparent 60%);
+  }
+  .hero .badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 999px;
+    background: rgba(139,92,246,.18);
+    color: #c4b5fd;
+    border: 1px solid rgba(139,92,.35);
+    font-size: 12px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+  .hero h1 {
+    margin: 0 0 8px;
+    font-size: clamp(28px, 4vw, 42px);
+    letter-spacing: -0.5px;
+    background: linear-gradient(90deg, #c4b5fd, #67e8f9);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .hero p.lead { color: var(--muted); margin: 0 auto; max-width: 760px; }
+
+  /* Layout */
+  .layout {
+    display: grid;
+    grid-template-columns: 260px minmax(0, 1fr);
+    gap: 24px;
+    max-width: 1320px;
+    margin: 0 auto;
+    padding: 32px 16px;
+  }
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; }
+    .toc { position: static !important; }
+  }
+
+  /* TOC */
+  .toc {
+    position: sticky;
+    top: 24px;
+    align-self: start;
+    background: linear-gradient(180deg, var(--bg-1), var(--bg-2));
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 16px 18px;
+    box-shadow: var(--shadow);
+    max-height: calc(100vh - 48px);
+    overflow: auto;
+  }
+  .toc h3 {
+    margin: 0 0 10px;
+    font-size: 13px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+  }
+  .toc ol { margin: 0; padding-left: 20px; }
+  .toc li { margin: 6px 0; }
+  .toc a { color: var(--text); font-size: 14px; }
+  .toc a:hover { color: var(--accent); }
+
+  /* Content */
+  .content { min-width: 0; }
+  section {
+    background: linear-gradient(180deg, var(--bg-1), var(--bg-2));
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 24px 26px;
+    box-shadow: var(--shadow);
+    margin-bottom: 22px;
+  }
+  section h2 {
+    margin-top: 0;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--line);
+    font-size: 22px;
+    letter-spacing: -0.2px;
+  }
+  section h3 { margin-top: 22px; font-size: 17px; color: #c7d2fe; }
+  section h4 { margin-top: 16px; font-size: 15px; color: #a5b4fc; }
+  section p { color: var(--text); }
+  .muted { color: var(--muted); }
+
+  /* Code */
+  code {
+    font-family: "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+    background: var(--code-bg);
+    border: 1px solid var(--line);
+    padding: 1px 6px;
+    border-radius: 6px;
+    font-size: 13px;
+  }
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 14px 16px;
+    overflow: auto;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  pre code { background: none; border: none; padding: 0; }
+
+  /* Tables */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 14px 0;
+    font-size: 14px;
+  }
+  th, td {
+    border: 1px solid var(--line);
+    padding: 8px 12px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th { background: rgba(139,92,246,.10); color: #c4b5fd; }
+  tbody tr:nth-child(even) { background: rgba(255,255,255,.02); }
+
+  /* Pills */
+  .pill {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    margin-right: 6px;
+    border: 1px solid var(--line);
+    background: rgba(255,255,255,.04);
+    color: var(--muted);
+  }
+  .pill.write  { color: var(--accent); border-color: rgba(34,211,238,.35); background: rgba(34,211,238,.10); }
+  .pill.read   { color: var(--ok);     border-color: rgba(16,185,129,.35); background: rgba(16,185,129,.10); }
+  .pill.del    { color: var(--danger); border-color: rgba(239,68,68,.35);  background: rgba(239,68,68,.10); }
+
+  /* Mermaid */
+  .mermaid {
+    background: rgba(255,255,255,.02);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 16px;
+    margin: 14px 0;
+    text-align: center;
+    overflow: auto;
+  }
+
+  /* Callout */
+  .callout {
+    border-left: 3px solid var(--accent);
+    background: rgba(34,211,238,.06);
+    padding: 12px 16px;
+    border-radius: 0 8px 8px 0;
+    margin: 14px 0;
+  }
+  .callout.warn { border-color: var(--warn); background: rgba(245,158,11,.06); }
+  .callout.tip  { border-color: var(--ok); background: rgba(16,185,129,.06); }
+
+  /* Step list */
+  .steps { counter-reset: step; list-style: none; padding: 0; }
+  .steps > li {
+    counter-increment: step;
+    padding: 10px 14px 10px 50px;
+    position: relative;
+    margin: 6px 0;
+    background: rgba(255,255,255,.02);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+  }
+  .steps > li::before {
+    content: counter(step);
+    position: absolute;
+    left: 12px;
+    top: 8px;
+    width: 28px;
+    height: 28px;
+    line-height: 28px;
+    text-align: center;
+    background: var(--primary);
+    color: white;
+    border-radius: 50%;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  footer {
+    text-align: center;
+    color: var(--muted);
+    font-size: 13px;
+    padding: 24px 16px 40px;
+  }
+
+  section[id] { scroll-margin-top: 16px; }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="badge">Deep Research · Backend Internals</div>
+  <h1>_process_one_task 函数详解</h1>
+  <p class="lead">从 Redis Stream 消费任务，到驱动 LangGraph 多智能体执行，到事件流回传 —— 完整逻辑梳理</p>
+</div>
+
+<div class="layout">
+
+  <!-- ========== 目录 ========== -->
+  <aside class="toc">
+    <h3>目录</h3>
+    <ol>
+      <li><a href="#overview">一、函数概览</a></li>
+      <li><a href="#flow">二、整体流程图</a></li>
+      <li><a href="#stage-1">三、阶段 1：消费任务</a></li>
+      <li><a href="#stage-2">四、阶段 2：重建消息</a></li>
+      <li><a href="#stage-3">五、阶段 3：emit_token 闭包</a></li>
+      <li><a href="#stage-4">六、阶段 4：构造 config</a></li>
+      <li><a href="#stage-5">七、阶段 5：构造 initial_state</a></li>
+      <li><a href="#stage-6">八、阶段 6：执行 LangGraph 图</a></li>
+      <li><a href="#stage-7">九、阶段 7：事件循环处理</a></li>
+      <li><a href="#stage-8">十、阶段 8：任务结束</a></li>
+      <li><a href="#stage-9">十一、阶段 9：异常处理</a></li>
+      <li><a href="#stage-10">十二、阶段 10：清理收尾</a></li>
+      <li><a href="#emit">十三、emit_token 调用链路</a></li>
+      <li><a href="#redis">十四、Redis 操作汇总</a></li>
+      <li><a href="#timeline">十五、整体时序图</a></li>
+      <li><a href="#design">十六、设计要点</a></li>
+    </ol>
+  </aside>
+
+  <main class="content">
+
+    <!-- ========== 一、函数概览 ========== -->
+    <section id="overview">
+      <h2>一、函数概览</h2>
+      <p>
+        <code>_process_one_task(r)</code> 是后台 worker 协程的核心函数 —— <strong>消费一条任务并完整执行</strong>。
+        它由 <code>start_worker()</code>（<code>task_queue.py:116-134</code>）在循环中调用。
+      </p>
+
+      <h3>位置与签名</h3>
+      <pre><code># src/agent/task_queue.py:148-308
+async def _process_one_task(r: redis.Redis) -> None:
+    """消费并执行一个任务."""</code></pre>
+
+      <h3>核心职责</h3>
+      <ol class="steps">
+        <li>从 Redis Stream <code>research:tasks</code> 阻塞消费 1 条任务</li>
+        <li>重建 LangChain 消息对象</li>
+        <li>定义 <code>emit_token</code> 闭包（用于 LLM 流式输出推送）</li>
+        <li>构造 LangGraph 配置（<code>thread_id</code> + <code>_emit_token</code>）</li>
+        <li>构造初始 state（支持 plan 确认后的 resume）</li>
+        <li>异步执行 LangGraph 多智能体图（Plan → Research → Writer）</li>
+        <li>把每个节点事件写入 <code>research:events:{task_id}</code></li>
+        <li>提取最终报告，发射 <code>finalize_answer</code> 或 <code>task_paused</code></li>
+        <li>XACK 确认消息 + EXPIRE 设置 24h TTL</li>
+      </ol>
+
+      <h3>输入输出</h3>
+      <table>
+        <thead><tr><th>项</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td><strong>输入</strong></td><td><code>r</code>：共享的异步 Redis 连接</td></tr>
+          <tr><td><strong>输出</strong></td><td>无返回值；副作用全部写入 Redis Stream</td></tr>
+          <tr><td><strong>调用频率</strong></td><td>由 <code>start_worker</code> 每 ≤5 秒轮询一次</td></tr>
+          <tr><td><strong>单次耗时</strong></td><td>几秒到几分钟（取决于 LangGraph 图执行时间）</td></tr>
+          <tr><td><strong>并发模型</strong></td><td>单协程顺序消费；多实例时靠 Consumer Group 抢占</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ========== 二、整体流程图 ========== -->
+    <section id="flow">
+      <h2>二、整体流程图</h2>
+      <div class="mermaid">
+flowchart TD
+    A["进入 _process_one_task"] --> B["XREADGROUP<br/>阻塞消费 1 条任务"]
+    B -->|"超时无任务"| Z1["return"]
+    B -->|"拿到任务"| C["解析 payload JSON"]
+
+    C --> D["重建 LangChain 消息"]
+    D --> E["定义 emit_token 闭包"]
+    E --> F["构造 LangGraph config"]
+    F --> G["构造 initial_state"]
+    G --> H["_get_graph() 获取图"]
+    H --> I["astream(subgraphs=True)<br/>异步流式执行"]
+
+    I --> J["事件循环"]
+    J --> K["提取 namespace + node_name"]
+    K --> L["子图事件名翻译"]
+    L --> M["XADD research:events:{id}"]
+    M --> N{"是 write 节点?"}
+    N -->|"是"| O["提取 final_answer 暂存"]
+    N -->|"否"| J
+    O --> J
+
+    J -->|"循环结束"| P{"final_answer 存在?"}
+    P -->|"是"| Q["XADD finalize_answer"]
+    P -->|"否"| R["XADD task_paused"]
+
+    Q --> S["finally 块"]
+    R --> S
+
+    I -. "异常" .-> T["except 块"]
+    T --> U["XADD error 事件"]
+    U --> S
+
+    S --> V["XACK 确认消息"]
+    S --> W["EXPIRE 24h TTL"]
+
+    style I fill:#1a2236,stroke:#8b5cf6,color:#e6edf7
+    style M fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+    style V fill:#1a3a2a,stroke:#10b981,color:#e6edf7
+    style Z1 fill:#4a1414,stroke:#ef4444,color:#fecaca
+      </div>
+    </section>
+
+    <!-- ========== 三、阶段 1：消费任务 ========== -->
+    <section id="stage-1">
+      <h2>三、阶段 1：消费任务（task_queue.py:148-166）</h2>
+      <p>从 Redis Stream <code>research:tasks</code> 用消费者组抢占一条任务。</p>
+
+      <h3>核心代码（简化）</h3>
+      <pre><code>result = await r.xreadgroup(
+    groupname="research-workers",      # 消费者组
+    consumername="worker-1",            # 当前消费者名
+    streams={"research:tasks": ">"},   # > = 只读未确认消息
+    block=5000,                         # 阻塞 5 秒
+    count=1,                            # 每次只取 1 条
+)
+if not result:
+    return                              # 超时，无任务
+
+_, messages = result[0]               # [(msg_id, {field: value})]
+msg_id, payload = messages[0]
+task = json.loads(payload["task"])
+task_id = task["task_id"]</code></pre>
+
+      <h3>消费逻辑</h3>
+      <div class="mermaid">
+sequenceDiagram
+    autonumber
+    participant W as Worker
+    participant R as Redis
+
+    loop 持续循环
+        W->>R: XREADGROUP research-workers worker-1<br/>BLOCK 5000 COUNT 1
+        alt 超时无任务
+            R-->>W: None
+            W->>W: return
+        else 有任务
+            R-->>W: (msg_id, {"task": json})
+            Note over W: 进入任务处理流程<br/>（后续阶段）
+        end
+    end
+      </div>
+
+      <h3>关键设计</h3>
+      <table>
+        <thead><tr><th>机制</th><th>作用</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Consumer Group</strong></td><td>多 worker 实例时，消息只被一个实例拿到</td></tr>
+          <tr><td><strong>游标 <code>></code></strong></td><td>只读未确认消息（避免重复消费）</td></tr>
+          <tr><td><strong>消费者名 <code>worker-1</code></strong></td><td>多实例部署时每实例独立名</td></tr>
+          <tr><td><strong>BLOCK 5000</strong></td><td>阻塞 5 秒，避免空轮询烧 CPU</td></tr>
+          <tr><td><strong>COUNT 1</strong></td><td>每次只取 1 条，单任务粒度</td></tr>
+        </tbody>
+      </table>
+
+      <div class="callout">
+        <strong>消息状态</strong>：XREADGROUP 拿到的消息会进入 <strong>PEL（Pending Entries List）</strong>，
+        必须显式 XACK 才能彻底释放 —— 见阶段 10。
+      </div>
+    </section>
+
+    <!-- ========== 四、阶段 2：重建消息 ========== -->
+    <section id="stage-2">
+      <h2>四、阶段 2：重建消息（task_queue.py:168-176）</h2>
+      <p>把 JSON dict 重新构造为 LangChain 的 <code>HumanMessage</code> / <code>AIMessage</code> 对象。</p>
+
+      <h3>核心代码（简化）</h3>
+      <pre><code>messages = [
+    HumanMessage(content=m["content"], id=m.get("id"))
+        if m.get("type") == "human"
+    else AIMessage(content=m["content"], id=m.get("id"))
+        if m.get("type") == "ai"
+    else None
+    for m in task["messages"]
+]
+messages = [m for m in messages if m is not None]</code></pre>
+
+      <h3>数据形态</h3>
+      <div class="mermaid">
+flowchart LR
+    A["JSON dict<br/>{'type':'human','content':'...','id':'...'}"] -->|重建| B["HumanMessage<br/>(LangChain 对象)"]
+    C["JSON dict<br/>{'type':'ai','content':'...','id':'...'}"] -->|重建| D["AIMessage<br/>(LangChain 对象)"]
+    E["其他类型"] -->|过滤| F[None → 丢弃]
+
+    style B fill:#0a4f3a,stroke:#10b981,color:#e6edf7
+    style D fill:#0a4f3a,stroke:#10b981,color:#e6edf7
+    style F fill:#4a1414,stroke:#ef4444,color:#fecaca
+      </div>
+
+      <h3>关键设计</h3>
+      <div class="callout warn">
+        <strong>为什么必须保留 <code>id</code>？</strong>
+        LangGraph 的 <code>add_messages</code> reducer 按 ID 去重。<br/>
+        若不传 ID，新消息会被当作"新消息"重复累积到 state 中。
+      </div>
+    </section>
+
+    <!-- ========== 五、阶段 3：emit_token 闭包 ========== -->
+    <section id="stage-3">
+      <h2>五、阶段 3：emit_token 闭包（task_queue.py:178-192）</h2>
+      <p>定义一个<strong>异步闭包</strong>，用于把 LLM 流式输出的每个 token 实时推送到 Redis 事件流。</p>
+
+      <h3>核心代码（简化）</h3>
+      <pre><code>async def emit_token(text: str, node: str) -> None:
+    """将 LLM token 推送到 Redis 事件流."""
+    try:
+        event_json = json.dumps(
+            {"token": {"text": text, "node": node}},
+            ensure_ascii=False,
+        )
+        await r.xadd(
+            f"research:events:{task_id}",
+            {"event": event_json},
+            maxlen=500,                 # EVENT_STREAM_MAXLEN
+        )
+    except Exception as exc:
+        logger.warning(f"token事件发送失败: {exc}")</code></pre>
+
+      <h3>闭包捕获的外部变量</h3>
+      <table>
+        <thead><tr><th>变量</th><th>来源</th><th>作用</th></tr></thead>
+        <tbody>
+          <tr><td><code>r</code></td><td>函数参数</td><td>Redis 异步连接</td></tr>
+          <tr><td><code>task_id</code></td><td>解析自 task payload</td><td>定位事件流 key</td></tr>
+        </tbody>
+      </table>
+
+      <h3>写入的事件格式</h3>
+      <pre><code>{
+  "token": {
+    "text": "你",              // 单个 token（汉字 / 英文单词 / 标点）
+    "node": "generate_plan"    // 发起调用的节点名
+  }
+}</code></pre>
+
+      <div class="callout tip">
+        <strong>容错设计</strong>：<code>try/except</code> 保证单次推送失败不会中断 LLM 流式调用。<br/>
+        上层 <code>astream_step</code>（<code>base_agent.py:256-259</code>）还有第二层 try/except，双重保护。
+      </div>
+
+      <h3>调用点（项目里只有 2 处）</h3>
+      <table>
+        <thead><tr><th>节点</th><th>文件:行</th><th>场景</th></tr></thead>
+        <tbody>
+          <tr><td><code>generate_plan</code></td><td><code>graph.py:53-67</code></td><td>首次任务生成研究计划，用户等待</td></tr>
+          <tr><td><code>cite_and_polish</code></td><td><code>writer_agent.py:249-260</code></td><td>终稿润色，用户等待最终报告</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ========== 六、阶段 4：构造 config ========== -->
+    <section id="stage-4">
+      <h2>六、阶段 4：构造 LangGraph config（task_queue.py:194-202）</h2>
+      <p>把任务参数和 <code>emit_token</code> 注入到 LangGraph 的 <code>configurable</code>。</p>
+
+      <h3>核心代码（简化）</h3>
+      <pre><code>config = {
+    "configurable": {
+        "thread_id": task_id,                    # ★ Redis Checkpointer 隔离 key
+        "initial_search_query_count": ...,
+        "max_research_loops": ...,
+        "reasoning_model": ...,
+        "_emit_token": emit_token,               # ★ 注入流式回调
+    }
+}</code></pre>
+
+      <h3>两个核心字段</h3>
+      <table>
+        <thead><tr><th>字段</th><th>作用</th><th>下游使用</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><code>thread_id = task_id</code></td>
+            <td>AsyncRedisSaver 按此隔离 checkpoint 状态</td>
+            <td>同一 task_id 重新执行可恢复断点</td>
+          </tr>
+          <tr>
+            <td><code>_emit_token</code></td>
+            <td>流式回调注入</td>
+            <td>被 <code>generate_plan</code>、<code>cite_and_polish</code> 读取并调用</td>
+          </tr>
+          <tr>
+            <td><code>initial_search_query_count</code></td>
+            <td>研究子图初始查询数</td>
+            <td><code>research_agent.py:_generate_queries</code></td>
+          </tr>
+          <tr>
+            <td><code>max_research_loops</code></td>
+            <td>研究子图循环上限</td>
+            <td><code>research_agent.py:_route_after_critique</code></td>
+          </tr>
+          <tr>
+            <td><code>reasoning_model</code></td>
+            <td>推理模型 ID</td>
+            <td>多个节点使用</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ========== 七、阶段 5：构造 initial_state ========== -->
+    <section id="stage-5">
+      <h2>七、阶段 5：构造 initial_state（task_queue.py:204-209）</h2>
+      <p>LangGraph <code>OverallState</code> 的初始值。</p>
+
+      <h3>核心代码（简化）</h3>
+      <pre><code>initial_state = {
+    "messages": messages,                                # 重建的 LangChain 消息
+    "plan_status": task.get("plan_status", "unconfirmed"),
+    "plan": task.get("plan", ""),                        # 支持 resume
+}</code></pre>
+
+      <h3>断点续传支持</h3>
+      <div class="mermaid">
+flowchart LR
+    A["首次提交<br/>plan_status=unconfirmed"] -->|generate_plan| B["生成计划"]
+    B --> C["awaiting_plan_confirmation<br/>task_paused"]
+    C --> D["用户确认"]
+    D -->|"再次提交<br/>plan_status=confirmed<br/>plan=已有计划"| E["跳过 generate_plan"]
+    E -->|confirm_plan| F["进入研究"]
+
+    style C fill:#4a3a14,stroke:#f59e0b,color:#fde68a
+    style F fill:#0a4f3a,stroke:#10b981,color:#e6edf7
+      </div>
+
+      <div class="callout tip">
+        <strong>断点续传机制</strong>：当 task_id 复用时，AsyncRedisSaver 会按 <code>thread_id = task_id</code>
+        加载历史 checkpoint；<code>generate_plan</code> 节点在 <code>plan_status != "unconfirmed"</code>
+        时直接返回空 dict（<code>graph.py:45-46</code>）。
+      </div>
+    </section>
+
+    <!-- ========== 八、阶段 6：执行 LangGraph 图 ========== -->
+    <section id="stage-6">
+      <h2>八、阶段 6：执行 LangGraph 图（task_queue.py:218-220）</h2>
+      <p>用 <code>astream(subgraphs=True)</code> 异步流式执行多智能体图。</p>
+
+      <h3>核心代码（简化）</h3>
+      <pre><code>final_answer_event = None
+persistent_graph = await _get_graph()         # 延迟初始化 + 单例
+
+async for event in persistent_graph.astream(
+    initial_state,
+    config,
+    subgraphs=True,                            # ★ 关键参数：穿透子图边界
+):
+    # 处理每个事件 ...</code></pre>
+
+      <h3><code>subgraphs=True</code> 的含义</h3>
+      <div class="mermaid">
+flowchart TD
+    subgraph Main["父图 (OverallState)"]
+        P1["generate_plan"]
+        P2["confirm_plan"]
+        P3["research (子图)"]
+        P4["write (子图)"]
+    end
+
+    subgraph Sub["子图 (ResearchAgent)"]
+        S1["generate_queries"]
+        S2["web_search"]
+        S3["critique"]
+    end
+
+    subgraph Sub2["子图 (WriterAgent)"]
+        W1["outline"]
+        W2["draft"]
+        W3["critic_review"]
+        W4["cite_and_polish"]
+    end
+
+    P3 -.包含.-> S1
+    P3 -.包含.-> S2
+    P3 -.包含.-> S3
+    P4 -.包含.-> W1
+    P4 -.包含.-> W2
+    P4 -.包含.-> W3
+    P4 -.包含.-> W4
+
+    style Main fill:#1a2236,stroke:#8b5cf6,color:#e6edf7
+    style Sub fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+    style Sub2 fill:#1a3a2a,stroke:#10b981,color:#e6edf7
+      </div>
+
+      <p>不传 <code>subgraphs=True</code> 只能看到父图节点（generate_plan / confirm_plan / research / write）。<br/>
+      传 <code>subgraphs=True</code> 可以看到子图<strong>内部节点</strong>（generate_queries / web_search 等）。</p>
+
+      <h3>事件结构</h3>
+      <pre><code># 父图节点事件
+((), {"generate_plan": {"messages": [...], "plan": "..."}})
+
+# 子图内部节点事件
+(("research:abc123",), {"generate_queries": {"search_query": [...]}})
+(("research:abc123",), {"web_search": {"sources_gathered": [...]}})
+
+# writer 子图返回
+(("writer:abc123",), {"write": {"messages": [AIMessage("最终报告...")]}})</code></pre>
+    </section>
+
+    <!-- ========== 九、阶段 7：事件循环处理 ========== -->
+    <section id="stage-7">
+      <h2>九、阶段 7：事件循环处理（task_queue.py:220-273）</h2>
+      <p>对每个 LangGraph 事件做 5 步处理：解析 → 过滤 → 翻译 → 写 Redis → 提取终稿。</p>
+
+      <h3>9.1 事件过滤</h3>
+      <pre><code>if not isinstance(event, tuple) or len(event) != 2:
+    continue                          # 跳过非 tuple 事件
+if not isinstance(data, dict) or not data:
+    continue                          # 跳过空 data
+node_name = list(data.keys())[0]
+if not node_name or str(node_name).startswith("__"):
+    continue                          # 跳过内部事件（以 __ 开头）</code></pre>
+
+      <h3>9.2 事件名翻译</h3>
+      <pre><code>is_subgraph = len(namespace) > 0
+frontend_event_name = (
+    _SUBGRAPH_EVENT_MAP.get(node_name, node_name)
+    if is_subgraph else node_name
+)</code></pre>
+
+      <p>翻译映射（<code>task_queue.py:38-42</code>）：</p>
+      <table>
+        <thead><tr><th>子图内部节点名</th><th>前端事件名</th><th>翻译目的</th></tr></thead>
+        <tbody>
+          <tr><td><code>generate_queries</code></td><td><code>generate_query</code></td><td>单数更符合"一次生成多个"的语义</td></tr>
+          <tr><td><code>web_search</code></td><td><code>web_research</code></td><td>与 ResearchAgent 命名一致</td></tr>
+          <tr><td><code>critique</code></td><td><code>reflection</code></td><td>前端命名偏好</td></tr>
+          <tr><td><code>outline</code> / <code>draft</code> / <code>critic_review</code> / <code>cite_and_polish</code></td><td>原样</td><td>无映射</td></tr>
+        </tbody>
+      </table>
+
+      <h3>9.3 写入 Redis 事件流</h3>
+      <pre><code>translated_event = {frontend_event_name: node_output}
+event_json = json.dumps(translated_event, default=str, ensure_ascii=False)
+
+await r.xadd(
+    f"research:events:{task_id}",
+    {"event": event_json},
+    maxlen=500,
+)</code></pre>
+
+      <p><code>default=str</code>：兜底序列化（处理 LangChain Message、datetime 等不可 JSON 对象）。</p>
+
+      <h3>9.4 提取最终报告</h3>
+      <pre><code>if frontend_event_name == "write" and isinstance(node_output, dict):
+    if "messages" in node_output:
+        msgs = node_output["messages"]
+        ai_msgs = [m for m in msgs if getattr(m, "type", None) == "ai"]
+        final_msg = ai_msgs[-1] if ai_msgs else (msgs[-1] if msgs else None)
+        if final_msg:
+            final_answer_event = {
+                "finalize_answer": {
+                    "messages": [{"content": final_msg.content, "type": "ai"}]
+                }
+            }</code></pre>
+
+      <div class="callout warn">
+        <strong>为什么取最后一条 AI 消息？</strong>
+        writer 返回的 <code>messages</code> 包含历史所有消息（<code>add_messages</code> reducer 累积）。
+        最后一条 AI 消息就是 cite_and_polish 节点的输出，即最终报告。
+      </div>
+
+      <h3>完整事件循环流程</h3>
+      <div class="mermaid">
+flowchart TD
+    A["async for event in astream"] --> B{"isinstance tuple?"}
+    B -->|"否"| A
+    B -->|"是"| C["提取 namespace + data"]
+    C --> D{"data 非空?"}
+    D -->|"否"| A
+    D -->|"是"| E["提取 node_name"]
+    E --> F{"以 __ 开头?"}
+    F -->|"是"| A
+    F -->|"否"| G["is_subgraph = len(namespace)>0"]
+    G --> H["frontend_event_name 翻译"]
+    H --> I["XADD research:events:{id}"]
+    I --> J{"frontend_event_name == 'write'?"}
+    J -->|"是"| K["提取 final_answer 暂存"]
+    J -->|"否"| A
+    K --> A
+
+    style I fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+      </div>
+    </section>
+
+    <!-- ========== 十、阶段 8：任务结束 ========== -->
+    <section id="stage-8">
+      <h2>十、阶段 8：任务结束（task_queue.py:274-292）</h2>
+      <p>根据是否有 <code>final_answer_event</code> 判断任务结局。</p>
+
+      <h3>核心代码（简化）</h3>
+      <pre><code>if final_answer_event:
+    # 图正常完成 → 发射 finalize_answer
+    await r.xadd(
+        f"research:events:{task_id}",
+        {"event": json.dumps(final_answer_event, default=str)},
+        maxlen=500,
+    )
+else:
+    # 图执行完毕但未生成最终答案 → 在 Plan 确认处暂停
+    await r.xadd(
+        f"research:events:{task_id}",
+        {"event": json.dumps({"task_paused": True})},
+        maxlen=500,
+    )</code></pre>
+
+      <h3>两种结局对照</h3>
+      <table>
+        <thead><tr><th>情况</th><th>触发条件</th><th>写入事件</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>正常完成</td>
+            <td>writer 子图返回（有 <code>final_answer_event</code>）</td>
+            <td><code>{"finalize_answer": {"messages": [...]}}</code></td>
+          </tr>
+          <tr>
+            <td>暂停等用户</td>
+            <td>停在 <code>awaiting_plan_confirmation</code> 节点</td>
+            <td><code>{"task_paused": true}</code></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout">
+        <strong>判断依据</strong>：<code>final_answer_event</code> 仅在 writer 节点返回时被赋值。<br/>
+        如果任务停在 plan 确认（<code>awaiting_plan_confirmation</code> 节点只透传 state），<br/>
+        整个 astream 循环自然结束，<code>final_answer_event</code> 保持 <code>None</code>，走 <code>task_paused</code> 分支。
+      </div>
+
+      <h3>SSE 端点收到事件后的行为</h3>
+      <p>位置：<code>task_queue.py:341-343</code> <code>read_task_events()</code></p>
+      <pre><code>event = json.loads(event_str)
+if any(k in event for k in ("error", "finalize_answer", "task_paused")):
+    return   # 任务结束，关闭 SSE 连接</code></pre>
+    </section>
+
+    <!-- ========== 十一、阶段 9：异常处理 ========== -->
+    <section id="stage-9">
+      <h2>十一、阶段 9：异常处理（task_queue.py:294-302）</h2>
+      <p>捕获整个 try 块的任何异常，转成 <code>{"error": "..."}</code> 事件推给前端。</p>
+
+      <h3>核心代码（简化）</h3>
+      <pre><code>except Exception as exc:
+    logger.error(f"任务失败: {type(exc).__name__}: {exc}")
+    error_json = json.dumps({"error": str(exc)}, ensure_ascii=False)
+    await r.xadd(
+        f"research:events:{task_id}",
+        {"event": error_json},
+        maxlen=500,
+    )</code></pre>
+
+      <h3>会触发异常的场景</h3>
+      <table>
+        <thead><tr><th>场景</th><th>异常类型</th></tr></thead>
+        <tbody>
+          <tr><td>Redis 连接中断</td><td><code>ConnectionError</code></td></tr>
+          <tr><td>LLM 调用失败（重试 3 次后）</td><td>由 <code>Agent.astep</code> 返回空字符串，不抛异常</td></tr>
+          <tr><td>LangGraph 节点代码 bug</td><td>任意 <code>Exception</code></td></tr>
+          <tr><td>json.loads 失败（payload 损坏）</td><td><code>JSONDecodeError</code></td></tr>
+          <tr><td>emit_token 内 Redis XADD 失败</td><td>已被 <code>emit_token</code> 内部 try/except 吞掉</td></tr>
+        </tbody>
+      </table>
+
+      <div class="callout warn">
+        <strong>注意</strong>：<code>logger.error</code> 没有带 <code>traceback.format_exc()</code>，排障不便 —— 这是潜在改进点。
+      </div>
+    </section>
+
+    <!-- ========== 十二、阶段 10：清理收尾 ========== -->
+    <section id="stage-10">
+      <h2>十二、阶段 10：清理收尾（task_queue.py:304-308）</h2>
+      <p><code>finally</code> 块保证消息一定被 ACK、事件流一定被 TTL 清理。</p>
+
+      <h3>核心代码（简化）</h3>
+      <pre><code>finally:
+    # 1. XACK：从 PEL 移除消息，彻底释放
+    await r.xack("research:tasks", "research-workers", msg_id)
+
+    # 2. EXPIRE：事件流设 24h TTL，过期自动删除
+    await r.expire(f"research:events:{task_id}", 86400)</code></pre>
+
+      <h3>两件事的作用</h3>
+      <table>
+        <thead><tr><th>操作</th><th>作用</th><th>不执行的后果</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><code>XACK</code></td>
+            <td>从 PEL 移除消息，标识"处理完毕"</td>
+            <td>消息永远留在 PEL，下次 XREADGROUP 仍会读出（重复消费）</td>
+          </tr>
+          <tr>
+            <td><code>EXPIRE 86400</code></td>
+            <td>事件流 24h 后自动删除</td>
+            <td>Redis 内存无限增长</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout tip">
+        <strong><code>finally</code> 的关键性</strong>：无论成功 / 失败 / 异常，都会执行。<br/>
+        → 消息<strong>最终一定会被 ACK</strong>（不会卡在 PEL）<br/>
+        → 事件流<strong>最终一定会被 TTL 清理</strong>
+      </div>
+    </section>
+
+    <!-- ========== 十三、emit_token 调用链路 ========== -->
+    <section id="emit">
+      <h2>十三、emit_token 调用链路</h2>
+      <p>从 LLM 输出到前端打字效果的完整链路。</p>
+
+      <div class="mermaid">
+sequenceDiagram
+    autonumber
+    participant LLM as LLM API
+    participant AS as astream_step<br/>(base_agent.py:238)
+    participant OT as on_token<br/>(节点内闭包)
+    participant ET as emit_token<br/>(task_queue.py:179)
+    participant R as Redis
+    participant SSE as SSE 端点
+    participant B as 浏览器
+
+    loop 每个 token chunk
+        LLM-->>AS: chunk (delta.content)
+        AS->>AS: full_response += token
+        AS->>OT: await on_token(token)
+        OT->>ET: await emit_token(token, node_name)
+        ET->>R: XADD research:events:{id}<br/>{"event": "{\"token\":...}"}
+        R-->>SSE: XREAD 立刻返回
+        SSE-->>B: data: {"token":...}\n\n<br/>前端打字效果
+    end
+      </div>
+
+      <h3>完整链路（4 层）</h3>
+      <table>
+        <thead><tr><th>层</th><th>组件</th><th>位置</th><th>作用</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>①</td>
+            <td>LLM API</td>
+            <td>外部服务</td>
+            <td>流式输出 chunk</td>
+          </tr>
+          <tr>
+            <td>②</td>
+            <td><code>astream_step</code></td>
+            <td><code>base_agent.py:238-295</code></td>
+            <td>逐 token 调 <code>on_token</code>，累积 <code>full_response</code></td>
+          </tr>
+          <tr>
+            <td>③</td>
+            <td><code>on_token</code> (节点内闭包)</td>
+            <td><code>graph.py:56-57</code> / <code>writer_agent.py:252-253</code></td>
+            <td>桥接到 <code>emit_token</code>，传入节点名</td>
+          </tr>
+          <tr>
+            <td>④</td>
+            <td><code>emit_token</code> (闭包)</td>
+            <td><code>task_queue.py:179-192</code></td>
+            <td>XADD 写入 Redis 事件流</td>
+          </tr>
+          <tr>
+            <td>⑤</td>
+            <td>SSE 端点</td>
+            <td><code>task_queue.py:315-351</code></td>
+            <td>XREAD 阻塞读取 → yield 给浏览器</td>
+          </tr>
+          <tr>
+            <td>⑥</td>
+            <td>浏览器 EventSource</td>
+            <td>前端代码</td>
+            <td><code>onmessage</code> 回调 → UI 更新</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>容错层级</h3>
+      <pre><code># 第 1 层：emit_token 内部 try/except
+try:
+    await r.xadd(...)
+except Exception:
+    logger.warning(...)               # 单次失败不影响后续
+
+# 第 2 层：astream_step 调用 on_token 时 try/except
+try:
+    await on_token(token)
+except Exception:
+    pass                              # 回调失败不能中断流式</code></pre>
+
+      <div class="callout tip">
+        <strong>双重保护</strong>：token 推送失败绝不会中断 LLM 流式输出。
+      </div>
+    </section>
+
+    <!-- ========== 十四、Redis 操作汇总 ========== -->
+    <section id="redis">
+      <h2>十四、Redis 操作汇总</h2>
+      <p>本函数涉及的 8 个 Redis 操作。</p>
+
+      <table>
+        <thead>
+          <tr><th>命令</th><th>Key</th><th>时机</th><th>行号</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="pill read">XREADGROUP</span></td>
+            <td><code>research:tasks</code></td>
+            <td>入口阻塞消费</td>
+            <td>:151-157</td>
+          </tr>
+          <tr>
+            <td><span class="pill write">XADD</span> (token)</td>
+            <td><code>research:events:{id}</code></td>
+            <td>emit_token 每个 token</td>
+            <td>:186-190</td>
+          </tr>
+          <tr>
+            <td><span class="pill write">XADD</span> (节点)</td>
+            <td><code>research:events:{id}</code></td>
+            <td>每个 LangGraph 节点完成</td>
+            <td>:251-255</td>
+          </tr>
+          <tr>
+            <td><span class="pill write">XADD</span> (finalize)</td>
+            <td><code>research:events:{id}</code></td>
+            <td>任务正常完成</td>
+            <td>:280-284</td>
+          </tr>
+          <tr>
+            <td><span class="pill write">XADD</span> (paused)</td>
+            <td><code>research:events:{id}</code></td>
+            <td>任务暂停</td>
+            <td>:288-292</td>
+          </tr>
+          <tr>
+            <td><span class="pill write">XADD</span> (error)</td>
+            <td><code>research:events:{id}</code></td>
+            <td>异常捕获</td>
+            <td>:298-302</td>
+          </tr>
+          <tr>
+            <td><span class="pill del">XACK</span></td>
+            <td><code>research:tasks</code></td>
+            <td>finally 块</td>
+            <td>:306</td>
+          </tr>
+          <tr>
+            <td><span class="pill del">EXPIRE</span></td>
+            <td><code>research:events:{id}</code></td>
+            <td>finally 块</td>
+            <td>:308</td>
+          </tr>
+          <tr>
+            <td><em>（间接）LangGraph Checkpoint</em></td>
+            <td><code>langgraph:*</code></td>
+            <td><code>_get_graph</code> 内部</td>
+            <td>:71</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ========== 十五、整体时序图 ========== -->
+    <section id="timeline">
+      <h2>十五、整体时序图</h2>
+      <p>从任务入队到事件回传的完整时间线（聚焦本函数）。</p>
+
+      <div class="mermaid">
+sequenceDiagram
+    autonumber
+    participant API as POST /api/research
+    participant TQ as enqueue_task
+    participant R as Redis
+    participant W as _process_one_task
+    participant LG as LangGraph 图
+    participant SSE as SSE 端点
+    participant B as 浏览器
+
+    Note over API,R: 前置：任务入队
+    API->>TQ: 调用
+    TQ->>R: XADD research:tasks
+    TQ-->>API: 返回 task_id
+
+    Note over W,R: 本函数执行
+    W->>R: XREADGROUP research:tasks<br/>BLOCK 5000 COUNT 1
+    R-->>W: (msg_id, {"task": json})
+
+    W->>W: 重建 messages
+    W->>W: 定义 emit_token 闭包
+    W->>W: 构造 config + initial_state
+    W->>W: _get_graph() 获取图
+
+    W->>LG: astream(initial_state, config,<br/>subgraphs=True)
+
+    loop 每个节点
+        LG->>LG: 执行节点<br/>(LLM / 搜索 / KB 等)
+        opt LLM 流式节点
+            loop 每个 token
+                LG->>W: on_token → emit_token
+                W->>R: XADD research:events:{id}<br/>{"token":...}
+                R-->>SSE: XREAD 返回
+                SSE-->>B: data: ...\n\n
+            end
+        end
+        LG-->>W: 节点完成事件
+        W->>R: XADD research:events:{id}<br/>{"generate_xxx": ...}
+        opt 是 write 节点
+            W->>W: 暂存 final_answer_event
+        end
+    end
+
+    alt 正常完成
+        W->>R: XADD research:events:{id}<br/>{"finalize_answer": ...}
+    else 暂停等用户
+        W->>R: XADD research:events:{id}<br/>{"task_paused": true}
+    end
+
+    opt 异常
+        W->>R: XADD research:events:{id}<br/>{"error": ...}
+    end
+
+    W->>R: XACK research:tasks msg_id
+    W->>R: EXPIRE research:events:{id} 86400
+      </div>
+    </section>
+
+    <!-- ========== 十六、设计要点 ========== -->
+    <section id="design">
+      <h2>十六、设计要点</h2>
+
+      <h3>16.1 并发与一致性</h3>
+      <table>
+        <thead><tr><th>场景</th><th>保证机制</th></tr></thead>
+        <tbody>
+          <tr><td>多 worker 不重复消费</td><td>XREADGROUP 消费者组 + <code>></code> 游标 + XACK</td></tr>
+          <tr><td>消息不丢失</td><td>XACK 在 <code>finally</code>，异常也会触发</td></tr>
+          <tr><td>多 SSE 客户端订阅同一 task</td><td>Redis Stream 多消费者语义 + <code>current_id</code> 各自维护</td></tr>
+          <tr><td>断点续传</td><td>AsyncRedisSaver 按 <code>thread_id = task_id</code> 持久化 state</td></tr>
+          <tr><td>Token 流式实时推送</td><td>emit_token 闭包 → XADD → SSE XREAD 立刻返回</td></tr>
+        </tbody>
+      </table>
+
+      <h3>16.2 容错设计</h3>
+      <ul>
+        <li><strong>XACK 必执行</strong>：<code>finally</code> 块兜底</li>
+        <li><strong>EXPIRE 必执行</strong>：同上</li>
+        <li><strong>emit_token 容错</strong>：双重 try/except</li>
+        <li><strong>LLM 调用容错</strong>：3 次重试 + 瞬时/永久错误分类</li>
+        <li><strong>消息类型过滤</strong>：未知类型直接 <code>None</code> 丢弃</li>
+        <li><strong>JSON 序列化兜底</strong>：<code>default=str</code></li>
+      </ul>
+
+      <h3>16.3 与其他模块的关系</h3>
+      <div class="mermaid">
+flowchart LR
+    A["enqueue_task()<br/>POST /api/research"] -->|"XADD research:tasks"| R[Redis]
+    R -->|"XREADGROUP"| P["_process_one_task"]
+    P -->|"astream"| LG["LangGraph 图"]
+    LG -->|"事件流"| P
+    P -->|"XADD research:events:{id}"| R
+    R -->|"XREAD"| S["read_task_events<br/>(SSE 端点)"]
+    S -->|"yield data:..."| B["浏览器"]
+
+    style P fill:#1a2236,stroke:#8b5cf6,color:#e6edf7
+    style LG fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+    style B fill:#0a4f3a,stroke:#10b981,color:#e6edf7
+      </div>
+
+      <h3>16.4 潜在改进点</h3>
+      <ul>
+        <li><strong>emit_token 同步阻塞</strong>：每次 XADD 都 await；高频 token 时可考虑 pipeline 批写</li>
+        <li><strong><code>default=str</code> 兜底序列化</strong>：可能掩盖真正的序列化 bug，建议显式处理</li>
+        <li><strong>异常时未记录 traceback</strong>：<code>logger.error</code> 没带 <code>traceback.format_exc()</code></li>
+        <li><strong>任务超时无上限</strong>：长任务可能一直占用 worker</li>
+      </ul>
+    </section>
+
+  </main>
+</div>
+
+<footer>
+  Deep Research Backend · _process_one_task 函数详解 · 基于 src/agent/task_queue.py:148-308
+</footer>
+
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'dark',
+    themeVariables: {
+      primaryColor: '#1a2236',
+      primaryTextColor: '#e6edf7',
+      primaryBorderColor: '#8b5cf6',
+      lineColor: '#22d3ee',
+      secondaryColor: '#111827',
+      tertiaryColor: '#0a1020',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif',
+    },
+    flowchart: { curve: 'basis', padding: 12 },
+    sequence: { actorMargin: 60, messageMargin: 40 },
+  });
+</script>
+
+</body>
+</html>

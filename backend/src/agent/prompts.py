@@ -128,16 +128,18 @@ plan_reflection_instructions = """# 任务目标
 你是一个意图识别大师，非常擅长捕捉用户的意图，你可以清楚的明白用户对当前需求计划的反馈是否满意
 # Instruction
 - 在用户的回复中，用户已经明显表达需求确认，或者满意意图的则表示当前Research Proposal已经完备，可以继续往下执行
-- 一些字样比如：‘需求确认’，‘可以开始了’，‘继续研究’等都表示用户对现阶段的计划已经满足了
+- 一些字样比如：’需求确认’，’可以开始了’，’继续研究’等都表示用户对现阶段的计划已经满足了
 
 # 输出格式
-你输出的内容应该是一个标准的json结构，并包含一个字段
+你输出的内容应该是一个标准的json结构，并包含以下字段
 - satisfy, bool, 如果用户满意当前计划，则输出true，反之则输出false
+- fresh_level, string, 研究对信息时效性的敏感度："high"(市场数据/排行/价格，需近7天) / "medium"(产品/战略/趋势，近30天可接受) / "low"(技术原理/历史，较旧也可)
 
 下面是一个输出格式样例你可以参考下
 ```json
 {
-    "satisfy": true // or false
+    "satisfy": true,
+    "fresh_level": "medium"
 }
 ```
 
@@ -189,6 +191,7 @@ query_writer_instructions = """# 任务说明
 
 ## 研究计划
 {research_proposal}
+{known_facts}
 
 # Output"""
 

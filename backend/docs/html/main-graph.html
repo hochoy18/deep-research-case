@@ -1,0 +1,1335 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>主图 graph.py 详解 · Deep Research</title>
+<!-- Mermaid -->
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<style>
+  :root {
+    --bg-0: #0b0f1a;
+    --bg-1: #111827;
+    --bg-2: #1a2236;
+    --line: #243049;
+    --text: #e6edf7;
+    --muted: #97a3bd;
+    --primary: #8b5cf6;
+    --primary-2: #6366f1;
+    --accent: #22d3ee;
+    --accent-2: #06b6d4;
+    --warn: #f59e0b;
+    --ok: #10b981;
+    --danger: #ef4444;
+    --code-bg: #0a1020;
+    --shadow: 0 10px 30px rgba(0,0,0,.35);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+                 "Microsoft YaHei", Roboto, Helvetica, Arial, sans-serif;
+    background:
+      radial-gradient(1200px 600px at 10% -10%, rgba(139,92,246,.18), transparent 60%),
+      radial-gradient(1000px 500px at 110% 10%, rgba(34,211,238,.15), transparent 60%),
+      var(--bg-0);
+    color: var(--text);
+    line-height: 1.7;
+    min-height: 100vh;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .hero {
+    padding: 56px 16px 32px;
+    text-align: center;
+    border-bottom: 1px solid var(--line);
+    background: linear-gradient(180deg, rgba(139,92,246,.10), transparent 60%);
+  }
+  .hero .badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 999px;
+    background: rgba(139,92,246,.18);
+    color: #c4b5fd;
+    border: 1px solid rgba(139,92,.35);
+    font-size: 12px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+  .hero h1 {
+    margin: 0 0 8px;
+    font-size: clamp(28px, 4vw, 42px);
+    letter-spacing: -0.5px;
+    background: linear-gradient(90deg, #c4b5fd, #67e8f9);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .hero p.lead { color: var(--muted); margin: 0 auto; max-width: 760px; }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 260px minmax(0, 1fr);
+    gap: 24px;
+    max-width: 1320px;
+    margin: 0 auto;
+    padding: 32px 16px;
+  }
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; }
+    .toc { position: static !important; }
+  }
+
+  .toc {
+    position: sticky;
+    top: 24px;
+    align-self: start;
+    background: linear-gradient(180deg, var(--bg-1), var(--bg-2));
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 16px 18px;
+    box-shadow: var(--shadow);
+    max-height: calc(100vh - 48px);
+    overflow: auto;
+  }
+  .toc h3 {
+    margin: 0 0 10px;
+    font-size: 13px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+  }
+  .toc ol { margin: 0; padding-left: 20px; }
+  .toc li { margin: 6px 0; }
+  .toc a { color: var(--text); font-size: 14px; }
+  .toc a:hover { color: var(--accent); }
+
+  .content { min-width: 0; }
+  section {
+    background: linear-gradient(180deg, var(--bg-1), var(--bg-2));
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 24px 26px;
+    box-shadow: var(--shadow);
+    margin-bottom: 22px;
+  }
+  section h2 {
+    margin-top: 0;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--line);
+    font-size: 22px;
+    letter-spacing: -0.2px;
+  }
+  section h3 { margin-top: 22px; font-size: 17px; color: #c7d2fe; }
+  section h4 { margin-top: 16px; font-size: 15px; color: #a5b4fc; }
+  section p { color: var(--text); }
+  .muted { color: var(--muted); }
+
+  code {
+    font-family: "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+    background: var(--code-bg);
+    border: 1px solid var(--line);
+    padding: 1px 6px;
+    border-radius: 6px;
+    font-size: 13px;
+  }
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 14px 16px;
+    overflow: auto;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  pre code { background: none; border: none; padding: 0; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 14px 0;
+    font-size: 14px;
+  }
+  th, td {
+    border: 1px solid var(--line);
+    padding: 8px 12px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th { background: rgba(139,92,246,.10); color: #c4b5fd; }
+  tbody tr:nth-child(even) { background: rgba(255,255,255,.02); }
+
+  .pill {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    margin-right: 6px;
+    border: 1px solid var(--line);
+    background: rgba(255,255,255,.04);
+    color: var(--muted);
+  }
+  .pill.ok    { color: var(--ok);    border-color: rgba(16,185,129,.35); background: rgba(16,185,129,.10); }
+  .pill.warn  { color: var(--warn);  border-color: rgba(245,158,11,.35); background: rgba(245,158,11,.10); }
+  .pill.danger{ color: var(--danger);border-color: rgba(239,68,68,.35);  background: rgba(239,68,68,.10); }
+  .pill.info  { color: var(--accent);border-color: rgba(34,211,238,.35); background: rgba(34,211,238,.10); }
+
+  .mermaid {
+    background: rgba(255,255,255,.02);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 16px;
+    margin: 14px 0;
+    text-align: center;
+    overflow: auto;
+  }
+
+  .callout {
+    border-left: 3px solid var(--accent);
+    background: rgba(34,211,238,.06);
+    padding: 12px 16px;
+    border-radius: 0 8px 8px 0;
+    margin: 14px 0;
+  }
+  .callout.warn { border-color: var(--warn); background: rgba(245,158,11,.06); }
+  .callout.tip  { border-color: var(--ok); background: rgba(16,185,129,.06); }
+
+  footer {
+    text-align: center;
+    color: var(--muted);
+    font-size: 13px;
+    padding: 24px 16px 40px;
+  }
+
+  section[id] { scroll-margin-top: 16px; }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="badge">Deep Research · Main Graph</div>
+  <h1>主图 graph.py 详解</h1>
+  <p class="lead">多智能体研究流程的总编排：Plan 生成与确认 → Research 子图 → Write 子图，含 Human-in-the-Loop</p>
+</div>
+
+<div class="layout">
+
+  <!-- ========== 目录 ========== -->
+  <aside class="toc">
+    <h3>目录</h3>
+    <ol>
+      <li><a href="#overview">一、文件结构</a></li>
+      <li><a href="#big-picture">二、整体流程图</a></li>
+      <li><a href="#node-types">三、节点类型对照</a></li>
+      <li><a href="#generate-plan">四、generate_plan</a></li>
+      <li><a href="#evaluate-plan">五、evaluate_plan（路由）</a></li>
+      <li><a href="#replan">六、replan（lambda）</a></li>
+      <li><a href="#awaiting">七、awaiting_plan_confirmation</a></li>
+      <li><a href="#confirm-plan">八、confirm_plan</a></li>
+      <li><a href="#route-confirm">九、route_after_confirm（路由）</a></li>
+      <li><a href="#subgraph-nodes">十、子图节点</a></li>
+      <li><a href="#graph-build">十一、图构建与边定义</a></li>
+      <li><a href="#hitl">十二、Human-in-the-Loop 机制</a></li>
+      <li><a href="#state-flow">十三、state 字段读写</a></li>
+      <li><a href="#first-vs-resubmit">十四、首次 vs 二次提交</a></li>
+      <li><a href="#call-graph">十五、调用关系</a></li>
+      <li><a href="#sequence">十六、完整时序图</a></li>
+      <li><a href="#design">十七、设计要点</a></li>
+    </ol>
+  </aside>
+
+  <main class="content">
+
+    <!-- ========== 一、文件结构 ========== -->
+    <section id="overview">
+      <h2>一、文件结构</h2>
+      <p>文件 <code>src/agent/graph.py</code> 共 197 行，定义了 Deep Research 多智能体的<strong>主图</strong>。</p>
+
+      <div class="mermaid">
+flowchart LR
+    A["graph.py<br/>(197 行)"] --> B["常量与导入<br/>:1-37"]
+    A --> C["节点函数<br/>:40-148"]
+    A --> D["图构建<br/>:150-192"]
+    A --> E["langgraph dev 入口<br/>:196"]
+
+    C --> C1["generate_plan<br/>:40-85"]
+    C --> C2["evaluate_plan<br/>:88-108"]
+    C --> C3["confirm_plan<br/>:111-141"]
+    C --> C4["route_after_confirm<br/>:144-148"]
+
+    D --> F["build_graph<br/>:150-192"]
+    E --> G["graph 单例<br/>:196"]
+
+    style F fill:#1a2236,stroke:#8b5cf6,color:#e6edf7
+    style G fill:#0a4f3a,stroke:#10b981,color:#e6edf7
+      </div>
+
+      <h3>节点与路由汇总</h3>
+      <table>
+        <thead><tr><th>类型</th><th>节点 ID</th><th>实现</th><th>行号</th></tr></thead>
+        <tbody>
+          <tr><td>状态节点</td><td><code>generate_plan</code></td><td><code>async def generate_plan()</code></td><td>40-85</td></tr>
+          <tr><td>路由节点</td><td>（无 ID，返回字符串）</td><td><code>async def evaluate_plan()</code></td><td>88-108</td></tr>
+          <tr><td>状态节点</td><td><code>confirm_plan</code></td><td><code>async def confirm_plan()</code></td><td>111-141</td></tr>
+          <tr><td>路由节点</td><td>（无 ID，返回字符串）</td><td><code>def route_after_confirm()</code></td><td>144-148</td></tr>
+          <tr><td>状态节点（lambda）</td><td><code>replan</code></td><td><code>lambda: {"plan_status": "unconfirmed"}</code></td><td>161-164</td></tr>
+          <tr><td>状态节点（lambda）</td><td><code>awaiting_plan_confirmation</code></td><td><code>lambda: state</code></td><td>165-168</td></tr>
+          <tr><td>子图节点</td><td><code>research</code></td><td><code>research_agent_graph</code></td><td>171</td></tr>
+          <tr><td>子图节点</td><td><code>write</code></td><td><code>writer_agent_graph</code></td><td>172</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ========== 二、整体流程图 ========== -->
+    <section id="big-picture">
+      <h2>二、整体流程图</h2>
+      <p>这是主图的<strong>完整拓扑</strong>，包含所有节点、边、条件路由、子图嵌入。</p>
+
+      <div class="mermaid">
+flowchart TD
+    START([START]) --> GP["generate_plan<br/>(:40)"]
+    GP -->|"evaluate_plan(:88)"| R1{"路由 1<br/>plan_status?"}
+    R1 -->|"unconfirmed"| AP["awaiting_plan_confirmation<br/>(:165)<br/>无出边 → 暂停"]
+    R1 -->|"plan 为空"| RP["replan<br/>(:161)<br/>重置 plan_status"]
+    R1 -->|"confirmed"| CP["confirm_plan<br/>(:111)"]
+
+    RP -->|"普通边"| GP
+
+    AP -. "checkpoint<br/>等待用户" .-> UI[/"用户在 UI<br/>点击开始研究"/]
+    UI -. "再次 POST<br/>同 task_id" .-> GP
+
+    CP -->|"route_after_confirm(:144)"| R2{"路由 2<br/>plan_status?"}
+    R2 -->|"unconfirmed"| RP2["replan<br/>→ 回 generate_plan"]
+    R2 -->|"confirmed (默认)"| RES["research<br/>子图节点 (:171)"]
+
+    RES -->|"普通边"| W["write<br/>子图节点 (:172)"]
+    W -->|"普通边"| END([END])
+
+    style GP fill:#1a2236,stroke:#8b5cf6,color:#e6edf7
+    style CP fill:#1a2236,stroke:#8b5cf6,color:#e6edf7
+    style RES fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+    style W fill:#0a4f3a,stroke:#10b981,color:#e6edf7
+    style AP fill:#4a3a14,stroke:#f59e0b,color:#fde68a
+    style END fill:#0a4f3a,stroke:#10b981,color:#e6edf7
+      </div>
+
+      <div class="callout">
+        <strong>边总数</strong>：6 条（4 条普通边 + 2 条条件边）<br/>
+        <strong>节点总数</strong>：6 个状态节点 + 2 个路由函数 + 2 个子图封装<br/>
+        <strong>关键特色</strong>：<code>awaiting_plan_confirmation</code> 节点 + 子图嵌入 + checkpoint 持久化
+      </div>
+    </section>
+
+    <!-- ========== 三、节点类型对照 ========== -->
+    <section id="node-types">
+      <h2>三、节点类型对照</h2>
+      <p>主图中节点分两类：<strong>状态节点</strong>（返回 dict）vs <strong>路由节点</strong>（返回 str）。</p>
+
+      <div class="mermaid">
+flowchart LR
+    subgraph Router["路由节点（返回 str）"]
+        R1["evaluate_plan<br/>async<br/>:88-108"]
+        R2["route_after_confirm<br/>sync<br/>:144-148"]
+    end
+
+    subgraph StateNode["状态节点（返回 dict）"]
+        S1["generate_plan<br/>async + 流式 LLM"]
+        S2["confirm_plan<br/>async + LLM"]
+        S3["replan<br/>lambda sync"]
+        S4["awaiting_plan_confirmation<br/>lambda sync"]
+    end
+
+    subgraph Sub["子图封装（return dict）"]
+        S5["research<br/>= research_agent_graph"]
+        S6["write<br/>= writer_agent_graph"]
+    end
+
+    Router -. "决定下一步" .-> StateNode
+
+    style Router fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+    style StateNode fill:#1a2236,stroke:#8b5cf6,color:#e6edf7
+      </div>
+
+      <table>
+        <thead><tr><th>类型</th><th>返回值</th><th>作用</th><th>示例</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong>路由节点</strong></td>
+            <td><code>str</code>（下一个节点 ID）</td>
+            <td>决定下一步去哪</td>
+            <td><code>evaluate_plan</code> 返回 <code>"confirm_plan"</code></td>
+          </tr>
+          <tr>
+            <td><strong>状态节点</strong></td>
+            <td><code>dict</code>（state 更新字段）</td>
+            <td>修改 state</td>
+            <td><code>generate_plan</code> 返回 <code>{"plan": ..., "plan_status": ...}</code></td>
+          </tr>
+          <tr>
+            <td><strong>子图封装</strong></td>
+            <td><code>dict</code>（子图内部累积）</td>
+            <td>执行整个子图</td>
+            <td><code>research_agent_graph</code></td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ========== 四、generate_plan ========== -->
+    <section id="generate-plan">
+      <h2>四、generate_plan（:40-85）</h2>
+      <p>根据用户主题生成研究计划。<strong>仅首次任务执行</strong>，二次提交时直接跳过。</p>
+
+      <h3>核心代码</h3>
+      <pre><code>async def generate_plan(state: OverallState, config: RunnableConfig) -> dict:
+    if state.get("plan_status", "unconfirmed") != "unconfirmed":
+        return {}                                        # ★ 二次提交直接跳过
+
+    configurable = Configuration.from_runnable_config(config)
+    agent = Agent(model_id=configurable.query_generator_model)
+    agent.set_step_prompt(plan_instructions)
+
+    # 流式调用（emit_token 注入）
+    emit_token = config.get("configurable", {}).get("_emit_token")
+    if emit_token:
+        async def on_token(text: str) -> None:
+            await emit_token(text, "generate_plan")
+        response = await agent.astream_step(on_token, ...)
+    else:
+        response = await agent.astep(...)
+
+    response = Post.extract_pattern(response, pattern="markdown")
+
+    return {
+        "messages": [AIMessage(content=response)],
+        "plan": response,
+        "plan_status": "unconfirmed",
+        "plan_messages": [AIMessage(content=response)],
+    }</code></pre>
+
+      <h3>数据流图</h3>
+      <div class="mermaid">
+flowchart LR
+    A["state.messages<br/>(用户消息)"] -->|"get_research_topic()"| B["research_topic"]
+    A2["state.plan_messages"] -->|"content 列表"| B
+    A3["state.plan"] --> C["research_proposal"]
+    B --> D["Agent.astream_step<br/>on_token 注入"]
+    C --> D
+
+    D -->|"emit_token<br/>每个 token"| E["XADD research:events:{id}<br/>前端打字效果"]
+    D -->|"raw LLM output"| F["Post.extract_pattern<br/>(markdown)"]
+
+    F --> G["state.messages += AIMessage"]
+    F --> H["state.plan (新)"]
+    F --> I["state.plan_messages += AIMessage"]
+    F --> J["state.plan_status = 'unconfirmed'"]
+
+    style H fill:#1a2236,stroke:#8b5cf6,color:#e6edf7
+    style J fill:#1a2236,stroke:#8b5cf6,color:#e6edf7
+      </div>
+
+      <h3>4 个写入字段</h3>
+      <table>
+        <thead><tr><th>字段</th><th>值</th><th>下游消费者</th></tr></thead>
+        <tbody>
+          <tr><td><code>messages</code></td><td><code>[AIMessage(plan)]</code></td><td>对话历史</td></tr>
+          <tr><td><code>plan</code></td><td>计划文本（markdown）</td><td>confirm_plan 评估、research_agent</td></tr>
+          <tr><td><code>plan_status</code></td><td><code>"unconfirmed"</code></td><td>evaluate_plan 路由判断</td></tr>
+          <tr><td><code>plan_messages</code></td><td><code>[AIMessage(plan)]</code></td><td>plan 修订时拼接到 research_topic</td></tr>
+        </tbody>
+      </table>
+
+      <h3>二次提交跳过逻辑</h3>
+      <div class="mermaid">
+flowchart TD
+    A["generate_plan 入口"] --> B{"plan_status ==<br/>'unconfirmed'?"}
+    B -->|"是 (首次)"| C[执行 LLM 生成计划]
+    B -->|"否 (二次提交)"| D["return {}<br/>(空 dict)"]
+    C --> E["写入 state"]
+    D --> F["evaluate_plan 继续路由"]
+
+    style D fill:#0a4f3a,stroke:#10b981,color:#e6edf7
+      </div>
+
+      <div class="callout tip">
+        <strong>这是断点续传的关键</strong>：二次提交时 LangGraph 从 checkpoint 恢复 state（已含 plan），
+        <code>generate_plan</code> 检测 <code>plan_status != unconfirmed</code> 立即返回 <code>{}</code>，跳过 LLM 调用，直接进入 evaluate_plan → confirm_plan。
+      </div>
+    </section>
+
+    <!-- ========== 五、evaluate_plan ========== -->
+    <section id="evaluate-plan">
+      <h2>五、evaluate_plan（:88-108）— 路由节点</h2>
+      <p><strong>异步路由函数</strong>，返回字符串（下一个节点 ID）。</p>
+
+      <h3>核心代码</h3>
+      <pre><code>async def evaluate_plan(state: OverallState, config: RunnableConfig) -> str:
+    if state.get("plan_status", "unconfirmed") == "unconfirmed":
+        logger.info("[MainGraph] 等待用户确认计划")
+        return "awaiting_plan_confirmation"
+
+    if not state.get("plan"):
+        logger.info("[MainGraph] 没有计划可评估 → 重新计划")
+        return "replan"
+
+    logger.info("[MainGraph] 计划已提交确认 → 评估")
+    return "confirm_plan"</code></pre>
+
+      <h3>路由决策图（精确）</h3>
+      <div class="mermaid">
+flowchart TD
+    A["evaluate_plan 入口"] --> B{"plan_status ==<br/>'unconfirmed'?"}
+    B -->|"是"| C1["return<br/>'awaiting_plan_confirmation'<br/>→ 暂停等用户"]
+    B -->|"否"| D{"plan 字段存在?"}
+    D -->|"否 (异常)"| C2["return 'replan'<br/>→ 重新生成"]
+    D -->|"是"| C3["return 'confirm_plan'<br/>→ 评估计划"]
+
+    style C1 fill:#4a3a14,stroke:#f59e0b,color:#fde68a
+    style C2 fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+    style C3 fill:#1a2236,stroke:#8b5cf6,color:#e6edf7
+      </div>
+
+      <h3>三个返回值的精确含义</h3>
+      <table>
+        <thead><tr><th>返回值</th><th>触发条件</th><th>效果</th><th>对应状态</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><code>"awaiting_plan_confirmation"</code></td>
+            <td>计划刚生成（<code>plan_status=unconfirmed</code>）</td>
+            <td>进入暂停节点，等用户确认</td>
+            <td>首次提交后</td>
+          </tr>
+          <tr>
+            <td><code>"replan"</code></td>
+            <td><code>plan_status != unconfirmed</code> 但 <code>plan</code> 为空（异常）</td>
+            <td>回 generate_plan 重新生成</td>
+            <td>理论异常态</td>
+          </tr>
+          <tr>
+            <td><code>"confirm_plan"</code></td>
+            <td>二次提交（<code>plan_status=confirmed</code> 且 <code>plan</code> 存在）</td>
+            <td>进入 confirm_plan 评估</td>
+            <td>用户确认后</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout">
+        <strong>异步但无 await</strong>：<code>evaluate_plan</code> 是 <code>async def</code> 但内部没有真正的 await 调用，只是为了与 LangGraph 的异步节点签名一致。可以改为 sync 函数（性能影响微乎其微）。
+      </div>
+    </section>
+
+    <!-- ========== 六、replan ========== -->
+    <section id="replan">
+      <h2>六、replan（:161-164）— 纯 lambda</h2>
+      <p>最简单的节点：<strong>lambda 函数</strong>，只重置 <code>plan_status</code>。</p>
+
+      <h3>代码</h3>
+      <pre><code>builder.add_node(
+    "replan",
+    lambda state, config: {"plan_status": "unconfirmed"},
+)</code></pre>
+
+      <h3>行为图</h3>
+      <div class="mermaid">
+flowchart LR
+    A["replan 节点"] -->|"lambda(state, config)"| B["return {plan_status: 'unconfirmed'}"]
+    B --> C["evaluate_plan 路由"]
+    C -->|"plan_status==unconfirmed"| D["awaiting_plan_confirmation"]
+    D -. "→ 重新生成 → 重新等待用户" .-> GP["generate_plan"]
+
+    style A fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+      </div>
+
+      <div class="callout warn">
+        <strong>设计选择</strong>：<code>replan</code> 节点本身<strong>不调用 LLM</strong>，只是简单的状态重置。
+        如果 LLM 在 <code>confirm_plan</code> 中判断 plan 不满足需求，路由回 <code>replan</code> → <code>generate_plan</code> 重新生成（不携带 LLM 的改进建议）。
+      </div>
+    </section>
+
+    <!-- ========== 七、awaiting_plan_confirmation ========== -->
+    <section id="awaiting">
+      <h2>七、awaiting_plan_confirmation（:165-168）— 暂停节点</h2>
+      <p><strong>Human-in-the-Loop 暂停点</strong>。lambda 返回 <code>state</code> 本身，且<strong>没有任何出边</strong>。</p>
+
+      <h3>代码</h3>
+      <pre><code>builder.add_node(
+    "awaiting_plan_confirmation",
+    lambda state, config: state,    # ★ 透传 state
+)</code></pre>
+
+      <h3>暂停机制原理</h3>
+      <div class="mermaid">
+flowchart TD
+    A["awaiting_plan_confirmation<br/>(lambda: return state)"] --> B{"有出边?"}
+    B -->|"否"| C["图自然停止<br/>状态被 AsyncRedisSaver checkpoint"]
+    B -->|"是"| D["继续推进入度"]
+
+    C --> E["用户 UI 点击开始研究"]
+    E --> F["POST /api/research<br/>复用 task_id (thread_id)"]
+    F --> G["langgraph astream<br/>加载 checkpoint"]
+    G --> H["从 generate_plan 开始执行"]
+
+    style C fill:#4a3a14,stroke:#f59e0b,color:#fde68a
+      </div>
+
+      <h3>为什么 lambda return state 能暂停？</h3>
+      <table>
+        <thead><tr><th>要素</th><th>作用</th></tr></thead>
+        <tbody>
+          <tr><td><code>return state</code></td><td>节点不修改 state，状态保持不变</td></tr>
+          <tr><td>无出边</td><td>LangGraph 推进入度终止</td></tr>
+          <tr><td><code>AsyncRedisSaver</code></td><td>每次节点完成时自动 checkpoint</td></tr>
+          <tr><td>相同 <code>thread_id</code></td><td>恢复时从该 checkpoint 加载</td></tr>
+        </tbody>
+      </table>
+
+      <div class="callout tip">
+        <strong>这是 LangGraph 实现 HITL 的标准模式</strong>：透传节点 + 无出边 + checkpointer。
+        配合 worker 的 <code>task_paused</code> 事件 + 前端 SSE 关闭逻辑 → 完整的暂停-恢复机制。
+      </div>
+    </section>
+
+    <!-- ========== 八、confirm_plan ========== -->
+    <section id="confirm-plan">
+      <h2>八、confirm_plan（:111-141）</h2>
+      <p>识别用户消息中的"开始研究"等关键词，或用 LLM 评估计划是否满足需求。</p>
+
+      <h3>核心代码</h3>
+      <pre><code>async def confirm_plan(state: OverallState, config: RunnableConfig) -> dict:
+    configurable = Configuration.from_runnable_config(config)
+    context = get_last_user_response(state["messages"])    # 最后一条 human 消息
+
+    # 快速路径：关键词识别
+    if "开始研究" in context or "需求确认" in context:
+        logger.info("[MainGraph] plan explicitly confirmed → research")
+        return {"fresh_level": "medium"}
+
+    # LLM 评估路径
+    agent = JsonAgent(model_id=configurable.query_generator_model, keys=PlanReflection)
+    agent.set_step_prompt(plan_reflection_instructions)
+    result = await agent.astep(
+        research_proposal=state.get("plan", ""),
+        context=context,
+    )
+
+    if not isinstance(result, PlanReflection):
+        logger.warning("[MainGraph] 计划评估模型调用失败，默认进入研究阶段")
+        return {"fresh_level": "medium"}
+
+    if result.satisfy:
+        logger.info("[MainGraph] plan implicitly confirmed → research")
+        return {"fresh_level": getattr(result, "fresh_level", "medium")}
+
+    logger.info("[MainGraph] 计划未确认 → 重新计划")
+    return {"plan_status": "unconfirmed"}</code></pre>
+
+      <h3>双路径决策图（精确）</h3>
+      <div class="mermaid">
+flowchart TD
+    A["confirm_plan 入口"] --> B["get_last_user_response<br/>(最后一条 human 消息)"]
+    B --> C{"包含 '开始研究'<br/>或 '需求确认'?"}
+    C -->|"是"| D1["快速通过<br/>return {fresh_level: 'medium'}"]
+
+    C -->|"否"| E["JsonAgent.astep<br/>(PlanReflection schema)"]
+    E --> F{"返回 PlanReflection?"}
+    F -->|"否 (失败)"| D2["降级:<br/>fresh_level='medium'"]
+    F -->|"是"| G{"result.satisfy?"}
+    G -->|"True"| D3["return {fresh_level}"]
+    G -->|"False"| D4["return {plan_status:<br/>'unconfirmed'}<br/>→ replan"]
+
+    style D1 fill:#0a4f3a,stroke:#10b981,color:#e6edf7
+    style D2 fill:#4a3a14,stroke:#f59e0b,color:#fde68a
+    style D3 fill:#0a4f3a,stroke:#10b981,color:#e6edf7
+    style D4 fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+      </div>
+
+      <h3>三种结果对照</h3>
+      <table>
+        <thead><tr><th>结果</th><th>触发</th><th>返回</th><th>下游</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>关键词快速通过</td>
+            <td>用户消息含"开始研究"或"需求确认"</td>
+            <td><code>{"fresh_level": "medium"}</code></td>
+            <td>→ research</td>
+          </tr>
+          <tr>
+            <td>LLM 评估通过</td>
+            <td><code>PlanReflection.satisfy=True</code></td>
+            <td><code>{"fresh_level": result.fresh_level}</code></td>
+            <td>→ research</td>
+          </tr>
+          <tr>
+            <td>LLM 评估不通过</td>
+            <td><code>PlanReflection.satisfy=False</code></td>
+            <td><code>{"plan_status": "unconfirmed"}</code></td>
+            <td>→ replan → generate_plan</td>
+          </tr>
+          <tr>
+            <td>LLM 调用失败（降级）</td>
+            <td>非 <code>PlanReflection</code> 返回</td>
+            <td><code>{"fresh_level": "medium"}</code></td>
+            <td>→ research</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3><code>fresh_level</code> 的下游作用</h3>
+      <div class="mermaid">
+flowchart LR
+    A["confirm_plan<br/>写入 fresh_level"] -->|"state.fresh_level"| B["research 子图<br/>_generate_queries"]
+    B -->|"传入 FactStore.query"| C["Milvus KB<br/>按新鲜度过滤"]
+    C --> D["高 fresh_level → 严格<br/>低 fresh_level → 宽松"]
+
+    style A fill:#1a2236,stroke:#8b5cf6,color:#e6edf7
+    style C fill:#1a3a2a,stroke:#10b981,color:#e6edf7
+      </div>
+
+      <div class="callout warn">
+        <strong>硬编码中文关键词</strong>：<code>"开始研究"</code> / <code>"需求确认"</code> 是中文硬编码字符串，国际化困难。
+      </div>
+    </section>
+
+    <!-- ========== 九、route_after_confirm ========== -->
+    <section id="route-confirm">
+      <h2>九、route_after_confirm（:144-148）— 同步路由</h2>
+      <p>同步函数（不是 async），仅检查 <code>plan_status</code> 决定下一步。</p>
+
+      <h3>代码</h3>
+      <pre><code>def route_after_confirm(state: OverallState) -> str:
+    """计划确认后的路由：进入研究阶段或重新规划。"""
+    if state.get("plan_status", "confirmed") == "unconfirmed":
+        return "replan"
+    return RESEARCH_AGENT_NODE</code></pre>
+
+      <h3>决策图</h3>
+      <div class="mermaid">
+flowchart TD
+    A["route_after_confirm 入口"] --> B{"plan_status ==<br/>'unconfirmed'?"}
+    B -->|"是 (LLM 说不满足)"| C1["return 'replan'<br/>→ 回 generate_plan"]
+    B -->|"否 (默认/通过/降级)"| C2["return 'research'<br/>→ research 子图"]
+
+    style C1 fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+    style C2 fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+      </div>
+
+      <h3>同步 vs 异步</h3>
+      <p>虽然 <code>evaluate_plan</code> 是 async，但 <code>route_after_confirm</code> 是 sync —— 因为后者不需要任何 await 操作。</p>
+
+      <div class="callout">
+        LangGraph 路由函数既支持 async 也支持 sync，async 仅在需要 <code>await</code> 时才必要。
+      </div>
+    </section>
+
+    <!-- ========== 十、子图节点 ========== -->
+    <section id="subgraph-nodes">
+      <h2>十、子图节点（:170-172）</h2>
+      <p>两个子图作为<strong>单个节点</strong>嵌入父图，共享 <code>OverallState</code>。</p>
+
+      <h3>嵌入代码</h3>
+      <pre><code># -- 子图节点 --
+builder.add_node(RESEARCH_AGENT_NODE, research_agent_graph)   # "research"
+builder.add_node(WRITER_AGENT_NODE, writer_agent_graph)       # "write"</code></pre>
+
+      <h3>封装关系图</h3>
+      <div class="mermaid">
+flowchart LR
+    subgraph Main["父图 (graph.py)"]
+        A["research<br/>节点 ID"] --> B["write<br/>节点 ID"]
+    end
+
+    subgraph Sub1["research_agent_graph<br/>(sub_agents/research_agent.py)"]
+        S1["generate_queries"]
+        S2["web_search ×N"]
+        S3["critique"]
+    end
+
+    subgraph Sub2["writer_agent_graph<br/>(sub_agents/writer_agent.py)"]
+        W1["outline"]
+        W2["draft ↔ critic_review"]
+        W3["cite_and_polish"]
+    end
+
+    A -. "封装" .-> Sub1
+    B -. "封装" .-> Sub2
+
+    style A fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+    style B fill:#0a4f3a,stroke:#10b981,color:#e6edf7
+      </div>
+
+      <h3>子图嵌入 vs 节点合并的对比</h3>
+      <table>
+        <thead><tr><th>方案</th><th>优点</th><th>缺点</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong>子图嵌入（本项目）</strong></td>
+            <td>模块化、可独立测试、可复用</td>
+            <td>事件需要 subgraphs=True 穿透</td>
+          </tr>
+          <tr>
+            <td>节点直接合并</td>
+            <td>图结构更扁平</td>
+            <td>失去模块化、代码耦合</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>state 共享</h3>
+      <p>父图和子图共享同一个 <code>OverallState</code> TypedDict。子图修改字段后，父图自动可见。</p>
+
+      ```mermaid
+      flowchart LR
+          A["父图 state<br/>OverallState"] -->|共享| B["research_agent 子图<br/>读写相同 state"]
+          B -->|"|自动累积"| A
+          A -->|"|自动累积"| C["writer_agent 子图<br/>读写相同 state"]
+          C -->|"|自动累积"| A
+      ```
+
+      <h3>前端事件名对应</h3>
+      <p>子图节点 ID 决定前端事件名（见 <code>task_queue.py:38-42</code> 翻译映射）：</p>
+      <table>
+        <thead><tr><th>父图节点 ID</th><th>前端事件名</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td><code>research</code></td><td><code>research</code></td><td>子图整体事件（来自子图 END）</td></tr>
+          <tr><td><code>write</code></td><td><code>write</code></td><td>子图整体事件（来自子图 END）</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ========== 十一、图构建 ========== -->
+    <section id="graph-build">
+      <h2>十一、图构建与边定义（:150-192）</h2>
+
+      <h3>完整构建代码</h3>
+      <pre><code>def build_graph(checkpointer=None):
+    """编译研究智能体图。"""
+    builder = StateGraph(OverallState, config_schema=Configuration)
+
+    # 6 个节点
+    builder.add_node(GENERATE_PLAN_NODE, generate_plan)
+    builder.add_node("confirm_plan", confirm_plan)
+    builder.add_node("replan", lambda state, config: {"plan_status": "unconfirmed"})
+    builder.add_node("awaiting_plan_confirmation", lambda state, config: state)
+    builder.add_node(RESEARCH_AGENT_NODE, research_agent_graph)
+    builder.add_node(WRITER_AGENT_NODE, writer_agent_graph)
+
+    # 6 条边
+    builder.add_edge(START, GENERATE_PLAN_NODE)                          # 边 1
+    builder.add_conditional_edges(                                        # 边 2
+        GENERATE_PLAN_NODE,
+        evaluate_plan,
+        ["confirm_plan", "replan", "awaiting_plan_confirmation"],
+    )
+    builder.add_conditional_edges(                                        # 边 3
+        "confirm_plan",
+        route_after_confirm,
+        [RESEARCH_AGENT_NODE, "replan"],
+    )
+    builder.add_edge("replan", GENERATE_PLAN_NODE)                        # 边 4
+    builder.add_edge(RESEARCH_AGENT_NODE, WRITER_AGENT_NODE)              # 边 5
+    builder.add_edge(WRITER_AGENT_NODE, END)                              # 边 6
+
+    return builder.compile(
+        name="pro-research-agent",
+        checkpointer=checkpointer,
+    )
+
+# langgraph dev 入口
+graph = build_graph()</code></pre>
+
+      <h3>完整边定义表（6 条）</h3>
+      <table>
+        <thead><tr><th>#</th><th>边</th><th>类型</th><th>条件</th><th>行号</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td><code>START → generate_plan</code></td><td>普通边</td><td>无</td><td>174</td></tr>
+          <tr><td>2</td><td><code>generate_plan → [...]</code></td><td><strong>条件边</strong></td><td><code>evaluate_plan</code> 路由</td><td>175-179</td></tr>
+          <tr><td>3</td><td><code>confirm_plan → [...]</code></td><td><strong>条件边</strong></td><td><code>route_after_confirm</code> 路由</td><td>180-184</td></tr>
+          <tr><td>4</td><td><code>replan → generate_plan</code></td><td>普通边</td><td>无</td><td>185</td></tr>
+          <tr><td>5</td><td><code>research → write</code></td><td>普通边</td><td>无</td><td>186</td></tr>
+          <tr><td>6</td><td><code>write → END</code></td><td>普通边</td><td>无</td><td>187</td></tr>
+        </tbody>
+      </table>
+
+      <h3>节点注册表（6 个）</h3>
+      <table>
+        <thead><tr><th>节点 ID</th><th>实现类型</th><th>行号</th></tr></thead>
+        <tbody>
+          <tr><td><code>generate_plan</code></td><td>async def</td><td>159</td></tr>
+          <tr><td><code>confirm_plan</code></td><td>async def</td><td>160</td></tr>
+          <tr><td><code>replan</code></td><td>lambda</td><td>162</td></tr>
+          <tr><td><code>awaiting_plan_confirmation</code></td><td>lambda</td><td>166</td></tr>
+          <tr><td><code>research</code></td><td>子图（research_agent_graph）</td><td>171</td></tr>
+          <tr><td><code>write</code></td><td>子图（writer_agent_graph）</td><td>172</td></tr>
+        </tbody>
+      </table>
+
+      <h3>langgraph dev 入口</h3>
+      <pre><code># graph.py:196
+graph = build_graph()    # 不传 checkpointer</code></pre>
+      <p>在 <code>langgraph dev</code> 模式下，checkpointer 由 LangGraph 平台自动注入。<br/>
+      在 <code>task_queue.py</code> 启动的后端服务中，传 <code>AsyncRedisSaver</code>。</p>
+    </section>
+
+    <!-- ========== 十二、HITL ========== -->
+    <section id="hitl">
+      <h2>十二、Human-in-the-Loop 机制</h2>
+      <p>主图最核心的设计特色：通过 <code>awaiting_plan_confirmation</code> 节点实现 plan 确认等待。</p>
+
+      <h3>完整生命周期</h3>
+      <div class="mermaid">
+sequenceDiagram
+    autonumber
+    participant U as 用户
+    participant API as POST /api/research
+    participant W as worker 协程
+    participant LG as LangGraph
+    participant CKPT as AsyncRedisSaver
+
+    rect rgb(139,92,246,0.08)
+    Note over U,CKPT: 首次提交
+    end
+
+    U->>API: POST /api/research<br/>plan_status=unconfirmed
+    API->>W: enqueue_task
+    W->>LG: astream
+    LG->>LG: generate_plan (流式)
+    LG->>LG: evaluate_plan<br/>→ awaiting_plan_confirmation
+    LG->>CKPT: checkpoint 状态<br/>(key=task_id)
+    Note over LG: 暂停<br/>图停止推进入度
+    LG-->>W: astream 自然结束
+    W->>W: 没有 write 事件<br/>final_answer_event=None
+    W->>W: XADD task_paused 事件
+    W->>CKPT: XACK + EXPIRE 24h
+
+    Note over U: 用户在 UI 看到计划<br/>点击"开始研究"
+
+    rect rgb(34,211,238,0.08)
+    Note over U,CKPT: 二次提交
+    end
+
+    U->>API: POST /api/research<br/>plan_status=confirmed, plan=<已有>
+    API->>W: enqueue_task(task_id=同前)
+    W->>LG: astream + thread_id=task_id
+    LG->>CKPT: 加载 checkpoint
+    CKPT-->>LG: 恢复 state (含 plan)
+    LG->>LG: generate_plan<br/>plan_status != unconfirmed<br/>→ return {}
+    LG->>LG: evaluate_plan<br/>plan_status=confirmed<br/>→ confirm_plan
+    LG->>LG: confirm_plan 评估
+    LG->>LG: research → write
+    LG-->>W: 完整事件流
+    W->>W: XADD finalize_answer
+    W->>CKPT: XACK + EXPIRE
+      </div>
+
+      <h3>暂停节点设计要点</h3>
+      <div class="mermaid">
+flowchart LR
+    A["图执行"] --> B{需要人工输入?}
+    B -->|"否"| C[继续执行]
+    B -->|"是"| D["到达<br/>awaiting_plan_confirmation<br/>(无出边)"]
+    D --> E["checkpoint state"]
+    E --> F["图暂停"]
+    F -->|"用户再次提交<br/>同 thread_id"| G["加载 checkpoint"]
+    G --> H[继续执行]
+
+    style D fill:#4a3a14,stroke:#f59e0b,color:#fde68a
+    style E fill:#4a3a14,stroke:#f59e0b,color:#fde68a
+      </div>
+
+      <h3>HITL 的三个关键要素</h3>
+      <table>
+        <thead><tr><th>要素</th><th>代码</th><th>作用</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>透传节点</td>
+            <td><code>lambda state, config: state</code></td>
+            <td>不修改 state，状态保持</td>
+          </tr>
+          <tr>
+            <td>无出边</td>
+            <td>没有 <code>add_edge</code> 从该节点出发</td>
+            <td>LangGraph 推进入度终止</td>
+          </tr>
+          <tr>
+            <td>Checkpointer</td>
+            <td><code>AsyncRedisSaver</code> 在 <code>_get_graph()</code></td>
+            <td>节点完成时自动持久化 state</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout tip">
+        <strong>断点续传机制</strong>：用户二次提交时，<code>thread_id = task_id</code> 让 LangGraph 自动从 Redis 加载 checkpoint，
+        <code>generate_plan</code> 检测 <code>plan_status=confirmed</code> 立即跳过，整个流程无缝衔接。
+      </div>
+    </section>
+
+    <!-- ========== 十三、state 字段 ========== -->
+    <section id="state-flow">
+      <h2>十三、state 字段读写</h2>
+
+      <h3>每个节点的 input/output</h3>
+      <table>
+        <thead><tr><th>节点</th><th>读（input）</th><th>写（output）</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><code>generate_plan</code></td>
+            <td><code>messages</code>, <code>plan</code>, <code>plan_messages</code>, <code>reasoning_model</code></td>
+            <td><code>messages</code> (+AIMessage), <code>plan</code>, <code>plan_messages</code>, <code>plan_status</code></td>
+          </tr>
+          <tr>
+            <td><code>evaluate_plan</code> (路由)</td>
+            <td><code>plan_status</code>, <code>plan</code></td>
+            <td>（无写，返回路由字符串）</td>
+          </tr>
+          <tr>
+            <td><code>replan</code></td>
+            <td>（无）</td>
+            <td><code>plan_status = "unconfirmed"</code></td>
+          </tr>
+          <tr>
+            <td><code>awaiting_plan_confirmation</code></td>
+            <td>（无）</td>
+            <td><code>state</code>（透传）</td>
+          </tr>
+          <tr>
+            <td><code>confirm_plan</code></td>
+            <td><code>messages</code>, <code>plan</code></td>
+            <td><code>fresh_level</code> 或 <code>plan_status="unconfirmed"</code></td>
+          </tr>
+          <tr>
+            <td><code>route_after_confirm</code> (路由)</td>
+            <td><code>plan_status</code></td>
+            <td>（无写）</td>
+          </tr>
+          <tr>
+            <td><code>research</code> (子图)</td>
+            <td>见 research_agent 子图</td>
+            <td><code>search_query</code>, <code>web_search_result</code>, <code>sources_gathered</code>, <code>is_sufficient</code>, 等</td>
+          </tr>
+          <tr>
+            <td><code>write</code> (子图)</td>
+            <td>见 writer_agent 子图</td>
+            <td><code>messages</code> (+AIMessage), <code>sources_gathered</code> (去重)</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>主图关键字段生命周期</h3>
+      <div class="mermaid">
+flowchart LR
+    subgraph S1["generate_plan"]
+        A1["plan_messages: +AIMessage"]
+        A2["plan: 文本"]
+        A3["plan_status: 'unconfirmed'"]
+    end
+
+    subgraph S2["awaiting_plan_confirmation"]
+        B1["（透传 state）"]
+    end
+
+    subgraph S3["confirm_plan"]
+        C1["fresh_level: high/medium/low"]
+        C2["plan_status: 'unconfirmed' (失败时)"]
+    end
+
+    subgraph S4["research 子图 (继承)"]
+        D1["web_search_result<br/>sources_gathered"]
+    end
+
+    subgraph S5["write 子图 (继承)"]
+        E1["messages: +AIMessage(最终报告)"]
+        E2["sources_gathered (去重)"]
+    end
+
+    S1 --> S2 --> S3 --> S4 --> S5
+
+    style A2 fill:#1a2236,stroke:#8b5cf6,color:#e6edf7
+    style A3 fill:#1a2236,stroke:#8b5cf6,color:#e6edf7
+    style C1 fill:#1a2236,stroke:#8b5cf6,color:#e6edf7
+    style E1 fill:#0a4f3a,stroke:#10b981,color:#e6edf7
+      </div>
+    </section>
+
+    <!-- ========== 十四、首次 vs 二次提交 ========== -->
+    <section id="first-vs-resubmit">
+      <h2>十四、首次 vs 二次提交</h2>
+      <p>这是断点续传的核心场景对比。</p>
+
+      <div class="mermaid">
+sequenceDiagram
+    autonumber
+    participant U as 用户
+    participant API as 后端
+    participant LG as LangGraph
+    participant CKPT as Checkpointer
+
+    rect rgb(139,92,246,0.08)
+    Note over U,CKPT: 首次提交（plan_status=unconfirmed）
+    end
+
+    U->>API: POST /api/research<br/>plan_status=unconfirmed
+    API->>LG: astream(thread_id=task_id)
+    LG->>LG: generate_plan
+    LG->>CKPT: checkpoint (key=task_id)
+    Note over CKPT: 状态包含 plan
+    LG->>LG: evaluate_plan →<br/>awaiting_plan_confirmation
+    LG-->>API: 暂停
+    API-->>U: {task_id, stream_url}
+
+    rect rgb(34,211,238,0.08)
+    Note over U,CKPT: 二次提交（plan_status=confirmed）
+    end
+
+    U->>API: POST /api/research<br/>plan_status=confirmed<br/>(同 task_id)
+    API->>LG: astream(thread_id=同前)
+    LG->>CKPT: 加载 checkpoint
+    CKPT-->>LG: 恢复 state (含 plan)
+    LG->>LG: generate_plan<br/>plan_status=confirmed<br/>→ return {} 跳过
+    LG->>LG: evaluate_plan<br/>plan_status=confirmed → confirm_plan
+    LG->>LG: confirm_plan 评估
+    LG->>LG: research → write
+    LG-->>API: 完整事件流
+    API-->>U: finalize_answer
+      </div>
+
+      <h3>两阶段对比表</h3>
+      <table>
+        <thead><tr><th>项</th><th>首次提交</th><th>二次提交</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><code>plan_status</code></td>
+            <td><code>unconfirmed</code></td>
+            <td><code>confirmed</code></td>
+          </tr>
+          <tr>
+            <td><code>generate_plan</code></td>
+            <td>执行 LLM 生成计划</td>
+            <td>检测 <code>plan_status</code>，立即返回 <code>{}</code></td>
+          </tr>
+          <tr>
+            <td><code>evaluate_plan</code></td>
+            <td>返回 <code>awaiting_plan_confirmation</code></td>
+            <td>返回 <code>confirm_plan</code></td>
+          </tr>
+          <tr>
+            <td>是否暂停</td>
+            <td>是（暂停等用户）</td>
+            <td>否（直接执行 confirm_plan）</td>
+          </tr>
+          <tr>
+            <td>Checkpointer</td>
+            <td>保存 state</td>
+            <td>加载 state</td>
+          </tr>
+          <tr>
+            <td>前端 SSE 事件</td>
+            <td><code>task_paused</code> 终止</td>
+            <td>完整 <code>generate_query → web_research → ... → finalize_answer</code></td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ========== 十五、调用关系 ========== -->
+    <section id="call-graph">
+      <h2>十五、调用关系</h2>
+
+      <div class="mermaid">
+flowchart TD
+    Main[build_graph] --> GP[generate_plan]
+    Main --> CP[confirm_plan]
+    Main --> Res[research 子图]
+    Main --> Wri[write 子图]
+
+    GP -->|"astream_step<br/>流式调用"| Agent[Agent<br/>base_agent.py]
+    GP -->|"emit_token"| ET[emit_token<br/>task_queue.py]
+    Agent -->|"调用"| LLM[OpenAICompatibleLLM<br/>llm/llm.py]
+    LLM -->|"OpenAI 协议"| LLMAPI[LLM API]
+
+    CP -->|"astep"| JsonA[JsonAgent]
+    JsonA --> LLM
+
+    Res -->|"research_agent_graph"| RA[ResearchAgent 子图]
+    Wri -->|"writer_agent_graph"| WA[WriterAgent 子图]
+
+    RA --> KB[Milvus]
+    RA --> MCP[MCP 搜索]
+    WA -->|"cite_and_polish 流式"| ET
+
+    style Main fill:#1a2236,stroke:#8b5cf6,color:#e6edf7
+    style Res fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+    style Wri fill:#0a4f3a,stroke:#10b981,color:#e6edf7
+      </div>
+
+      <h3>模型选择策略</h3>
+      <div class="mermaid">
+flowchart LR
+    A["generate_plan"] -->|"query_generator_model"| LLM1
+    B["confirm_plan"] -->|"query_generator_model (同)"| LLM2
+    C["research_agent_graph"] -->|"query_generator_model /<br/>reflection_model"| LLM3
+    D["writer_agent_graph"] -->|"reasoning_model or<br/>answer_model"| LLM4
+
+    style LLM1 fill:#1a2236,stroke:#8b5cf6,color:#e6edf7
+    style LLM2 fill:#1a2236,stroke:#8b5cf6,color:#e6edf7
+    style LLM3 fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+    style LLM4 fill:#0a4f3a,stroke:#10b981,color:#e6edf7
+      </div>
+    </section>
+
+    <!-- ========== 十六、完整时序图 ========== -->
+    <section id="sequence">
+      <h2>十六、完整时序图</h2>
+      <p>展示首次提交、二次提交、完整执行的时序。</p>
+
+      <div class="mermaid">
+sequenceDiagram
+    autonumber
+    participant U as 用户
+    participant API as POST /api/research
+    participant R as Redis
+    participant W as worker 协程
+    participant LG as LangGraph 图
+    participant Sub as 子图
+    participant LLM as LLM
+
+    Note over U,R: 首次提交
+    U->>API: POST /api/research<br/>plan_status=unconfirmed
+    API->>R: XADD research:tasks
+
+    W->>R: XREADGROUP
+    R-->>W: 任务
+    W->>LG: astream(config)
+
+    LG->>LLM: generate_plan (流式)
+    LLM-->>LG: plan
+    LG->>LG: evaluate_plan<br/>→ awaiting_plan_confirmation
+    Note over LG: 暂停 + checkpoint
+
+    LG-->>W: 终止
+    W->>R: XADD task_paused 事件
+    W->>R: XACK + EXPIRE
+
+    Note over U: 用户点击"开始研究"
+
+    Note over U,R: 二次提交
+    U->>API: POST /api/research<br/>plan_status=confirmed, plan=<已有>
+    API->>R: XADD research:tasks (复用 task_id)
+
+    W->>R: XREADGROUP
+    R-->>W: 任务
+    W->>LG: astream(thread_id=同前)
+    LG->>LG: 加载 checkpoint
+
+    LG->>LG: generate_plan<br/>plan_status != unconfirmed<br/>→ return {}
+    LG->>LG: evaluate_plan<br/>→ confirm_plan
+    LG->>LLM: confirm_plan 评估
+    LLM-->>LG: PlanReflection
+    LG->>Sub: research_agent_graph
+    Sub->>Sub: 查询 + 搜索 + 评估循环
+    Sub-->>LG: sources_gathered, web_search_result
+    LG->>Sub: writer_agent_graph
+    Sub->>Sub: outline + draft + critic 辩论 + polish
+    Sub-->>LG: messages=[AIMessage(最终报告)]
+    LG-->>W: writer node 事件
+
+    W->>R: XADD finalize_answer 事件
+    W->>R: XACK + EXPIRE
+      </div>
+    </section>
+
+    <!-- ========== 十七、设计要点 ========== -->
+    <section id="design">
+      <h2>十七、设计要点</h2>
+
+      <h3>17.1 路由节点 vs 状态节点</h3>
+      <p>LangGraph 节点分两种语义角色：</p>
+      <table>
+        <thead><tr><th>类型</th><th>返回值</th><th>作用</th></tr></thead>
+        <tbody>
+          <tr><td><strong>路由节点</strong></td><td><code>str</code>（下一个节点 ID）</td><td>用于 <code>add_conditional_edges</code></td></tr>
+          <tr><td><strong>状态节点</strong></td><td><code>dict</code>（state 更新）</td><td>用于 <code>add_node</code></td></tr>
+        </tbody>
+      </table>
+
+      <h3>17.2 子图嵌入 vs 节点合并</h3>
+      <p>本项目选择<strong>子图嵌入</strong>而非把所有节点直接合并到父图：</p>
+      <ul>
+        <li>子图独立开发、测试</li>
+        <li>可被其他父图复用</li>
+        <li><code>subgraphs=True</code> 让父图能监听子图内部事件</li>
+      </ul>
+
+      <h3>17.3 暂停点设计</h3>
+      <p>核心三要素：</p>
+      <ol>
+        <li><strong>透传节点</strong>：<code>lambda state, config: state</code></li>
+        <li><strong>无出边</strong>：让 LangGraph 推进入度终止</li>
+        <li><strong>Checkpointer</strong>：<code>AsyncRedisSaver</code> 自动持久化</li>
+      </ol>
+
+      <h3>17.4 异常防御层级</h3>
+      <table>
+        <thead><tr><th>节点</th><th>异常处理</th></tr></thead>
+        <tbody>
+          <tr><td><code>generate_plan</code></td><td>二次提交跳过；LLM 失败由 <code>astream_step</code> 3 次重试</td></tr>
+          <tr><td><code>evaluate_plan</code></td><td>仅读 state，无 IO，理论上不会抛异常</td></tr>
+          <tr><td><code>confirm_plan</code></td><td>LLM 失败 → 降级返回 <code>{"fresh_level": "medium"}</code></td></tr>
+          <tr><td><code>replan</code> / <code>awaiting</code></td><td>lambda，无异常</td></tr>
+          <tr><td>子图</td><td>由各子图自身处理</td></tr>
+        </tbody>
+      </table>
+
+      <h3>17.5 潜在改进点</h3>
+      <ol>
+        <li>
+          <strong><code>generate_plan</code> 的 emit_token 链路</strong>：<code>on_token</code> 闭包中 <code>emit_token</code> 没显式捕获异常 —— 实际上 <code>astream_step</code> 内部有兜底（<code>base_agent.py:256-259</code>），但节点本身没有
+        </li>
+        <li>
+          <strong><code>evaluate_plan</code> 是 async 但无 await</strong>：可改为 sync 函数
+        </li>
+        <li>
+          <strong><code>confirm_plan</code> 关键词硬编码</strong>：<code>"开始研究"</code> / <code>"需求确认"</code> 是中文硬编码，国际化困难
+        </li>
+        <li>
+          <strong><code>replan</code> 节点无 LLM</strong>：如果 LLM 在 confirm_plan 中说 plan 不行，只是 reset state，<strong>丢失了 LLM 的改进建议</strong>
+        </li>
+        <li>
+          <strong>节点 ID 与函数名不同</strong>：<code>builder.add_node("replan", ...)</code> 但函数是 lambda —— 函数追踪困难
+        </li>
+        <li>
+          <strong><code>plan_messages</code> 字段</strong>：仅在 <code>generate_plan</code> 中使用一次（拼接 research_topic），其他节点未使用 —— 可考虑删除
+        </li>
+      </ol>
+    </section>
+
+  </main>
+</div>
+
+<footer>
+  Deep Research Backend · 主图 graph.py 详解 · 基于 src/agent/graph.py:1-197
+</footer>
+
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'dark',
+    themeVariables: {
+      primaryColor: '#1a2236',
+      primaryTextColor: '#e6edf7',
+      primaryBorderColor: '#8b5cf6',
+      lineColor: '#22d3ee',
+      secondaryColor: '#111827',
+      tertiaryColor: '#0a1020',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif',
+    },
+    flowchart: { curve: 'basis', padding: 12 },
+    sequence: { actorMargin: 60, messageMargin: 40 },
+  });
+</script>
+
+</body>
+</html>

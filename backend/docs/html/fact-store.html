@@ -1,0 +1,1082 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>FactStore 详解 · Deep Research</title>
+<!-- Mermaid -->
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<style>
+  :root {
+    --bg-0: #0b0f1a;
+    --bg-1: #111827;
+    --bg-2: #1a2236;
+    --line: #243049;
+    --text: #e6edf7;
+    --muted: #97a3bd;
+    --primary: #8b5cf6;
+    --primary-2: #6366f1;
+    --accent: #22d3ee;
+    --accent-2: #06b6d4;
+    --warn: #f59e0b;
+    --ok: #10b981;
+    --danger: #ef4444;
+    --code-bg: #0a1020;
+    --shadow: 0 10px 30px rgba(0,0,0,.35);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+                 "Microsoft YaHei", Roboto, Helvetica, Arial, sans-serif;
+    background:
+      radial-gradient(1200px 600px at 10% -10%, rgba(139,92,246,.18), transparent 60%),
+      radial-gradient(1000px 500px at 110% 10%, rgba(34,211,238,.15), transparent 60%),
+      var(--bg-0);
+    color: var(--text);
+    line-height: 1.7;
+    min-height: 100vh;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .hero {
+    padding: 56px 16px 32px;
+    text-align: center;
+    border-bottom: 1px solid var(--line);
+    background: linear-gradient(180deg, rgba(139,92,246,.10), transparent 60%);
+  }
+  .hero .badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 999px;
+    background: rgba(139,92,246,.18);
+    color: #c4b5fd;
+    border: 1px solid rgba(139,92,.35);
+    font-size: 12px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+  .hero h1 {
+    margin: 0 0 8px;
+    font-size: clamp(28px, 4vw, 42px);
+    letter-spacing: -0.5px;
+    background: linear-gradient(90deg, #c4b5fd, #67e8f9);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .hero p.lead { color: var(--muted); margin: 0 auto; max-width: 760px; }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 260px minmax(0, 1fr);
+    gap: 24px;
+    max-width: 1320px;
+    margin: 0 auto;
+    padding: 32px 16px;
+  }
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; }
+    .toc { position: static !important; }
+  }
+
+  .toc {
+    position: sticky;
+    top: 24px;
+    align-self: start;
+    background: linear-gradient(180deg, var(--bg-1), var(--bg-2));
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 16px 18px;
+    box-shadow: var(--shadow);
+    max-height: calc(100vh - 48px);
+    overflow: auto;
+  }
+  .toc h3 {
+    margin: 0 0 10px;
+    font-size: 13px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+  }
+  .toc ol { margin: 0; padding-left: 20px; }
+  .toc li { margin: 6px 0; }
+  .toc a { color: var(--text); font-size: 14px; }
+  .toc a:hover { color: var(--accent); }
+
+  .content { min-width: 0; }
+  section {
+    background: linear-gradient(180deg, var(--bg-1), var(--bg-2));
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 24px 26px;
+    box-shadow: var(--shadow);
+    margin-bottom: 22px;
+  }
+  section h2 {
+    margin-top: 0;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--line);
+    font-size: 22px;
+    letter-spacing: -0.2px;
+  }
+  section h3 { margin-top: 22px; font-size: 17px; color: #c7d2fe; }
+  section h4 { margin-top: 16px; font-size: 15px; color: #a5b4fc; }
+  section p { color: var(--text); }
+  .muted { color: var(--muted); }
+
+  code {
+    font-family: "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+    background: var(--code-bg);
+    border: 1px solid var(--line);
+    padding: 1px 6px;
+    border-radius: 6px;
+    font-size: 13px;
+  }
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 14px 16px;
+    overflow: auto;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  pre code { background: none; border: none; padding: 0; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 14px 0;
+    font-size: 14px;
+  }
+  th, td {
+    border: 1px solid var(--line);
+    padding: 8px 12px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th { background: rgba(139,92,246,.10); color: #c4b5fd; }
+  tbody tr:nth-child(even) { background: rgba(255,255,255,.02); }
+
+  .pill {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    margin-right: 6px;
+    border: 1px solid var(--line);
+    background: rgba(255,255,255,.04);
+    color: var(--muted);
+  }
+  .pill.ok    { color: var(--ok);    border-color: rgba(16,185,129,.35); background: rgba(16,185,129,.10); }
+  .pill.warn  { color: var(--warn);  border-color: rgba(245,158,11,.35); background: rgba(245,158,11,.10); }
+  .pill.danger{ color: var(--danger);border-color: rgba(239,68,68,.35);  background: rgba(239,68,68,.10); }
+  .pill.info  { color: var(--accent);border-color: rgba(34,211,238,.35); background: rgba(34,211,238,.10); }
+
+  .mermaid {
+    background: rgba(255,255,255,.02);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 16px;
+    margin: 14px 0;
+    text-align: center;
+    overflow: auto;
+  }
+
+  .callout {
+    border-left: 3px solid var(--accent);
+    background: rgba(34,211,238,.06);
+    padding: 12px 16px;
+    border-radius: 0 8px 8px 0;
+    margin: 14px 0;
+  }
+  .callout.warn { border-color: var(--warn); background: rgba(245,158,11,.06); }
+  .callout.tip  { border-color: var(--ok); background: rgba(16,185,129,.06); }
+
+  footer {
+    text-align: center;
+    color: var(--muted);
+    font-size: 13px;
+    padding: 24px 16px 40px;
+  }
+
+  section[id] { scroll-margin-top: 16px; }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="badge">Deep Research · Knowledge Base</div>
+  <h1>FactStore 详解</h1>
+  <p class="lead">基于 Milvus 的研究知识库事实存储：集合管理、向量检索、重排精排、过滤衰减</p>
+</div>
+
+<div class="layout">
+
+  <!-- ========== 目录 ========== -->
+  <aside class="toc">
+    <h3>目录</h3>
+    <ol>
+      <li><a href="#overview">一、文件结构</a></li>
+      <li><a href="#big-picture">二、整体架构</a></li>
+      <li><a href="#constants">三、常量与配置</a></li>
+      <li><a href="#init">四、__init__ 配置加载</a></li>
+      <li><a href="#client">五、client 延迟连接</a></li>
+      <li><a href="#ensure">六、_ensure_collection 集合管理</a></li>
+      <li><a href="#add">七、add_facts 写入</a></li>
+      <li><a href="#query">八、query 检索（5 阶段）</a></li>
+      <li><a href="#embed">九、_embed Embedding 调用</a></li>
+      <li><a href="#aembed">十、_aembed 异步包装</a></li>
+      <li><a href="#stats">十一、stats 统计</a></li>
+      <li><a href="#call-graph">十二、与外部模块的调用关系</a></li>
+      <li><a href="#exceptions">十三、异常分类</a></li>
+      <li><a href="#design">十四、核心设计要点</a></li>
+    </ol>
+  </aside>
+
+  <main class="content">
+
+    <!-- ========== 一、文件结构 ========== -->
+    <section id="overview">
+      <h2>一、文件结构</h2>
+      <p>文件 <code>src/agent/kb/fact_store.py</code> 共 482 行，封装了基于 Milvus 向量数据库的事实存储。</p>
+
+      <div class="mermaid">
+flowchart LR
+    A["fact_store.py<br/>(482 行)"] --> B["常量与导入<br/>:42-45"]
+    A --> C["FactStore 类<br/>:48-481"]
+    A --> D["外部依赖<br/>lifecycle.py / reranker.py"]
+
+    C --> C1["__init__<br/>:51-68"]
+    C --> C2["公共 API"]
+    C --> C3["内部辅助"]
+
+    C2 --> C2a["add_facts<br/>:72-107"]
+    C2 --> C2b["query<br/>:109-255"]
+    C2 --> C2c["stats<br/>:257-270"]
+
+    C3 --> C3a["client property<br/>:274-278"]
+    C3 --> C3b["_ensure_collection<br/>:280-338"]
+    C3 --> C3c["_embed (同步)<br/>:340-477"]
+    C3 --> C3d["_aembed (异步)<br/>:479-481"]
+      </div>
+
+      <h3>核心方法分类</h3>
+      <table>
+        <thead><tr><th>分类</th><th>方法</th><th>作用</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>写入</td>
+            <td><code>add_facts</code></td>
+            <td>批量插入 facts（自动 embedding）</td>
+          </tr>
+          <tr>
+            <td>检索</td>
+            <td><code>query</code></td>
+            <td>向量检索 + 重排 + 过滤 + 衰减</td>
+          </tr>
+          <tr>
+            <td>管理</td>
+            <td><code>stats</code></td>
+            <td>集合统计</td>
+          </tr>
+          <tr>
+            <td>初始化</td>
+            <td><code>__init__</code> + <code>_ensure_collection</code></td>
+            <td>配置 + 集合创建</td>
+          </tr>
+          <tr>
+            <td>底层</td>
+            <td><code>client</code> + <code>_embed</code> / <code>_aembed</code></td>
+            <td>Milvus 连接 + Embedding API</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ========== 二、整体架构 ========== -->
+    <section id="big-picture">
+      <h2>二、整体架构</h2>
+      <p>FactStore 是 ResearchAgent 的<strong>知识库底层</strong>，对外提供"读旧/写新"两个核心能力。</p>
+
+      <div class="mermaid">
+flowchart LR
+    subgraph Caller["调用方"]
+        A["ResearchAgent._generate_queries<br/>(读)"]
+        B["ResearchAgent._web_search<br/>(写)"]
+    end
+
+    subgraph FS["FactStore 类"]
+        I["__init__<br/>配置加载"]
+        P["client property<br/>延迟连接 Milvus"]
+        EC["_ensure_collection<br/>检查/创建集合"]
+        AF["add_facts<br/>插入 facts"]
+        Q["query<br/>检索 + 过滤 + 重排"]
+        S["stats<br/>统计"]
+        E["_embed<br/>HTTP 调用 Embedding API"]
+        AE["_aembed<br/>异步包装"]
+    end
+
+    subgraph External["外部依赖"]
+        M[("Milvus<br/>向量数据库")]
+        Embed["OpenAI 兼容<br/>Embedding API"]
+        RR["reranker<br/>(可选)"]
+        LC["lifecycle<br/>CATEGORY_TTL"]
+    end
+
+    A --> Q
+    B --> AF
+    AF --> E
+    Q --> E
+    E --> Embed
+    AF --> M
+    Q --> M
+    Q --> RR
+    Q --> LC
+
+    style FS fill:#1a2236,stroke:#8b5cf6,color:#e6edf7
+    style M fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+      </div>
+
+      <h3>KB 闭环（读旧写新）</h3>
+      <div class="mermaid">
+flowchart LR
+    A["第 N 轮搜索"] -->|"写"| B["Milvus FactStore"]
+    B -->|"读"| C["下一轮 _generate_queries"]
+    C -->|"避免重复搜索"| A
+
+    style A fill:#1a2236,stroke:#8b5cf6,color:#e6edf7
+    style B fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+      </div>
+    </section>
+
+    <!-- ========== 三、常量与配置 ========== -->
+    <section id="constants">
+      <h2>三、常量与配置（:42-45）</h2>
+      <pre><code>COLLECTION_NAME = "research_facts"
+DEFAULT_EMBEDDING_DIM = 1024                # text-embedding-v3 输出维度
+DEFAULT_EMBEDDING_MODEL = "text-embedding-v3"</code></pre>
+
+      <h3>环境变量表</h3>
+      <table>
+        <thead><tr><th>环境变量</th><th>默认值</th><th>用途</th><th>fallback</th></tr></thead>
+        <tbody>
+          <tr><td><code>MILVUS_URI</code></td><td><code>http://localhost:19530</code></td><td>Milvus 连接地址</td><td>—</td></tr>
+          <tr><td><code>EMBEDDING_DIM</code></td><td><code>1024</code></td><td>向量维度</td><td>—</td></tr>
+          <tr><td><code>EMBEDDING_MODEL</code></td><td><code>text-embedding-v3</code></td><td>Embedding 模型</td><td>—</td></tr>
+          <tr><td><code>EMBEDDING_BASE_URL</code></td><td>—</td><td>Embedding API 地址</td><td><code>LLM_BASE_URL</code></td></tr>
+          <tr><td><code>EMBEDDING_API_KEY</code></td><td>—</td><td>Embedding API Key</td><td><code>APP_TOKEN</code></td></tr>
+        </tbody>
+      </table>
+
+      <h3>配置回退链</h3>
+      <div class="mermaid">
+flowchart LR
+    A["EMBEDDING_BASE_URL"] -->|"有"| U["base_url"]
+    A -->|"无"| B["LLM_BASE_URL"]
+    B -->|"有"| U
+    B -->|"无"| X1["KBConfigError"]
+
+    A2["EMBEDDING_API_KEY"] -->|"有"| K["api_key"]
+    A2 -->|"无"| B2["APP_TOKEN"]
+    B2 -->|"有"| K
+    B2 -->|"无"| X2["KBConfigError"]
+      </div>
+    </section>
+
+    <!-- ========== 四、__init__ ========== -->
+    <section id="init">
+      <h2>四、__init__ 配置加载（:51-68）</h2>
+
+      <h3>核心代码</h3>
+      <pre><code>def __init__(self, uri=None, collection=COLLECTION_NAME,
+             embedding_dim=None, embedding_model=None):
+    # 优先级：参数 > 环境变量 > 模块默认
+    self.uri = uri or os.getenv("MILVUS_URI", "http://localhost:19530")
+    self.collection = collection
+    self.embedding_dim = embedding_dim or int(
+        os.getenv("EMBEDDING_DIM", str(DEFAULT_EMBEDDING_DIM))
+    )
+    self.embedding_model = embedding_model or os.getenv(
+        "EMBEDDING_MODEL", DEFAULT_EMBEDDING_MODEL
+    )
+    self._client: MilvusClient | None = None
+    self._ensure_collection()    # ★ 构造时立即创建/检查集合</code></pre>
+
+      <h3>优先级链</h3>
+      <div class="mermaid">
+flowchart LR
+    P["构造参数"] -->|"有"| V["使用参数"]
+    P -->|"无"| E["环境变量"]
+    E -->|"有"| V
+    E -->|"无"| D["模块默认值"]
+
+    V --> UR["uri"]
+    V --> DI["dim"]
+    V --> MO["model"]
+    D --> UR
+    D --> DI
+    D --> MO
+
+    style V fill:#0a4f3a,stroke:#10b981,color:#e6edf7
+      </div>
+
+      <div class="callout warn">
+        <strong><code>_ensure_collection</code> 在 <code>__init__</code> 中执行</strong>：如果 Milvus 不可用，构造直接抛 <code>KBConnectionError</code>。
+        这是<strong>急加载</strong>设计（与 <code>client</code> property 的延迟加载形成对比）。
+      </div>
+    </section>
+
+    <!-- ========== 五、client property ========== -->
+    <section id="client">
+      <h2>五、client 延迟连接（:274-278）</h2>
+
+      <h3>核心代码</h3>
+      <pre><code>@property
+def client(self) -> MilvusClient:
+    if self._client is None:
+        self._client = MilvusClient(uri=self.uri)
+    return self._client</code></pre>
+
+      <h3>延迟连接时机</h3>
+      <div class="mermaid">
+flowchart LR
+    A["__init__"] --> B["self._client = None<br/>(未连接)"]
+    B --> C["首次访问 client 属性"]
+    C --> D["MilvusClient(uri)"]
+    D --> E["返回 self._client"]
+    E --> F["后续复用 self._client"]
+
+    style B fill:#0a4f3a,stroke:#10b981,color:#e6edf7
+    style D fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+      </div>
+
+      <div class="callout tip">
+        <strong>设计意图</strong>：<code>client</code> 是 property，<strong>不在 <code>__init__</code> 中创建</strong>，但 <code>__init__</code> 调用了 <code>_ensure_collection</code>，而后者通过 <code>self.client.has_collection()</code> <strong>首次触发</strong>实际连接。
+      </div>
+    </section>
+
+    <!-- ========== 六、_ensure_collection ========== -->
+    <section id="ensure">
+      <h2>六、_ensure_collection 集合管理（:280-338）</h2>
+      <p>检查集合是否存在，不存在则创建（含索引）。</p>
+
+      <h3>流程图</h3>
+      <div class="mermaid">
+flowchart TD
+    A["_ensure_collection 入口"] --> B{"client.has_collection<br/>(self.collection)?"}
+    B -->|"True"| C1["log 'already exists'<br/>return"]
+    B -->|"False"| D["client.create_collection"]
+    B -->|"抛异常"| E1["raise KBConnectionError"]
+
+    D -->|异常| E2{"异常类型?"}
+    E2 -->|"dimension/param/schema"| E3["raise KBConfigError"]
+    E2 -->|"其他"| E4["raise KBConnectionError"]
+    E2 -->|"成功"| F["创建索引<br/>IVF_FLAT + COSINE"]
+
+    F -->|异常| G{"异常类型?"}
+    G -->|"already exist/duplicate"| G1["log debug (忽略)"]
+    G -->|"其他"| G2["log warning (继续)"]
+    G1 --> H["load_collection"]
+    G2 --> H
+    H --> I["log 'created collection'"]
+
+    style I fill:#0a4f3a,stroke:#10b981,color:#e6edf7
+      </div>
+
+      <h3>集合配置</h3>
+      <table>
+        <thead><tr><th>参数</th><th>值</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td><code>dimension</code></td><td><code>self.embedding_dim</code> (默认 1024)</td><td>向量维度</td></tr>
+          <tr><td><code>metric_type</code></td><td><code>COSINE</code></td><td>余弦相似度</td></tr>
+          <tr><td><code>auto_id</code></td><td><code>True</code></td><td>Milvus 自动生成主键</td></tr>
+          <tr><td><code>enable_dynamic_field</code></td><td><code>True</code></td><td>允许动态字段</td></tr>
+        </tbody>
+      </table>
+
+      <h3>索引配置</h3>
+      <pre><code>IndexParams().add_index(
+    field_name="vector",
+    index_type="IVF_FLAT",
+    metric_type="COSINE",
+    params={"nlist": 128},
+)</code></pre>
+
+      <h3>索引类型对比</h3>
+      <table>
+        <thead><tr><th>索引类型</th><th>适用规模</th><th>速度</th><th>精度</th></tr></thead>
+        <tbody>
+          <tr><td><code>IVF_FLAT</code>（本项目）</td><td>中等（万级）</td><td>中</td><td>高</td></tr>
+          <tr><td><code>HNSW</code></td><td>大规模</td><td>快</td><td>高</td></tr>
+          <tr><td><code>FLAT</code></td><td>小规模</td><td>慢</td><td>最高</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ========== 七、add_facts ========== -->
+    <section id="add">
+      <h2>七、add_facts 写入（:72-107）</h2>
+      <p>把 facts 转 embedding 后批量插入 Milvus。</p>
+
+      <h3>核心代码</h3>
+      <pre><code>def add_facts(self, facts: list[dict]) -> int:
+    if not facts:
+        return 0
+
+    texts = [f["fact"] for f in facts]
+    embeddings = self._embed(texts)
+
+    data = []
+    now = int(time.time())
+    for i, fact in enumerate(facts):
+        data.append({
+            "vector": embeddings[i],
+            "fact_text": fact["fact"],
+            "source_url": fact.get("source_url", ""),
+            "research_topic": fact.get("research_topic", ""),
+            "confidence": float(fact.get("confidence", 1.0)),
+            "fact_category": fact.get("fact_category", "strategy"),
+            "created_at": now,
+        })
+
+    result = self.client.insert(collection_name=self.collection, data=data)
+    inserted = result.get("insert_count", len(data))
+    logger.info(f"[KB] stored {inserted} facts → Milvus/{self.collection} ...")
+    return inserted</code></pre>
+
+      <h3>数据流图</h3>
+      <div class="mermaid">
+flowchart TD
+    A["add_facts(facts) 入口"] --> B{"facts 为空?"}
+    B -->|"是"| Z["return 0"]
+    B -->|"否"| C["texts = [f['fact'] for f in facts]"]
+    C --> D["embeddings = self._embed(texts)<br/>(同步 HTTP 调用)"]
+    D --> E["构造 data 列表"]
+    E --> F["构造字段:<br/>vector, fact_text, source_url,<br/>research_topic, confidence,<br/>fact_category, created_at"]
+    F --> G[("Milvus.insert<br/>(batch)")]
+    G --> H["logger.info + return insert_count"]
+
+    style H fill:#0a4f3a,stroke:#10b981,color:#e6edf7
+      </div>
+
+      <h3>数据形态</h3>
+      <table>
+        <thead><tr><th>字段</th><th>类型</th><th>来源</th></tr></thead>
+        <tbody>
+          <tr><td><code>vector</code></td><td><code>list[float]</code> (1024 维)</td><td>_embed() 调用</td></tr>
+          <tr><td><code>fact_text</code></td><td><code>str</code></td><td><code>f["fact"]</code></td></tr>
+          <tr><td><code>source_url</code></td><td><code>str</code></td><td><code>f.get("source_url", "")</code></td></tr>
+          <tr><td><code>research_topic</code></td><td><code>str</code></td><td><code>f.get("research_topic", "")</code></td></tr>
+          <tr><td><code>confidence</code></td><td><code>float</code></td><td><code>f.get("confidence", 1.0)</code></td></tr>
+          <tr><td><code>fact_category</code></td><td><code>str</code></td><td><code>f.get("fact_category", "strategy")</code></td></tr>
+          <tr><td><code>created_at</code></td><td><code>int</code> (Unix 秒)</td><td><code>int(time.time())</code></td></tr>
+        </tbody>
+      </table>
+
+      <div class="callout warn">
+        <strong>注意</strong>：<code>_embed</code> 是<strong>同步阻塞</strong> HTTP 调用，但 <code>add_facts</code> 是同步方法。
+        <code>_web_search</code> 调用 <code>add_facts</code> 时会在 LLM 抽 facts 之后多阻塞几十毫秒。
+      </div>
+    </section>
+
+    <!-- ========== 八、query（核心方法） ========== -->
+    <section id="query">
+      <h2>八、query 检索（:109-255）— 最复杂方法</h2>
+      <p>向量检索 → 重排 → 过滤 → 衰减的 5 阶段流水线。</p>
+
+      <h3>整体流程图</h3>
+      <div class="mermaid">
+flowchart TD
+    A["query(topic, top_k, ...) 入口"] --> B["get_reranker()"]
+    B --> C{"reranker.kb_enabled?"}
+    C -->|"是"| D1["milvus_limit = max(top_k*3, 20)"]
+    C -->|"否"| D2["milvus_limit = top_k"]
+
+    D1 --> E["embedding = self._embed([topic])"]
+    D2 --> E
+    E --> F["client.search(data=[embedding], limit=milvus_limit)"]
+    F --> G{"results 为空?"}
+    G -->|"是"| Z1["return []"]
+    G -->|"否"| H["raw_candidates + distance_score = 1-distance"]
+
+    H --> I{"reranker 启用 AND len>1?"}
+    I -->|"是"| J1["reranker.rerank(fact_texts, top_k)"]
+    J1 --> J2["按 rerank 重排 + 补充未返回候选"]
+    I -->|"否"| J3["candidates = raw_candidates<br/>rerank_scores = {}"]
+
+    J2 --> K["过滤循环"]
+    J3 --> K
+
+    K --> L1{"raw_confidence<br/>< min_confidence?"}
+    L1 -->|"是"| K
+    L1 -->|"否"| L2["age_days = (now - created) / 86400"]
+
+    L2 --> L3{"lifecycle_mode?"}
+    L3 -->|"是"| L4["按 fact_category 取 CATEGORY_TTL"]
+    L3 -->|"否"| L5["用 max_age_days"]
+    L4 --> L6{"age > ttl?"}
+    L5 --> L6
+    L6 -->|"是"| K
+    L6 -->|"否"| L7
+
+    L7 --> L8{"decay?"}
+    L8 -->|"是"| L9["decay_factor = max(0.3, 1 - age/(max_age*2))<br/>confidence *= factor"]
+    L8 -->|"否"| L10["confidence 不变"]
+    L9 --> M["hits.append(...)"]
+    L10 --> M
+
+    K -->|"遍历完"| N["return hits"]
+
+    style N fill:#0a4f3a,stroke:#10b981,color:#e6edf7
+      </div>
+
+      <h3>阶段 1：决定 Milvus 召回量</h3>
+      <pre><code>if reranker.kb_enabled:
+    milvus_limit = max(top_k * 3, 20)    # 多召给 reranker 精排
+else:
+    milvus_limit = top_k</code></pre>
+
+      <p><strong>为什么多召？</strong>召回 → reranker 精排 → top_k。Milvus 召回越多，reranker 选择越多，结果越好（但耗时越长）。</p>
+
+      <h3>阶段 2：Embedding + 向量检索</h3>
+      <pre><code>embedding = self._embed([topic])
+results = self.client.search(
+    collection_name=self.collection,
+    data=[embedding[0]],
+    limit=milvus_limit,
+    output_fields=[
+        "fact_text", "source_url", "research_topic",
+        "confidence", "created_at", "fact_category",
+    ],
+)</code></pre>
+
+      <p><strong>距离转相似度</strong>：<code>distance_score = 1.0 - hit.get("distance", 0)</code>（COSINE 距离 [0,2] → 相似度 [-1,1]）</p>
+
+      <h3>阶段 3：Reranker 精排（可选）</h3>
+      <pre><code>if reranker.kb_enabled and len(raw_candidates) > 1:
+    fact_texts = [c["entity"].get("fact_text", "") for c in raw_candidates]
+    reranked = reranker.rerank(query=topic, documents=fact_texts, top_k=top_k)
+
+    reordered = []
+    rerank_scores = {}
+    for r in reranked:
+        idx = r["index"]
+        cand = raw_candidates[idx]
+        cand["_orig_idx"] = idx
+        reordered.append(cand)
+        rerank_scores[idx] = r["score"]
+
+    # 补充未返回的候选
+    reranked_indices = {r["index"] for r in reranked}
+    for i, cand in enumerate(raw_candidates):
+        if i not in reranked_indices:
+            cand["_orig_idx"] = i
+            reordered.append(cand)
+
+    candidates = reordered
+else:
+    rerank_scores = {}
+    candidates = raw_candidates</code></pre>
+
+      <p><strong>关键细节</strong>：即使 reranker 启用，仍保留<strong>所有候选</strong>（包括评分低的），后续由过滤条件进一步筛选。</p>
+
+      <h3>阶段 4：新鲜度过滤</h3>
+      <pre><code>if lifecycle_mode:
+    category = entity.get("fact_category", "strategy")
+    category_max_age = CATEGORY_TTL.get(category)
+    if category_max_age is not None and age_days > category_max_age:
+        continue
+elif max_age_days and age_days > max_age_days:
+    continue</code></pre>
+
+      <p><strong>两种过滤模式对比</strong>：</p>
+      <table>
+        <thead><tr><th>模式</th><th>过滤依据</th><th>来源</th></tr></thead>
+        <tbody>
+          <tr><td><code>lifecycle_mode=True</code></td><td><code>fact_category</code> → <code>CATEGORY_TTL</code></td><td><code>kb/lifecycle.py</code></td></tr>
+          <tr><td><code>lifecycle_mode=False</code></td><td>单一 <code>max_age_days</code></td><td><code>query()</code> 参数</td></tr>
+        </tbody>
+      </table>
+
+      <h3>阶段 5：置信度衰减（可选）</h3>
+      <pre><code>if decay:
+    effective_max_age = max_age_days or 30
+    if lifecycle_mode:
+        category = entity.get("fact_category", "strategy")
+        effective_max_age = CATEGORY_TTL.get(category)
+        if effective_max_age is None:
+            effective_max_age = 180  # no-decay fallback
+    decay_factor = max(0.3, 1.0 - age_days / (effective_max_age * 2))
+    confidence = raw_confidence * decay_factor</code></pre>
+
+      <h3>衰减公式</h3>
+      <div class="mermaid">
+flowchart LR
+    A["age_days"] --> B{"age / (max_age*2) >= 0.7?"}
+    B -->|"否"| C["decay_factor = 1 - age/(max_age*2)<br/>(线性下降)"]
+    B -->|"是"| D["decay_factor = max(0.3, ...)<br/>(下限 0.3)"]
+
+    C --> E["confidence *= decay_factor"]
+    D --> E
+    E --> F["confidence round 到 2 位"]
+      </div>
+
+      <div class="callout">
+        <strong>设计意图</strong>：越旧的 fact 置信度越低，但最多降到 30% 原始置信度（避免完全没用）。
+      </div>
+
+      <h3>返回值形态</h3>
+      <pre><code>{
+    "fact": entity.get("fact_text", ""),
+    "source_url": entity.get("source_url", ""),
+    "research_topic": entity.get("research_topic", ""),
+    "confidence": round(confidence, 2),
+    "relevance": round(relevance, 3),    # rerank_score 或 distance_score
+    "created_at": created,
+    "age_days": round(age_days, 1),
+    "fact_category": entity.get("fact_category", "strategy"),
+}</code></pre>
+    </section>
+
+    <!-- ========== 九、_embed ========== -->
+    <section id="embed">
+      <h2>九、_embed Embedding 调用（:340-477）</h2>
+      <p>调用 Embedding API 的同步实现，3 次重试 + 多种异常分类。</p>
+
+      <h3>完整流程图</h3>
+      <div class="mermaid">
+flowchart TD
+    A["_embed(texts) 入口"] --> B["读 base_url / api_key<br/>(fallback 链)"]
+    B --> C{配置完整?}
+    C -->|"否"| X["raise KBConfigError"]
+    C -->|"是"| D["构造 URL + headers + payload"]
+
+    D --> E["attempt 1/3"]
+    E -->|HTTPError| F{"status code?"}
+    F -->|"401/403"| F1["raise KBEmbeddingFatalError<br/>(认证/权限,不重试)"]
+    F -->|"400"| F2["raise KBEmbeddingFatalError<br/>(参数错误,不重试)"]
+    F -->|"429"| F3{"attempt < 2?"}
+    F -->|"5xx"| F4{"attempt < 2?"}
+    F3 -->|"是"| F5["sleep 3*(n+1) → 重试"]
+    F4 -->|"是"| F6["sleep 2*(n+1) → 重试"]
+    F3 -->|"否"| F7["raise KBEmbeddingError<br/>(重试耗尽)"]
+    F4 -->|"否"| F7
+
+    E -->|ConnectionError/Timeout| G{"attempt < 2?"}
+    G -->|"是"| G1["sleep 1.5*(n+1) → 重试"]
+    G -->|"否"| G2["raise KBEmbeddingError"]
+
+    E -->|ValueError/KeyError/TypeError| H["raise KBEmbeddingFatalError<br/>(JSON 解析错误,不重试)"]
+
+    E -->|"成功"| I["解析 JSON 提取 embeddings"]
+    I --> J{"dim 不匹配?"}
+    J -->|"是"| J1["logger.warning (继续返回)"]
+    J -->|"否"| K["return embeddings"]
+    J1 --> K
+
+    K --> L["attempt 2/3"]
+    L --> M["attempt 3/3"]
+    M -->|"全部失败"| N["raise KBEmbeddingError"]
+
+    style F1 fill:#4a1414,stroke:#ef4444,color:#fecaca
+    style F2 fill:#4a1414,stroke:#ef4444,color:#fecaca
+    style H fill:#4a1414,stroke:#ef4444,color:#fecaca
+    style N fill:#4a1414,stroke:#ef4444,color:#fecaca
+      </div>
+
+      <h3>重试策略表</h3>
+      <table>
+        <thead><tr><th>状态码 / 异常</th><th>重试?</th><th>等待时间</th><th>抛出异常</th></tr></thead>
+        <tbody>
+          <tr><td>401 / 403 认证/权限</td><td>❌ 不重试</td><td>—</td><td><code>KBEmbeddingFatalError</code></td></tr>
+          <tr><td>400 参数错误</td><td>❌ 不重试</td><td>—</td><td><code>KBEmbeddingFatalError</code></td></tr>
+          <tr><td>429 限流</td><td>✅ 重试</td><td><code>3 * (attempt + 1)</code> 秒</td><td><code>KBEmbeddingError</code></td></tr>
+          <tr><td>5xx 服务端错误</td><td>✅ 重试</td><td><code>2 * (attempt + 1)</code> 秒</td><td><code>KBEmbeddingError</code></td></tr>
+          <tr><td>ConnectionError / Timeout</td><td>✅ 重试</td><td><code>1.5 * (attempt + 1)</code> 秒</td><td><code>KBEmbeddingError</code></td></tr>
+          <tr><td>ValueError / KeyError / TypeError</td><td>❌ 不重试</td><td>—</td><td><code>KBEmbeddingFatalError</code></td></tr>
+          <tr><td>其他未知异常</td><td>✅ 重试</td><td><code>1.5 * (attempt + 1)</code> 秒</td><td><code>KBEmbeddingError</code></td></tr>
+        </tbody>
+      </table>
+
+      <h3>URL 拼接规则</h3>
+      <pre><code>if base_url.endswith("/v1"):
+    url = f"{base_url}/embeddings"     # https://api/v1 → https://api/v1/embeddings
+else:
+    url = f"{base_url}/v1/embeddings"  # https://api → https://api/v1/embeddings</code></pre>
+
+      <h3>响应处理</h3>
+      <pre><code>data = resp.json()
+embeddings = [item["embedding"] for item in data["data"]]
+# 按索引排序保证顺序
+embeddings.sort(key=lambda x: x.get("index", 0) if isinstance(x, dict) else 0)</code></pre>
+
+      <h3>dim 自适应</h3>
+      <pre><code>if result and len(result[0]) != self.embedding_dim:
+    logger.warning(f"embedding dim mismatch: ...")
+# 仍返回 result</code></pre>
+
+      <div class="callout tip">
+        <strong>仅警告不阻塞</strong>：dim 不匹配仍返回，让上层决定如何处理（避免硬失败）。
+      </div>
+    </section>
+
+    <!-- ========== 十、_aembed ========== -->
+    <section id="aembed">
+      <h2>十、_aembed 异步包装（:479-481）</h2>
+
+      <h3>核心代码</h3>
+      <pre><code>async def _aembed(self, texts: list[str]) -> list[list[float]]:
+    """异步 embedding——用 asyncio.to_thread 包裹同步方法，不阻塞事件循环."""
+    return await asyncio.to_thread(self._embed, texts)</code></pre>
+
+      <h3>异步执行机制</h3>
+      <div class="mermaid">
+flowchart LR
+    A["async _aembed(texts)"] -->|"asyncio.to_thread"| B["线程池"]
+    B --> C["同步 _embed(texts)"]
+    C -->|"HTTP POST 阻塞"| D["Embedding API"]
+    D -->|"返回结果"| C
+    C --> B
+    B --> A
+    A -->|"await 拿结果"| E["async 流程继续"]
+
+    style B fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+      </div>
+
+      <div class="callout warn">
+        <strong>⚠️ 当前未被使用</strong>：<code>add_facts</code> 和 <code>query</code> 是同步方法，调用 <code>self._embed</code> 同步版本。
+        <code>_aembed</code> 已实现但<strong>无调用方</strong>。
+      </div>
+    </section>
+
+    <!-- ========== 十一、stats ========== -->
+    <section id="stats">
+      <h2>十一、stats 统计（:257-270）</h2>
+
+      <h3>核心代码</h3>
+      <pre><code>def stats(self) -> dict:
+    try:
+        stat = self.client.get_collection_stats(self.collection)
+        return {"collection": self.collection, "row_count": stat.get("row_count", 0)}
+    except ConnectionError as e:
+        logger.warning(f"[KB] failed to get collection stats (connection): {e}")
+        return {"collection": self.collection, "row_count": "unknown"}
+    except Exception as e:
+        logger.warning(f"[KB] failed to get collection stats ({type(e).__name__}): {e}")
+        return {"collection": self.collection, "row_count": "unknown"}</code></pre>
+
+      <h3>特点</h3>
+      <p>返回 <code>{"collection": ..., "row_count": N | "unknown"}</code>。连接错误降级为 <code>"unknown"</code>。</p>
+    </section>
+
+    <!-- ========== 十二、调用关系 ========== -->
+    <section id="call-graph">
+      <h2>十二、与外部模块的调用关系</h2>
+
+      <div class="mermaid">
+flowchart LR
+    subgraph RA["ResearchAgent"]
+        RA1["_generate_queries"]
+        RA2["_web_search"]
+    end
+
+    subgraph FS["FactStore"]
+        F1["add_facts"]
+        F2["query"]
+        F3["_embed / _aembed"]
+        F4["_ensure_collection"]
+    end
+
+    subgraph Ext["外部"]
+        E1[("Milvus")]
+        E2["OpenAI 兼容<br/>Embedding API"]
+        E3["lifecycle.CATEGORY_TTL"]
+        E4["reranker"]
+        E5["FactExtractor<br/>(LLM 抽 facts)"]
+    end
+
+    RA1 -->|"读旧 facts"| F2
+    RA2 -->|"写新 facts"| F1
+    RA2 -->|"先用 FactExtractor"| E5
+    E5 -->|"调用"| F1
+
+    F1 --> F3
+    F2 --> F3
+    F1 --> F4
+    F2 --> F4
+
+    F3 -->|"HTTP POST"| E2
+    F4 -->|"create_collection<br/>create_index"| E1
+    F1 -->|"insert"| E1
+    F2 -->|"search"| E1
+    F2 -->|"按 category 取 TTL"| E3
+    F2 -->|"精排 (可选)"| E4
+
+    style FS fill:#1a2236,stroke:#8b5cf6,color:#e6edf7
+    style E1 fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+    style E2 fill:#1a3a2a,stroke:#10b981,color:#e6edf7
+      </div>
+
+      <h3>调用频率</h3>
+      <table>
+        <thead><tr><th>调用方</th><th>方法</th><th>时机</th></tr></thead>
+        <tbody>
+          <tr><td><code>_generate_queries</code></td><td><code>query</code></td><td>每次研究循环开头（KB 检索避免重复）</td></tr>
+          <tr><td><code>_web_search</code></td><td><code>add_facts</code></td><td>每个搜索完成后（写入新 facts）</td></tr>
+          <tr><td><code>_ensure_collection</code></td><td><code>client.has_collection</code> + <code>create_collection</code></td><td><code>__init__</code> 中</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ========== 十三、异常分类 ========== -->
+    <section id="exceptions">
+      <h2>十三、异常分类</h2>
+
+      <h3>4 类异常总览</h3>
+      <table>
+        <thead><tr><th>异常</th><th>性质</th><th>触发场景</th><th>处理建议</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><code>KBConnectionError</code></td>
+            <td><span class="pill warn">瞬时</span></td>
+            <td>Milvus 连接失败</td>
+            <td>warn + 跳过 KB 功能</td>
+          </tr>
+          <tr>
+            <td><code>KBConfigError</code></td>
+            <td><span class="pill danger">永久</span></td>
+            <td>Milvus 配置错误 / Embedding URL 未配置</td>
+            <td>error + 人工修复</td>
+          </tr>
+          <tr>
+            <td><code>KBEmbeddingError</code></td>
+            <td><span class="pill warn">瞬时</span></td>
+            <td>Embedding 网络/限流重试耗尽</td>
+            <td>warn + 跳过 KB 功能</td>
+          </tr>
+          <tr>
+            <td><code>KBEmbeddingFatalError</code></td>
+            <td><span class="pill danger">永久</span></td>
+            <td>Embedding 认证/参数错误 / JSON 解析失败</td>
+            <td>error + 人工修复</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>异常分类决策树</h3>
+      <div class="mermaid">
+flowchart TD
+    A["底层异常"] --> B{"类型?"}
+    B -->|"Milvus 连接失败"| C1["KBConnectionError"]
+    B -->|"Milvus 集合配置错误"| C2["KBConfigError"]
+    B -->|"Embedding 认证/参数错误"| C3["KBEmbeddingFatalError"]
+    B -->|"Embedding 网络/限流重试耗尽"| C4["KBEmbeddingError"]
+    B -->|"JSON 解析错误"| C3
+
+    C1 --> D["ResearchAgent catch"]
+    C2 --> D
+    C3 --> D
+    C4 --> D
+    D --> E{"错误性质?"}
+    E -->|"瞬时 (C1/C4)"| E1["logger.warning<br/>KB 功能降级"]
+    E -->|"永久 (C2/C3)"| E2["logger.error<br/>需要人工修复"]
+
+    style C1 fill:#4a3a14,stroke:#f59e0b,color:#fde68a
+    style C2 fill:#4a1414,stroke:#ef4444,color:#fecaca
+    style C3 fill:#4a1414,stroke:#ef4444,color:#fecaca
+    style C4 fill:#4a3a14,stroke:#f59e0b,color:#fde68a
+      </div>
+    </section>
+
+    <!-- ========== 十四、设计要点 ========== -->
+    <section id="design">
+      <h2>十四、核心设计要点</h2>
+
+      <h3>14.1 延迟连接 vs 急加载</h3>
+      <div class="mermaid">
+flowchart LR
+    A["__init__"] -->|"急加载"| B["_ensure_collection()<br/>(可能失败抛异常)"]
+    A2["client 属性"] -->|"延迟加载"| C["首次访问时<br/>创建 MilvusClient"]
+
+    style B fill:#4a3a14,stroke:#f59e0b,color:#fde68a
+    style C fill:#0a4f3a,stroke:#10b981,color:#e6edf7
+      </div>
+
+      <h3>14.2 双向配置回退链</h3>
+      <div class="mermaid">
+flowchart LR
+    A["MILVUS_URI 未配置"] --> B["用默认 http://localhost:19530"]
+    A2["EMBEDDING_BASE_URL 未配置"] --> C["fallback LLM_BASE_URL"]
+    A3["EMBEDDING_API_KEY 未配置"] --> D["fallback APP_TOKEN"]
+    C --> E["都没有 → KBConfigError"]
+    D --> E
+      </div>
+
+      <h3>14.3 三层过滤策略叠加</h3>
+      <div class="mermaid">
+flowchart LR
+    A["Milvus 向量检索"] --> B["Reranker 精排 (可选)"]
+    B --> C["置信度过滤<br/>min_confidence"]
+    C --> D["新鲜度过滤<br/>max_age_days / CATEGORY_TTL"]
+    D --> E["置信度衰减<br/>(decay=True)"]
+    E --> F["最终 hits"]
+
+    style F fill:#0a4f3a,stroke:#10b981,color:#e6edf7
+      </div>
+
+      <h3>14.4 dim 自适应</h3>
+      <p>embedding API 返回的实际维度与 <code>self.embedding_dim</code> 不匹配时，<strong>仅警告不抛异常</strong>。允许 KB 在 dim 变化时仍能工作。</p>
+
+      <h3>14.5 潜在改进点</h3>
+      <ol>
+        <li>
+          <strong><code>_aembed</code> 未被使用</strong>：<code>add_facts</code> 和 <code>query</code> 是同步方法，但内部 HTTP 调用可能阻塞几十毫秒；应改为 async + <code>_aembed</code>
+        </li>
+        <li>
+          <strong><code>_ensure_collection</code> 在 <code>__init__</code> 中</strong>：如果 Milvus 不可用，构造 <code>FactStore</code> 直接抛 <code>KBConnectionError</code>，无法延迟；考虑改为 lazy 创建
+        </li>
+        <li>
+          <strong>同步 HTTP 调用</strong>：<code>requests.post</code> 是同步阻塞，在异步上下文中需要 <code>aiohttp</code> 或 <code>httpx</code>
+        </li>
+        <li>
+          <strong>多候选去重逻辑冗余</strong>：rerank 后补充未返回的候选可能引入低质量结果
+        </li>
+        <li>
+          <strong>置信度衰减下限 0.3 是硬编码</strong>：可考虑配置化
+        </li>
+        <li>
+          <strong>Milvus 异常分类不细</strong>：所有连接异常统一归为 <code>KBConnectionError</code>，缺少超时/资源等子类
+        </li>
+      </ol>
+    </section>
+
+  </main>
+</div>
+
+<footer>
+  Deep Research Backend · FactStore 详解 · 基于 src/agent/kb/fact_store.py:1-482
+</footer>
+
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'dark',
+    themeVariables: {
+      primaryColor: '#1a2236',
+      primaryTextColor: '#e6edf7',
+      primaryBorderColor: '#8b5cf6',
+      lineColor: '#22d3ee',
+      secondaryColor: '#111827',
+      tertiaryColor: '#0a1020',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif',
+    },
+    flowchart: { curve: 'basis', padding: 12 },
+  });
+</script>
+
+</body>
+</html>

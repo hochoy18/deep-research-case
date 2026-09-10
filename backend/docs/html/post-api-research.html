@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>POST /api/research 接口链路 · Deep Research</title>
+<!-- Mermaid for flow / sequence / state diagrams -->
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<style>
+  :root {
+    --bg-0: #0b0f1a;
+    --bg-1: #111827;
+    --bg-2: #1a2236;
+    --line: #243049;
+    --text: #e6edf7;
+    --muted: #97a3bd;
+    --primary: #8b5cf6;
+    --primary-2: #6366f1;
+    --accent: #22d3ee;
+    --accent-2: #06b6d4;
+    --warn: #f59e0b;
+    --ok: #10b981;
+    --danger: #ef4444;
+    --code-bg: #0a1020;
+    --shadow: 0 10px 30px rgba(0,0,0,.35);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+                 "Microsoft YaHei", Roboto, Helvetica, Arial, sans-serif;
+    background:
+      radial-gradient(1200px 600px at 10% -10%, rgba(139,92,246,.18), transparent 60%),
+      radial-gradient(1000px 500px at 110% 10%, rgba(34,211,238,.15), transparent 60%),
+      var(--bg-0);
+    color: var(--text);
+    line-height: 1.7;
+    min-height: 100vh;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* Hero */
+  .hero {
+    padding: 56px 16px 32px;
+    text-align: center;
+    border-bottom: 1px solid var(--line);
+    background:
+      linear-gradient(180deg, rgba(139,92,246,.10), transparent 60%);
+  }
+  .hero .badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 999px;
+    background: rgba(139,92,246,.18);
+    color: #c4b5fd;
+    border: 1px solid rgba(139,92,.35);
+    font-size: 12px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+  .hero h1 {
+    margin: 0 0 8px;
+    font-size: clamp(28px, 4vw, 42px);
+    letter-spacing: -0.5px;
+    background: linear-gradient(90deg, #c4b5fd, #67e8f9);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .hero p.lead { color: var(--muted); margin: 0 auto; max-width: 720px; }
+
+  /* Layout */
+  .layout {
+    display: grid;
+    grid-template-columns: 260px minmax(0, 1fr);
+    gap: 24px;
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 32px 16px;
+  }
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; }
+    .toc { position: static !important; }
+  }
+
+  /* TOC */
+  .toc {
+    position: sticky;
+    top: 24px;
+    align-self: start;
+    background: linear-gradient(180deg, var(--bg-1), var(--bg-2));
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 16px 18px;
+    box-shadow: var(--shadow);
+    max-height: calc(100vh - 48px);
+    overflow: auto;
+  }
+  .toc h3 {
+    margin: 0 0 10px;
+    font-size: 13px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+  }
+  .toc ol { margin: 0; padding-left: 20px; }
+  .toc li { margin: 6px 0; }
+  .toc a { color: var(--text); font-size: 14px; }
+  .toc a:hover { color: var(--accent); }
+
+  /* Content */
+  .content { min-width: 0; }
+  section {
+    background: linear-gradient(180deg, var(--bg-1), var(--bg-2));
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 24px 26px;
+    box-shadow: var(--shadow);
+    margin-bottom: 22px;
+  }
+  section h2 {
+    margin-top: 0;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--line);
+    font-size: 22px;
+    letter-spacing: -0.2px;
+  }
+  section h3 { margin-top: 22px; font-size: 17px; color: #c7d2fe; }
+  section p { color: var(--text); }
+  .muted { color: var(--muted); }
+
+  /* Code */
+  code {
+    font-family: "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+    background: var(--code-bg);
+    border: 1px solid var(--line);
+    padding: 1px 6px;
+    border-radius: 6px;
+    font-size: 13px;
+  }
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 14px 16px;
+    overflow: auto;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  pre code { background: none; border: none; padding: 0; }
+
+  /* Tables */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 14px 0;
+    font-size: 14px;
+  }
+  th, td {
+    border: 1px solid var(--line);
+    padding: 8px 12px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th { background: rgba(139,92,246,.10); color: #c4b5fd; }
+  tbody tr:nth-child(even) { background: rgba(255,255,255,.02); }
+
+  /* Tag pills */
+  .pill {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    margin-right: 6px;
+    border: 1px solid var(--line);
+    background: rgba(255,255,255,.04);
+    color: var(--muted);
+  }
+  .pill.ok    { color: var(--ok);    border-color: rgba(16,185,129,.35); background: rgba(16,185,129,.10); }
+  .pill.warn  { color: var(--warn);  border-color: rgba(245,158,11,.35); background: rgba(245,158,11,.10); }
+  .pill.danger{ color: var(--danger);border-color: rgba(239,68,68,.35);  background: rgba(239,68,68,.10); }
+  .pill.info  { color: var(--accent);border-color: rgba(34,211,238,.35); background: rgba(34,211,238,.10); }
+
+  /* Mermaid container */
+  .mermaid {
+    background: rgba(255,255,255,.02);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 16px;
+    margin: 14px 0;
+    text-align: center;
+    overflow: auto;
+  }
+
+  /* Callout */
+  .callout {
+    border-left: 3px solid var(--accent);
+    background: rgba(34,211,238,.06);
+    padding: 12px 16px;
+    border-radius: 0 8px 8px 0;
+    margin: 14px 0;
+  }
+  .callout.warn { border-color: var(--warn); background: rgba(245,158,11,.06); }
+  .callout.tip  { border-color: var(--ok); background: rgba(16,185,129,.06); }
+
+  /* Footer */
+  footer {
+    text-align: center;
+    color: var(--muted);
+    font-size: 13px;
+    padding: 24px 16px 40px;
+  }
+
+  /* Anchor offset for sticky-free scroll */
+  section[id] { scroll-margin-top: 16px; }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="badge">Deep Research · Backend API</div>
+  <h1>POST /api/research 接口链路全景</h1>
+  <p class="lead">从浏览器发出 POST 请求，到后端返回 task_id 的完整执行路径、数据流转与核心技术点</p>
+</div>
+
+<div class="layout">
+
+  <!-- ========== 目录 ========== -->
+  <aside class="toc">
+    <h3>目录</h3>
+    <ol>
+      <li><a href="#overview">一、整体概览</a></li>
+      <li><a href="#sequence">二、时序图</a></li>
+      <li><a href="#flow">三、流程总览图</a></li>
+      <li><a href="#stage-0">四、阶段 0：网络入口</a></li>
+      <li><a href="#stage-1">五、阶段 1：AuthMiddleware 鉴权</a></li>
+      <li><a href="#stage-2">六、阶段 2：日志中间件</a></li>
+      <li><a href="#stage-3">七、阶段 3：业务路由处理</a></li>
+      <li><a href="#data-flow">八、数据流转表</a></li>
+      <li><a href="#tech">九、核心技术点</a></li>
+      <li><a href="#exit">十、出口状态码总结</a></li>
+      <li><a href="#relation">十一、与其他接口的关系</a></li>
+      <li><a href="#notes">十二、补充说明</a></li>
+    </ol>
+  </aside>
+
+  <main class="content">
+
+    <!-- ========== 一、整体概览 ========== -->
+    <section id="overview">
+      <h2>一、整体概览</h2>
+      <p>
+        <code>POST /api/research</code> 是 Deep Research 多智能体研究链路的<strong>起点</strong>。
+        接口本身只做三件事：<span class="pill info">解析 body</span><span class="pill info">入队 Redis Stream</span><span class="pill info">写用户关联</span>，然后立即返回 <code>task_id</code>。
+      </p>
+      <p>
+        真正的 AI 重活（LLM 调用、搜索循环、报告写作）由<strong>后台 worker 协程</strong>异步完成 —— 本接口范围内不展开。
+      </p>
+
+      <h3>一句话总结</h3>
+      <div class="callout tip">
+        同步入口 + 异步执行：POST 写入 Redis Stream 后立即返回，不等 LLM、不阻塞用户。
+      </div>
+
+      <h3>接口元信息</h3>
+      <table>
+        <thead><tr><th>项</th><th>值</th></tr></thead>
+        <tbody>
+          <tr><td>方法 / 路径</td><td><code>POST /api/research</code></td></tr>
+          <tr><td>鉴权</td><td>Cookie <code>session_id</code>（AuthMiddleware 白名单外必填）</td></tr>
+          <tr><td>请求体</td><td>JSON：<code>messages / initial_search_query_count / max_research_loops / reasoning_model / plan_status / plan / task_id</code></td></tr>
+          <tr><td>成功响应</td><td><code>200 {"task_id": "...", "stream_url": "/api/research/{id}/stream"}</code></td></tr>
+          <tr><td>主要存储</td><td>Redis Stream <code>research:tasks</code> + DB Table <code>user_threads</code></td></tr>
+          <tr><td>同步耗时</td><td>典型 <strong>< 100ms</strong>（鉴权 + 解析 + XADD + 一次 SQL）</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ========== 二、时序图 ========== -->
+    <section id="sequence">
+      <h2>二、时序图</h2>
+      <p>展示浏览器、Vite 代理、FastAPI 路由、Redis、数据库之间的调用顺序。</p>
+      <div class="mermaid">
+sequenceDiagram
+    autonumber
+    participant B as 浏览器 (5173)
+    participant V as Vite Proxy
+    participant F as FastAPI 路由
+    participant R as Redis
+    participant D as DB (SQLAlchemy)
+
+    B->>V: POST /api/research<br/>Cookie: session_id=xxx<br/>Body: {messages, ...}
+    V->>F: 转发到 127.0.0.1:2024
+
+    rect rgb(34,211,238,0.08)
+    note over F: AuthMiddleware (最外层)
+    F->>R: HGETALL session:{session_id}
+    R-->>F: {user_id, username, last_active}
+    F->>F: 注入 request.state.user_id
+    end
+
+    rect rgb(139,92,246,0.08)
+    note over F: 业务路由 submit_research()
+    F->>F: 解析 body JSON
+    F->>R: XADD research:tasks {task: json}
+    R-->>F: msg_id
+    F->>D: SELECT user_threads (查重)
+    F->>D: INSERT user_threads (user_id, thread_id, title)
+    D-->>F: ok
+    end
+
+    F-->>V: 200 {task_id, stream_url}
+    V-->>B: 响应 JSON
+
+    Note over B: 立即用 task_id<br/>建立 SSE 长连接<br/>(GET /api/research/{id}/stream)
+      </div>
+    </section>
+
+    <!-- ========== 三、流程总览图 ========== -->
+    <section id="flow">
+      <h2>三、流程总览图</h2>
+      <div class="mermaid">
+flowchart TD
+    A["POST /api/research<br/>+ Cookie.session_id"] --> B{"白名单?"}
+    B -->|"否"| C["AuthMiddleware<br/>校验 session"]
+    C -->|"401"| X1["返回 401<br/>未登录"]
+    C -->|"通过"| D["log_requests<br/>日志中间件"]
+    D --> E["submit_research()<br/>app.py:123"]
+    E --> F{"解析 body JSON"}
+    F -->|"失败"| X2["返回 400"]
+    F -->|"成功"| G["enqueue_task()<br/>task_queue.py:81"]
+    G --> H{"Redis XADD"}
+    H -->|"失败"| X3["返回 503"]
+    H -->|"成功"| I["写 user_threads<br/>app.py:162"]
+    I -->|"失败 warn 不阻断"| J["返回 200"]
+    I -->|"成功"| J
+    J --> K["task_id + stream_url"]
+    style A fill:#1a2236,stroke:#8b5cf6,color:#e6edf7
+    style C fill:#1a2236,stroke:#22d3ee,color:#e6edf7
+    style G fill:#1a2236,stroke:#8b5cf6,color:#e6edf7
+    style I fill:#1a2236,stroke:#22d3ee,color:#e6edf7
+    style K fill:#0a4f3a,stroke:#10b981,color:#e6edf7
+    style X1 fill:#4a1414,stroke:#ef4444,color:#fecaca
+    style X2 fill:#4a1414,stroke:#ef4444,color:#fecaca
+    style X3 fill:#4a1414,stroke:#ef4444,color:#fecaca
+      </div>
+    </section>
+
+    <!-- ========== 四、阶段 0：网络入口 ========== -->
+    <section id="stage-0">
+      <h2>四、阶段 0：网络入口</h2>
+      <p>
+        浏览器发起请求 <code>http://localhost:5173/api/research</code>，Vite dev server
+        把 <code>/api/*</code> 反向代理到后端 <code>127.0.0.1:2024</code>。
+      </p>
+
+      <h3>Vite 代理配置</h3>
+      <p>位置：<code>frontend/vite.config.ts:18-22</code></p>
+      <pre><code>"/api": {
+  target: "http://127.0.0.1:2024",
+  changeOrigin: true,
+}</code></pre>
+
+      <div class="callout">
+        <strong>注意</strong>：5173 是 Vite dev server 端口；后端 FastAPI 实际监听 <code>2024</code>（LangGraph dev runtime）。
+        生产环境不走这条路径。
+      </div>
+
+      <h3>请求体格式</h3>
+      <p>位置：<code>src/agent/app.py:128-134</code></p>
+      <pre><code>{
+  "messages": [{"type": "human", "content": "分析AI芯片市场趋势"}],
+  "initial_search_query_count": 3,
+  "max_research_loops": 3,
+  "reasoning_model": "qwen-plus-latest",
+  "plan_status": "unconfirmed",
+  "plan": "",
+  "task_id": ""
+}</code></pre>
+
+      <h3>Cookie 携带</h3>
+      <p>浏览器自动带上 <code>Cookie: session_id=xxx</code>（由登录接口 <code>POST /api/login</code> 写入）。</p>
+    </section>
+
+    <!-- ========== 五、阶段 1：鉴权 ========== -->
+    <section id="stage-1">
+      <h2>五、阶段 1：AuthMiddleware 鉴权</h2>
+      <p>
+        AuthMiddleware 是 FastAPI 最先注册的中间件（<code>app.py:40</code>），对白名单外的所有路径强制鉴权。
+      </p>
+
+      <h3>鉴权流程</h3>
+      <div class="mermaid">
+flowchart TD
+    A["请求进入 AuthMiddleware"] --> B{"路径在 PUBLIC_PATHS?"}
+    B -->|"是 /api/login 等"| OK1["直接放行"]
+    B -->|"否"| C["读 Cookie.session_id"]
+    C --> D{"session_id 存在?"}
+    D -->|"否"| X1["返回 401<br/>未登录"]
+    D -->|"是"| E["Redis HGETALL<br/>session:{id}"]
+    E --> F{"会话有效?"}
+    F -->|"否"| X2["返回 401<br/>会话过期"]
+    F -->|"是"| G["刷新 TTL 24h"]
+    G --> H["注入 request.state<br/>user_id, username"]
+    H --> I["放行到下一个中间件"]
+    style OK1 fill:#0a4f3a,stroke:#10b981,color:#e6edf7
+    style I fill:#0a4f3a,stroke:#10b981,color:#e6edf7
+    style X1 fill:#4a1414,stroke:#ef4444,color:#fecaca
+    style X2 fill:#4a1414,stroke:#ef4444,color:#fecaca
+      </div>
+
+      <h3>代码定位</h3>
+      <table>
+        <thead><tr><th>步骤</th><th>文件:行</th><th>操作</th></tr></thead>
+        <tbody>
+          <tr><td>白名单检查</td><td><code>auth/middleware.py:28</code></td><td><code>PUBLIC_PATHS = {"/api/login", "/api/whoami", "/api/logout", "/api/models"}</code></td></tr>
+          <tr><td>读 Cookie</td><td><code>auth/middleware.py:32</code></td><td><code>request.cookies.get("session_id")</code></td></tr>
+          <tr><td>缺失 401</td><td><code>auth/middleware.py:34-38</code></td><td><code>{"error": "未登录，请先登录"}</code></td></tr>
+          <tr><td>查 Redis</td><td><code>auth/session.py:50-64</code></td><td><code>EXISTS → HGETALL</code>，刷新 TTL</td></tr>
+          <tr><td>过期 401</td><td><code>auth/middleware.py:40-45</code></td><td><code>{"error": "会话已过期，请重新登录"}</code></td></tr>
+          <tr><td>注入 state</td><td><code>auth/middleware.py:48-49</code></td><td><code>request.state.user_id / username</code></td></tr>
+        </tbody>
+      </table>
+
+      <h3>数据流转</h3>
+      <pre><code>Cookie.session_id
+     │
+     ▼
+get_session(session_id)   ← auth/session.py:50
+     │
+     ▼
+Redis HGETALL session:&#123;session_id&#125;
+     │
+     ▼
+session_data = {"user_id": 1, "username": "...", "last_active": "..."}
+     │
+     ▼
+request.state.user_id = 1
+request.state.username = "..."</code></pre>
+
+      <div class="callout warn">
+        <strong>同步阻塞</strong>：这一步会阻塞等待 Redis HGETALL 返回（典型 1-5ms）。
+        session 校验失败会<strong>立即返回 401，不进入业务逻辑</strong>。
+      </div>
+    </section>
+
+    <!-- ========== 六、阶段 2：日志中间件 ========== -->
+    <section id="stage-2">
+      <h2>六、阶段 2：日志中间件</h2>
+      <p>
+        通过 <code>@app.middleware("http")</code> 装饰的 <code>log_requests()</code>（<code>app.py:82-118</code>）记录请求。
+      </p>
+
+      <h3>代码定位</h3>
+      <table>
+        <thead><tr><th>步骤</th><th>文件:行</th><th>操作</th></tr></thead>
+        <tbody>
+          <tr><td>记录方法/URL</td><td><code>app.py:86-87</code></td><td><code>logger.info(f"收到用户请求：POST ...")</code></td></tr>
+          <tr><td>读 body</td><td><code>app.py:90-92</code></td><td><code>await request.body()</code></td></tr>
+          <tr><td>JSON 解析 + 详情日志</td><td><code>app.py:93-101</code></td><td><code>json.loads → log_request_details</code></td></tr>
+          <tr><td>进入下一层</td><td><code>app.py:109-118</code></td><td><code>await call_next(request)</code></td></tr>
+        </tbody>
+      </table>
+
+      <div class="callout tip">
+        <strong>只读不写</strong>：此中间件不修改请求。FastAPI 会缓存 <code>request.body()</code> 的结果，
+        所以下游 <code>await request.json()</code> 仍能读到完整 body。
+      </div>
+    </section>
+
+    <!-- ========== 七、阶段 3：业务路由 ========== -->
+    <section id="stage-3">
+      <h2>七、阶段 3：业务路由处理</h2>
+      <p>
+        路由函数 <code>submit_research()</code> 定义在 <code>app.py:123-198</code>。整体流程图：
+      </p>
+
+      <div class="mermaid">
+flowchart TD
+    A["进入 submit_research(request)"] --> B["提取 request.state.user_id"]
+    B --> C{"await request.json()"}
+    C -->|"JSONDecodeError"| X1["返回 400<br/>请求体不是 JSON"]
+    C -->|"成功"| D["body = {...}"]
+    D --> E["enqueue_task(...)"]
+    E --> F["task_queue.py:81<br/>① uuid.uuid4() 或复用 task_id<br/>② json.dumps 序列化<br/>③ XADD research:tasks"]
+    F --> G{"XADD 成功?"}
+    G -->|"否"| X2["返回 503<br/>任务提交失败"]
+    G -->|"是"| H["task_id 已拿到"]
+    H --> I["提取 title = 首发 human 消息前 256 字"]
+    I --> J["async with get_session_factory()()"]
+    J --> K["SELECT user_threads 查重"]
+    K --> L{"已存在?"}
+    L -->|"是"| M["跳过 INSERT"]
+    L -->|"否"| N["INSERT user_threads"]
+    M --> O["返回 JSON"]
+    N --> O
+    O --> P["200 OK<br/>{task_id, stream_url}"]
+    style P fill:#0a4f3a,stroke:#10b981,color:#e6edf7
+    style X1 fill:#4a1414,stroke:#ef4444,color:#fecaca
+    style X2 fill:#4a1414,stroke:#ef4444,color:#fecaca
+      </div>
+
+      <h3>3.1 解析 body（app.py:137-143）</h3>
+      <pre><code>try:
+    body = await request.json()
+except Exception:
+    return JSONResponse(
+        content={"error": "请求体必须是 JSON 格式"},
+        status_code=400,
+    )</code></pre>
+      <p>解析失败 → <span class="pill danger">400</span>。这是路由函数的第一个出口。</p>
+
+      <h3>3.2 入队 Redis Stream（核心）</h3>
+      <p>位置：<code>app.py:146-154</code>，实际执行 <code>task_queue.py:81-109</code>。</p>
+
+      <pre><code># app.py:146
+task_id = await enqueue_task(
+    messages=body.get("messages", []),
+    initial_search_query_count=body.get("initial_search_query_count", 2),
+    max_research_loops=body.get("max_research_loops", 2),
+    reasoning_model=body.get("reasoning_model", ""),
+    plan_status=body.get("plan_status", "unconfirmed"),
+    plan=body.get("plan", ""),
+    task_id=body.get("task_id", ""),  # 前端回传则复用
+)</code></pre>
+
+      <h4>Redis Streams 数据形态</h4>
+      <div class="mermaid">
+classDiagram
+    class ResearchTasks {
+        +string stream_name
+        +int maxlen
+    }
+    class StreamMessage {
+        +string msg_id
+        +json task
+    }
+    class TaskPayload {
+        +string task_id
+        +list messages
+        +int initial_search_query_count
+        +int max_research_loops
+        +string reasoning_model
+        +string plan_status
+        +string plan
+    }
+    ResearchTasks "1" --> "*" StreamMessage : XADD
+    StreamMessage "1" --> "1" TaskPayload : fields.task
+      </div>
+
+      <h4>enqueue_task 内部步骤</h4>
+      <table>
+        <thead><tr><th>子步骤</th><th>文件:行</th><th>操作</th></tr></thead>
+        <tbody>
+          <tr><td>3.2.1</td><td><code>task_queue.py:95</code></td><td><code>r = await _get_redis()</code> —— 延迟初始化 Redis 连接池，带 <code>socket_connect_timeout=2s</code>、<code>retry_on_timeout=True</code></td></tr>
+          <tr><td>3.2.2</td><td><code>task_queue.py:96-97</code></td><td>若前端未传 <code>task_id</code> → <code>uuid.uuid4()</code>；前端回传则复用</td></tr>
+          <tr><td>3.2.3</td><td><code>task_queue.py:98-106</code></td><td><code>task_payload = json.dumps({...})</code></td></tr>
+          <tr><td>3.2.4</td><td><code>task_queue.py:107</code></td><td><code>await r.xadd("research:tasks", {"task": task_payload}, maxlen=1000)</code></td></tr>
+          <tr><td>3.2.5</td><td><code>task_queue.py:108</code></td><td><code>logger.info("[TaskQueue] 任务已入队 task_id=...")</code></td></tr>
+          <tr><td>3.2.6</td><td><code>task_queue.py:109</code></td><td><code>return task_id</code></td></tr>
+        </tbody>
+      </table>
+
+      <p>异常处理：<code>app.py:155-160</code> —— 入队失败 → <span class="pill danger">503 {"error": "任务提交失败: ..."}</span></p>
+
+      <div class="callout tip">
+        <strong>同步入口 / 异步执行</strong>：Redis XADD 是同步操作，但耗时极短（<10ms）。
+        真正的 LangGraph 图执行（LLM / 搜索 / 写作）由 worker 协程异步消费，不在 POST 链路内。
+      </div>
+
+      <h3>3.3 写用户↔任务关联</h3>
+      <p>位置：<code>app.py:162-194</code></p>
+
+      <h4>表结构（db/models.py:22-35）</h4>
+      <pre><code>CREATE TABLE user_threads (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,        -- 索引
+    thread_id VARCHAR(128) NOT NULL,
+    title TEXT,                       -- 首条 human 消息前 256 字
+    created_at DATETIME DEFAULT NOW(),
+    UNIQUE(user_id, thread_id)        -- 联合唯一约束
+);</code></pre>
+
+      <h4>执行步骤</h4>
+      <table>
+        <thead><tr><th>步骤</th><th>文件:行</th><th>操作</th></tr></thead>
+        <tbody>
+          <tr><td>3.3.1 提取 title</td><td><code>app.py:169-174</code></td><td>从 messages 找第一条 <code>type=="human"</code>，截 <code>content[:256]</code></td></tr>
+          <tr><td>3.3.2 打开 session</td><td><code>app.py:176</code></td><td><code>async with get_session_factory()() as session</code> —— 异步 SQLAlchemy</td></tr>
+          <tr><td>3.3.3 查重</td><td><code>app.py:178-183</code></td><td><code>SELECT * WHERE user_id=? AND thread_id=?</code></td></tr>
+          <tr><td>3.3.4 插入</td><td><code>app.py:184-189</code></td><td>不存在 → <code>INSERT UserThread(...)</code></td></tr>
+          <tr><td>3.3.5 提交</td><td><code>app.py:190</code></td><td><code>await session.commit()</code></td></tr>
+        </tbody>
+      </table>
+
+      <div class="callout warn">
+        <strong>失败不阻断</strong>（<code>app.py:191-193</code>）：DB 写入失败只 <code>logger.warning</code>，
+        不影响任务提交。任务已在 Redis Stream，worker 会正常消费。
+      </div>
+
+      <h4>数据流转</h4>
+      <pre><code>Redis task_id = "45ba2ef3-..."
+   ↓
+DB row: {
+  user_id: 1,
+  thread_id: "45ba2ef3-...",
+  title: "分析AI芯片市场趋势"
+}</code></pre>
+
+      <h3>3.4 返回响应（app.py:195-198）</h3>
+      <pre><code>return JSONResponse(content={
+    "task_id": task_id,
+    "stream_url": f"/api/research/{task_id}/stream",
+})</code></pre>
+
+      <p>响应 JSON：</p>
+      <pre><code>{
+  "task_id": "45ba2ef3-4303-460c-b1a2-774df1ca9583",
+  "stream_url": "/api/research/45ba2ef3-4303-460c-b1a2-774df1ca9583/stream"
+}</code></pre>
+
+      <p><span class="pill ok">状态码 200</span>，由 <code>JSONResponse</code> 自动设置 <code>Content-Type: application/json</code>。</p>
+    </section>
+
+    <!-- ========== 八、数据流转表 ========== -->
+    <section id="data-flow">
+      <h2>八、数据流转表</h2>
+      <p>POST /api/research 端到端的数据形态转换。</p>
+
+      <div class="mermaid">
+flowchart LR
+    A["Cookie<br/>session_id"] --> B["Redis Hash<br/>session:{id}"]
+    B --> C["request.state<br/>user_id"]
+    C --> D["业务处理"]
+    E["HTTP body<br/>bytes"] --> F["dict<br/>body"]
+    F --> G["json string<br/>task_payload"]
+    G --> H["Redis Stream<br/>research:tasks"]
+    F --> I["title<br/>content:256"]
+    C --> J[("DB<br/>user_threads")]
+    I --> J
+    H --> K["task_id"]
+    J --> K
+    K --> L["JSON Response"]
+    style H fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+    style J fill:#1a3a2a,stroke:#10b981,color:#e6edf7
+    style L fill:#0a4f3a,stroke:#10b981,color:#e6edf7
+      </div>
+
+      <table>
+        <thead>
+          <tr><th>阶段</th><th>输入</th><th>操作</th><th>输出</th><th>存储位置</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>鉴权</td><td><code>Cookie.session_id</code></td><td>Redis HGETALL</td><td><code>request.state.user_id</code></td><td>Redis Hash <code>session:&#123;id&#125;</code></td></tr>
+          <tr><td>日志</td><td>HTTP body bytes</td><td>json.loads → log</td><td>日志输出</td><td>loguru logger</td></tr>
+          <tr><td>解析</td><td>HTTP body bytes</td><td>json.loads</td><td><code>body: dict</code></td><td>仅内存</td></tr>
+          <tr><td>入队</td><td><code>body</code> dict</td><td>json.dumps → XADD</td><td>Redis Stream message</td><td>Redis Stream <code>research:tasks</code></td></tr>
+          <tr><td>关联</td><td><code>body.messages[0].content</code> + <code>task_id</code></td><td>SQL SELECT/INSERT</td><td>DB row</td><td>DB Table <code>user_threads</code></td></tr>
+          <tr><td>响应</td><td><code>task_id</code></td><td>拼 URL</td><td>JSON 响应</td><td>HTTP body</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ========== 九、核心技术点 ========== -->
+    <section id="tech">
+      <h2>九、核心技术点</h2>
+      <p>本接口涉及的核心技术点一览。</p>
+
+      <table>
+        <thead><tr><th>技术点</th><th>作用</th><th>代码位置</th></tr></thead>
+        <tbody>
+          <tr><td><strong>AuthMiddleware 拦截</strong></td><td>全局鉴权（白名单外必须登录）</td><td><code>auth/middleware.py:23-51</code></td></tr>
+          <tr><td><strong>Cookie + Redis Session</strong></td><td>无状态登录态，TTL 24h</td><td><code>auth/session.py:50-64</code></td></tr>
+          <tr><td><strong>Redis Streams (XADD)</strong></td><td>任务入队，支持多消费者、断点续传</td><td><code>task_queue.py:107</code></td></tr>
+          <tr><td><strong>task_id 复用机制</strong></td><td>前端可传 task_id 续传（用户刷新页面后保留任务）</td><td><code>task_queue.py:96-97</code></td></tr>
+          <tr><td><strong>UUID v4 生成</strong></td><td>全局唯一任务标识</td><td><code>task_queue.py:97</code> <code>uuid.uuid4()</code></td></tr>
+          <tr><td><strong>SQLAlchemy 异步 ORM</strong></td><td>异步 DB I/O，不阻塞事件循环</td><td><code>app.py:176</code> <code>get_session_factory()()</code></td></tr>
+          <tr><td><strong>联合唯一约束</strong></td><td>防止重复插入 user_threads</td><td><code>db/models.py:33</code></td></tr>
+          <tr><td><strong>步骤失败不影响提交</strong></td><td>入队失败 503；DB 失败仅 warn</td><td><code>app.py:155-160</code> / <code>:191-193</code></td></tr>
+          <tr><td><strong>title 自动提取</strong></td><td>取首条 human 消息前 256 字</td><td><code>app.py:169-174</code></td></tr>
+          <tr><td><strong>stream_url 返回</strong></td><td>前端立即可建立 SSE 连接</td><td><code>app.py:197</code></td></tr>
+          <tr><td><strong>Vite 反向代理</strong></td><td>5173 → 2024 转发，让前后端同源</td><td><code>frontend/vite.config.ts:18-22</code></td></tr>
+          <tr><td><strong>Redis 连接池复用</strong></td><td>延迟初始化 + 单例，避免每次新建连接</td><td><code>task_queue.py:48-60</code></td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ========== 十、出口状态码 ========== -->
+    <section id="exit">
+      <h2>十、出口状态码总结</h2>
+      <table>
+        <thead>
+          <tr><th>状态码</th><th>触发条件</th><th>响应内容</th><th>代码位置</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="pill ok">200</span></td>
+            <td>正常完成</td>
+            <td><code>{"task_id": "...", "stream_url": "/api/research/{id}/stream"}</code></td>
+            <td><code>app.py:195-198</code></td>
+          </tr>
+          <tr>
+            <td><span class="pill danger">400</span></td>
+            <td>body 不是合法 JSON</td>
+            <td><code>{"error": "请求体必须是 JSON 格式"}</code></td>
+            <td><code>app.py:139-143</code></td>
+          </tr>
+          <tr>
+            <td><span class="pill danger">401</span></td>
+            <td>缺 Cookie.session_id</td>
+            <td><code>{"error": "未登录，请先登录"}</code></td>
+            <td><code>auth/middleware.py:34-38</code></td>
+          </tr>
+          <tr>
+            <td><span class="pill danger">401</span></td>
+            <td>session_id 无效或过期</td>
+            <td><code>{"error": "会话已过期，请重新登录"}</code></td>
+            <td><code>auth/middleware.py:40-45</code></td>
+          </tr>
+          <tr>
+            <td><span class="pill danger">503</span></td>
+            <td>Redis XADD 失败</td>
+            <td><code>{"error": "任务提交失败: ..."}</code></td>
+            <td><code>app.py:155-160</code></td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ========== 十一、与其他接口的关系 ========== -->
+    <section id="relation">
+      <h2>十一、与其他接口的关系</h2>
+      <p>POST /api/research 在整个异步研究链路中的位置。</p>
+
+      <div class="mermaid">
+flowchart LR
+    A["POST /api/login<br/>创建 session + set Cookie"] --> B["POST /api/research<br/>⭐ 本接口<br/>入队 + 返回 task_id"]
+    B --> C["GET /api/research/{id}/stream<br/>SSE 实时推送 worker 事件"]
+    C --> D["worker 协程消费<br/>research:tasks"]
+    D --> E["LangGraph 图执行<br/>Plan → Research → Write"]
+    E --> F["XADD research:events:{id}"]
+    F --> C
+    style B fill:#1a2236,stroke:#8b5cf6,color:#e6edf7
+    style A fill:#1a2236,stroke:#22d3ee,color:#e6edf7
+    style C fill:#1a2236,stroke:#22d3ee,color:#e6edf7
+    style E fill:#0a4f3a,stroke:#10b981,color:#e6edf7
+      </div>
+
+      <p class="muted">虚线之上：本接口的服务链路；虚线之下：下游消费链路（不在本接口范围）。</p>
+    </section>
+
+    <!-- ========== 十二、补充说明 ========== -->
+    <section id="notes">
+      <h2>十二、补充说明</h2>
+
+      <h3>为什么 POST 这么快？</h3>
+      <ul>
+        <li><strong>鉴权</strong>：只查一次 Redis Hash（HGETALL，单 round-trip）</li>
+        <li><strong>入队</strong>：Redis XADD 是 O(1) 操作</li>
+        <li><strong>写关联</strong>：单条 SELECT + INSERT，无复杂查询</li>
+        <li><strong>零 LLM 调用</strong>：所有 AI 工作都在 worker 协程里异步执行</li>
+      </ul>
+
+      <h3>同步 vs 异步边界</h3>
+      <div class="mermaid">
+flowchart LR
+    subgraph SYNC ["同步路径 - POST 阻塞在此"]
+        A1["鉴权"] --> A2["解析 body"] --> A3["XADD"] --> A4["DB 关联"] --> A5["返回 200"]
+    end
+    subgraph ASYNC ["异步路径 - worker 协程后台执行"]
+        B1["XREADGROUP"] --> B2["LangGraph 图"] --> B3["LLM 调用"] --> B4["SSE 推送"]
+    end
+    A3 -. "XADD 完成<br/>即可被消费" .-> B1
+    style SYNC fill:#1a2236,stroke:#8b5cf6,color:#e6edf7
+    style ASYNC fill:#1a2236,stroke:#22d3ee,color:#e6edf7
+      </div>
+
+      <h3>task_id 复用场景</h3>
+      <p>前端可以在第二次提交时回传同一个 <code>task_id</code>，典型场景：</p>
+      <ul>
+        <li>用户刷新页面后想继续任务</li>
+        <li>同一任务的 plan 确认后再次提交（<code>plan_status="confirmed"</code>）</li>
+      </ul>
+      <p>后端在 <code>task_queue.py:96-97</code> 检测：</p>
+      <pre><code>if not task_id:
+    task_id = str(uuid.uuid4())
+# 否则复用前端传入的 task_id</code></pre>
+      <p>复用同一 task_id 后，LangGraph 的 <code>AsyncRedisSaver</code> 会加载之前的 checkpoint 状态，实现<strong>断点续传</strong>。</p>
+    </section>
+
+  </main>
+</div>
+
+<footer>
+  Deep Research Backend · POST /api/research 链路文档 · 仅描述接口本身的执行路径
+</footer>
+
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'dark',
+    themeVariables: {
+      primaryColor: '#1a2236',
+      primaryTextColor: '#e6edf7',
+      primaryBorderColor: '#8b5cf6',
+      lineColor: '#22d3ee',
+      secondaryColor: '#111827',
+      tertiaryColor: '#0a1020',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif',
+    },
+    flowchart: { curve: 'basis', padding: 12 },
+    sequence: { actorMargin: 60, messageMargin: 40 },
+  });
+</script>
+
+</body>
+</html>

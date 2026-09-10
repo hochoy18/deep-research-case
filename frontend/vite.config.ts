@@ -14,12 +14,23 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      // Proxy API requests to the backend server
+      // 将所有请求代理到 LangGraph runtime（含 FastAPI app + API server）
+      // 统一使用同一个源，确保 Cookie 自动携带
       "/api": {
-        target: "http://127.0.0.1:8000", // Default backend address
+        target: "http://127.0.0.1:2024",
         changeOrigin: true,
-        // Optionally rewrite path if needed (e.g., remove /api prefix if backend doesn't expect it)
-        // rewrite: (path) => path.replace(/^\/api/, ''),
+      },
+      "/threads": {
+        target: "http://127.0.0.1:2024",
+        changeOrigin: true,
+      },
+      "/runs": {
+        target: "http://127.0.0.1:2024",
+        changeOrigin: true,
+      },
+      "/assistants": {
+        target: "http://127.0.0.1:2024",
+        changeOrigin: true,
       },
     },
   },

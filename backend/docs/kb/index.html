@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KB 知识库模块 · 功能说明</title>
+<style>
+  :root {
+    --bg: #0f1419;
+    --surface: #1a1f29;
+    --surface-2: #232938;
+    --border: #2e3645;
+    --text: #e6e8eb;
+    --text-dim: #9aa3b2;
+    --accent: #6cb6ff;
+    --accent-2: #a78bfa;
+    --green: #4ade80;
+    --amber: #fbbf24;
+    --red: #f87171;
+    --code-bg: #0b0f15;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+                 "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.65;
+    font-size: 15px;
+  }
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 40px 32px 80px;
+  }
+  header.hero {
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 28px;
+    margin-bottom: 36px;
+  }
+  .badge {
+    display: inline-block;
+    padding: 3px 10px;
+    background: rgba(108, 182, 255, 0.12);
+    color: var(--accent);
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    margin-bottom: 14px;
+  }
+  h1 {
+    font-size: 32px;
+    margin: 0 0 10px;
+    font-weight: 700;
+  }
+  .lead {
+    color: var(--text-dim);
+    font-size: 16px;
+    margin: 0;
+  }
+  h2 {
+    font-size: 22px;
+    margin: 48px 0 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+    font-weight: 700;
+  }
+  h3 {
+    font-size: 17px;
+    margin: 24px 0 10px;
+    color: var(--accent);
+    font-weight: 600;
+  }
+  h4 {
+    font-size: 15px;
+    margin: 18px 0 8px;
+    color: var(--accent-2);
+    font-weight: 600;
+  }
+  p { margin: 10px 0; }
+  ul, ol { padding-left: 22px; }
+  li { margin: 4px 0; }
+  code {
+    font-family: "SF Mono", Menlo, Consolas, monospace;
+    background: var(--code-bg);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 13px;
+    color: #e8c87a;
+  }
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    overflow-x: auto;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  pre code {
+    background: transparent;
+    padding: 0;
+    color: var(--text);
+  }
+  .callout {
+    background: var(--surface);
+    border-left: 3px solid var(--accent);
+    padding: 14px 18px;
+    border-radius: 0 6px 6px 0;
+    margin: 16px 0;
+  }
+  .callout.warn { border-left-color: var(--amber); }
+  .callout.tip { border-left-color: var(--green); }
+  .callout-title {
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: var(--accent);
+  }
+  .callout.warn .callout-title { color: var(--amber); }
+  .callout.tip .callout-title { color: var(--green); }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 14px;
+  }
+  th, td {
+    border: 1px solid var(--border);
+    padding: 8px 12px;
+    text-align: left;
+  }
+  th {
+    background: var(--surface-2);
+    font-weight: 600;
+    color: var(--text);
+  }
+  td { color: var(--text-dim); }
+  tr:hover td { background: var(--surface); }
+  .file-tree {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    font-family: "SF Mono", Menlo, monospace;
+    font-size: 13px;
+    margin: 16px 0;
+    white-space: pre;
+    overflow-x: auto;
+  }
+  .file-tree .dir { color: var(--accent); }
+  .file-tree .file { color: var(--text); }
+  .file-tree .note { color: var(--text-dim); }
+  .figure {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    margin: 20px 0;
+    text-align: center;
+  }
+  .figure svg {
+    max-width: 100%;
+    height: auto;
+  }
+  .figure-caption {
+    margin-top: 12px;
+    color: var(--text-dim);
+    font-size: 13px;
+    text-align: left;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 16px;
+    margin: 16px 0;
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 18px;
+  }
+  .card-title {
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: var(--accent);
+  }
+  .card-body {
+    font-size: 14px;
+    color: var(--text-dim);
+  }
+  .footer-note {
+    margin-top: 60px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    color: var(--text-dim);
+    font-size: 13px;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+<header class="hero">
+  <span class="badge">DEEP RESEARCH · BACKEND</span>
+  <h1>KB 知识库模块 · 功能说明</h1>
+  <p class="lead">
+    跨研究循环的长期记忆层 —— 把每次 web 搜索的摘要拆解为可复用的原子事实存入向量库，
+    下次研究相似主题时先检索已知事实注入提示词，避免重复搜索。
+  </p>
+</header>
+
+<!-- ============================================================ -->
+<h2>1. 目录结构</h2>
+
+<div class="file-tree"><span class="dir">src/agent/kb/</span>
+├── <span class="file">__init__.py</span>       <span class="note"># 统一出口（FactStore / FactExtractor / 生命周期策略）</span>
+├── <span class="file">extractor.py</span>     <span class="note"># 写入侧：LLM 从摘要抽取结构化事实</span>
+├── <span class="file">fact_store.py</span>    <span class="note"># 存储与检索：Milvus 封装 + embedding + 过滤衰减</span>
+└── <span class="file">lifecycle.py</span>    <span class="note"># 时效性策略：四种模式的开关与阈值配置</span></div>
+
+<table>
+  <thead>
+    <tr><th>文件</th><th>行数</th><th>职责</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>__init__.py</code></td><td>42</td><td>对外暴露 <code>FactStore</code>、<code>FactExtractor</code>、生命周期常量与判定函数</td></tr>
+    <tr><td><code>extractor.py</code></td><td>142</td><td>调用 LLM 将摘要拆成 {fact, source_url, confidence, fact_category} 列表</td></tr>
+    <tr><td><code>fact_store.py</code></td><td>481</td><td>Milvus 集合管理、向量检索、过滤衰减、rerank 集成、embedding 重试</td></tr>
+    <tr><td><code>lifecycle.py</code></td><td>81</td><td>四种运行模式的枚举、TTL 配置、<code>should_*</code> 行为开关</td></tr>
+  </tbody>
+</table>
+
+<!-- ============================================================ -->
+<h2>2. 在 application 中的位置</h2>
+
+<p>
+  KB 模块是 Deep Research 系统的<strong>长期记忆层</strong>。每次新研究会都涉及大量 web 搜索，
+  若不持久化，同一主题第二次研究仍需从零开始。KB 让系统具备跨会话、跨运行的"已知事实"积累能力。
+</p>
+
+<div class="figure">
+<svg viewBox="0 0 900 280" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#9aa3b2"/>
+    </marker>
+  </defs>
+
+  <!-- 用户 -->
+  <rect x="20" y="100" width="100" height="60" rx="8"
+        fill="#1a1f29" stroke="#6cb6ff" stroke-width="1.5"/>
+  <text x="70" y="128" text-anchor="middle" fill="#e6e8eb" font-size="14" font-weight="600">用户</text>
+  <text x="70" y="146" text-anchor="middle" fill="#9aa3b2" font-size="11">研究主题</text>
+
+  <!-- MainGraph -->
+  <rect x="170" y="50" width="160" height="60" rx="8"
+        fill="#232938" stroke="#2e3645" stroke-width="1.5"/>
+  <text x="250" y="78" text-anchor="middle" fill="#e6e8eb" font-size="14" font-weight="600">MainGraph</text>
+  <text x="250" y="96" text-anchor="middle" fill="#9aa3b2" font-size="11">Plan → fresh_level</text>
+
+  <!-- ResearchAgent subgraph -->
+  <rect x="170" y="160" width="380" height="100" rx="8"
+        fill="#1a1f29" stroke="#a78bfa" stroke-width="1.5"/>
+  <text x="190" y="184" fill="#a78bfa" font-size="12" font-weight="600">ResearchAgent 子图</text>
+  <rect x="190" y="195" width="80" height="50" rx="6" fill="#232938" stroke="#2e3645"/>
+  <text x="230" y="218" text-anchor="middle" fill="#e6e8eb" font-size="12">_generate</text>
+  <text x="230" y="234" text-anchor="middle" fill="#e6e8eb" font-size="12">_queries</text>
+  <rect x="290" y="195" width="80" height="50" rx="6" fill="#232938" stroke="#2e3645"/>
+  <text x="330" y="218" text-anchor="middle" fill="#e6e8eb" font-size="12">_web</text>
+  <text x="330" y="234" text-anchor="middle" fill="#e6e8eb" font-size="12">_search</text>
+  <rect x="390" y="195" width="80" height="50" rx="6" fill="#232938" stroke="#2e3645"/>
+  <text x="430" y="218" text-anchor="middle" fill="#e6e8eb" font-size="12">_critique</text>
+  <text x="430" y="234" text-anchor="middle" fill="#e6e8eb" font-size="12">(loop)</text>
+
+  <!-- KB module -->
+  <rect x="600" y="80" width="240" height="180" rx="10"
+        fill="#0f1419" stroke="#6cb6ff" stroke-width="2" stroke-dasharray="4 3"/>
+  <text x="720" y="105" text-anchor="middle" fill="#6cb6ff" font-size="14" font-weight="600">📚 KB 模块</text>
+  <rect x="620" y="120" width="200" height="32" rx="4" fill="#1a1f29" stroke="#2e3645"/>
+  <text x="720" y="140" text-anchor="middle" fill="#e6e8eb" font-size="12">FactExtractor</text>
+  <rect x="620" y="158" width="200" height="32" rx="4" fill="#1a1f29" stroke="#2e3645"/>
+  <text x="720" y="178" text-anchor="middle" fill="#e6e8eb" font-size="12">FactStore (Milvus)</text>
+  <rect x="620" y="196" width="200" height="32" rx="4" fill="#1a1f29" stroke="#2e3645"/>
+  <text x="720" y="216" text-anchor="middle" fill="#e6e8eb" font-size="12">Lifecycle 策略</text>
+
+  <!-- WriterAgent -->
+  <rect x="170" y="270" width="380" height="0" />
+  <text x="540" y="290" fill="#9aa3b2" font-size="11" font-style="italic">... → WriterAgent → 最终输出</text>
+
+  <!-- Arrows -->
+  <line x1="120" y1="130" x2="170" y2="80" stroke="#9aa3b2" marker-end="url(#arr)"/>
+  <line x1="330" y1="110" x2="330" y2="160" stroke="#9aa3b2" marker-end="url(#arr)"/>
+  <line x1="270" y1="220" x2="600" y2="170" stroke="#6cb6ff" marker-end="url(#arr)" stroke-width="1.5"/>
+  <line x1="330" y1="245" x2="600" y2="195" stroke="#6cb6ff" marker-end="url(#arr)" stroke-width="1.5"/>
+  <text x="475" y="195" fill="#6cb6ff" font-size="11">① 读：known_facts</text>
+  <text x="475" y="235" fill="#6cb6ff" font-size="11">② 写：add_facts</text>
+</svg>
+  <div class="figure-caption">
+    KB 在主图中的位置 —— ResearchAgent 的两个节点（_generate_queries 与 _web_search）
+    分别从 KB 读、写。<code>fresh_level</code> 由 MainGraph 的 Plan 节点注入 state。
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2>3. 数据流闭环</h2>
+
+<div class="figure">
+<svg viewBox="0 0 900 520" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arr2" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#9aa3b2"/>
+    </marker>
+    <marker id="arr3" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#6cb6ff"/>
+    </marker>
+  </defs>
+
+  <!-- Plan -->
+  <rect x="20" y="20" width="160" height="50" rx="8"
+        fill="#1a1f29" stroke="#6cb6ff" stroke-width="1.5"/>
+  <text x="100" y="42" text-anchor="middle" fill="#e6e8eb" font-size="13" font-weight="600">Plan 阶段</text>
+  <text x="100" y="58" text-anchor="middle" fill="#9aa3b2" font-size="11">LLM 判定 fresh_level</text>
+
+  <!-- State -->
+  <rect x="220" y="20" width="120" height="50" rx="8"
+        fill="#232938" stroke="#2e3645" stroke-width="1.5"/>
+  <text x="280" y="42" text-anchor="middle" fill="#e6e8eb" font-size="13" font-weight="600">OverallState</text>
+  <text x="280" y="58" text-anchor="middle" fill="#9aa3b2" font-size="11">fresh_level</text>
+
+  <!-- _generate_queries -->
+  <rect x="20" y="120" width="200" height="80" rx="8"
+        fill="#1a1f29" stroke="#a78bfa" stroke-width="1.5"/>
+  <text x="120" y="145" text-anchor="middle" fill="#a78bfa" font-size="13" font-weight="600">_generate_queries</text>
+  <text x="120" y="163" text-anchor="middle" fill="#9aa3b2" font-size="11">① FactStore.query()</text>
+  <text x="120" y="180" text-anchor="middle" fill="#9aa3b2" font-size="11">→ known_facts → 提示词</text>
+
+  <!-- _web_search -->
+  <rect x="260" y="120" width="200" height="80" rx="8"
+        fill="#1a1f29" stroke="#a78bfa" stroke-width="1.5"/>
+  <text x="360" y="145" text-anchor="middle" fill="#a78bfa" font-size="13" font-weight="600">_web_search</text>
+  <text x="360" y="163" text-anchor="middle" fill="#9aa3b2" font-size="11">搜索 → 摘要 → 短链接还原</text>
+  <text x="360" y="180" text-anchor="middle" fill="#9aa3b2" font-size="11">② FactExtractor.extract()</text>
+
+  <!-- FactStore -->
+  <rect x="500" y="120" width="160" height="80" rx="8"
+        fill="#0f1419" stroke="#6cb6ff" stroke-width="2"/>
+  <text x="580" y="145" text-anchor="middle" fill="#6cb6ff" font-size="13" font-weight="600">FactStore</text>
+  <text x="580" y="163" text-anchor="middle" fill="#9aa3b2" font-size="11">add_facts()</text>
+  <text x="580" y="180" text-anchor="middle" fill="#9aa3b2" font-size="11">query()</text>
+
+  <!-- Milvus -->
+  <ellipse cx="750" cy="160" rx="70" ry="36"
+           fill="#1a1f29" stroke="#6cb6ff" stroke-width="1.5"/>
+  <text x="750" y="155" text-anchor="middle" fill="#6cb6ff" font-size="13" font-weight="600">Milvus</text>
+  <text x="750" y="172" text-anchor="middle" fill="#9aa3b2" font-size="11">research_facts</text>
+
+  <!-- embedding service -->
+  <rect x="500" y="260" width="160" height="50" rx="8"
+        fill="#1a1f29" stroke="#a78bfa" stroke-width="1.5"/>
+  <text x="580" y="280" text-anchor="middle" fill="#a78bfa" font-size="12">/v1/embeddings</text>
+  <text x="580" y="296" text-anchor="middle" fill="#9aa3b2" font-size="11">EMBEDDING_MODEL</text>
+
+  <!-- LLM (extractor) -->
+  <rect x="20" y="260" width="160" height="50" rx="8"
+        fill="#1a1f29" stroke="#a78bfa" stroke-width="1.5"/>
+  <text x="100" y="280" text-anchor="middle" fill="#a78bfa" font-size="12">LLM</text>
+  <text x="100" y="296" text-anchor="middle" fill="#9aa3b2" font-size="11">deepseek-v4-pro</text>
+
+  <!-- LLM (web searcher) -->
+  <rect x="260" y="260" width="160" height="50" rx="8"
+        fill="#1a1f29" stroke="#a78bfa" stroke-width="1.5"/>
+  <text x="340" y="280" text-anchor="middle" fill="#a78bfa" font-size="12">LLM (web_searcher)</text>
+  <text x="340" y="296" text-anchor="middle" fill="#9aa3b2" font-size="11">query_generator_model</text>
+
+  <!-- Reranker -->
+  <rect x="20" y="360" width="200" height="50" rx="8"
+        fill="#1a1f29" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="3 2"/>
+  <text x="120" y="380" text-anchor="middle" fill="#fbbf24" font-size="12">Reranker (DashScope)</text>
+  <text x="120" y="396" text-anchor="middle" fill="#9aa3b2" font-size="11">gte-rerank · 可选</text>
+
+  <!-- 闭环注释 -->
+  <text x="450" y="460" text-anchor="middle" fill="#9aa3b2" font-size="12" font-style="italic">
+    ↓ 下次研究时，FactStore.query 命中这些事实，注入 _generate_queries 的提示词 ↓
+  </text>
+
+  <!-- Arrows -->
+  <line x1="180" y1="45" x2="220" y2="45" stroke="#9aa3b2" marker-end="url(#arr2)"/>
+  <line x1="280" y1="70" x2="280" y2="120" stroke="#9aa3b2" marker-end="url(#arr2)"/>
+  <line x1="220" y1="160" x2="260" y2="160" stroke="#9aa3b2" marker-end="url(#arr2)"/>
+  <line x1="460" y1="160" x2="500" y2="160" stroke="#6cb6ff" marker-end="url(#arr3)" stroke-width="1.5"/>
+  <line x1="660" y1="160" x2="680" y2="160" stroke="#6cb6ff" marker-end="url(#arr3)" stroke-width="1.5"/>
+
+  <line x1="580" y1="200" x2="580" y2="260" stroke="#9aa3b2" marker-end="url(#arr2)"/>
+  <line x1="120" y1="310" x2="120" y2="360" stroke="#9aa3b2" marker-end="url(#arr2)"/>
+  <line x1="220" y1="385" x2="500" y2="165" stroke="#fbbf24" marker-end="url(#arr2)" stroke-dasharray="3 2"/>
+  <text x="350" y="290" fill="#fbbf24" font-size="11" font-style="italic">rerank</text>
+
+  <line x1="340" y1="310" x2="180" y2="200" stroke="#9aa3b2" marker-end="url(#arr2)" stroke-dasharray="3 2"/>
+  <text x="240" y="260" fill="#9aa3b2" font-size="11" font-style="italic">摘要</text>
+</svg>
+  <div class="figure-caption">
+    写入侧（_web_search 末尾）：摘要 → FactExtractor → URL 还原 → FactStore → Milvus。
+    读取侧（_generate_queries）：Milvus → FactStore.query → known_facts → 提示词。两者通过 Milvus 形成闭环。
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2>4. 核心组件详解</h2>
+
+<h3>4.1 FactExtractor（extractor.py）</h3>
+
+<p>
+  写入侧入口。输入一段已经 LLM 摘要过的搜索文本，输出结构化事实字典列表。
+  它不接触 Milvus，只做"文本 → 结构"这一件事。
+</p>
+
+<h4>EXTRACTION_INSTRUCTIONS 提示词设计</h4>
+
+<p>提示词的 7 条约束及其工程意图：</p>
+
+<table>
+  <thead><tr><th>#</th><th>约束</th><th>意图</th></tr></thead>
+  <tbody>
+    <tr><td>1</td><td>独立可验证的单句陈述，避免复合句</td><td>复合句无法单独做向量检索，也无法单独判定时效</td></tr>
+    <tr><td>2</td><td>标注来源 URL（从摘要的 <code>[来源名](url)</code> 提取）</td><td>与 <code>web_searcher_instructions</code> 的输出格式形成契约</td></tr>
+    <tr><td>3</td><td><code>confidence</code> 三档打分</td><td>让后续检索能按证据强度过滤</td></tr>
+    <tr><td>4</td><td><code>fact_category</code> 五类标注</td><td>决定每条事实的生命周期（TTL）</td></tr>
+    <tr><td>5</td><td>不提取泛陈述</td><td>无信息量的事实会污染检索结果</td></tr>
+    <tr><td>6</td><td>每条 ≤ 80 字</td><td>控制 embedding 的语义聚焦度</td></tr>
+    <tr><td>7</td><td>最多 10 条</td><td>控制单次写入量与 token 成本</td></tr>
+  </tbody>
+</table>
+
+<h4>confidence 三档标准</h4>
+
+<table>
+  <thead><tr><th>区间</th><th>含义</th></tr></thead>
+  <tbody>
+    <tr><td>0.9 – 1.0</td><td>摘要明确引用具体数据/事件</td></tr>
+    <tr><td>0.7 – 0.8</td><td>摘要中有较明确的表述</td></tr>
+    <tr><td>0.5 – 0.6</td><td>摘要中隐含但未直接说明</td></tr>
+  </tbody>
+</table>
+
+<div class="callout">
+  <div class="callout-title">关键区分</div>
+  confidence 衡量的是<strong>摘要文本对这条陈述的支撑程度</strong>，而非事实本身的真实性。
+  这是可靠打分（有明确文本依据），不是幻觉性的主观判断。
+</div>
+
+<h4>extract() 执行流程</h4>
+
+<div class="figure">
+<svg viewBox="0 0 800 380" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arr4" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#9aa3b2"/>
+    </marker>
+    <marker id="arr5" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#f87171"/>
+    </marker>
+  </defs>
+
+  <rect x="300" y="10" width="200" height="40" rx="6" fill="#232938" stroke="#2e3645"/>
+  <text x="400" y="33" text-anchor="middle" fill="#e6e8eb" font-size="13">extract(summary, topic)</text>
+
+  <!-- Step 1: 短路 -->
+  <rect x="40" y="80" width="180" height="40" rx="6" fill="#1a1f29" stroke="#fbbf24" stroke-width="1.5"/>
+  <text x="130" y="100" text-anchor="middle" fill="#fbbf24" font-size="11" font-weight="600">① 短路检查</text>
+  <text x="130" y="115" text-anchor="middle" fill="#9aa3b2" font-size="10">len(summary) &lt; 50 ?</text>
+
+  <line x1="320" y1="30" x2="130" y2="80" stroke="#9aa3b2" marker-end="url(#arr4)"/>
+  <line x1="130" y1="120" x2="130" y2="150" stroke="#9aa3b2" marker-end="url(#arr4)"/>
+  <text x="50" y="135" fill="#f87171" font-size="11" font-style="italic">是 → return []</text>
+
+  <!-- Step 2: Agent + LLM -->
+  <rect x="40" y="150" width="180" height="50" rx="6" fill="#1a1f29" stroke="#a78bfa" stroke-width="1.5"/>
+  <text x="130" y="172" text-anchor="middle" fill="#a78bfa" font-size="11" font-weight="600">② 新建 Agent</text>
+  <text x="130" y="187" text-anchor="middle" fill="#9aa3b2" font-size="10">set_step_prompt + step()</text>
+
+  <line x1="130" y1="200" x2="130" y2="225" stroke="#9aa3b2" marker-end="url(#arr4)"/>
+
+  <!-- Step 3: LLM with retry -->
+  <rect x="40" y="225" width="180" height="55" rx="6" fill="#1a1f29" stroke="#a78bfa" stroke-width="1.5"/>
+  <text x="130" y="248" text-anchor="middle" fill="#a78bfa" font-size="11" font-weight="600">③ LLM 调用</text>
+  <text x="130" y="263" text-anchor="middle" fill="#9aa3b2" font-size="10">3 次分级重试</text>
+  <text x="130" y="275" text-anchor="middle" fill="#9aa3b2" font-size="10">耗尽 → return ""</text>
+
+  <!-- Branch 1: empty string -->
+  <line x1="130" y1="280" x2="130" y2="305" stroke="#9aa3b2" marker-end="url(#arr4)"/>
+  <line x1="130" y1="305" x2="700" y2="355" stroke="#f87171" marker-end="url(#arr5)" stroke-dasharray="3 2"/>
+
+  <!-- Step 4: JSON extract -->
+  <rect x="270" y="150" width="200" height="50" rx="6" fill="#1a1f29" stroke="#6cb6ff" stroke-width="1.5"/>
+  <text x="370" y="170" text-anchor="middle" fill="#6cb6ff" font-size="11" font-weight="600">④ Post.extract_pattern</text>
+  <text x="370" y="186" text-anchor="middle" fill="#9aa3b2" font-size="10">围栏正则 →  JSON 兜底</text>
+
+  <line x1="220" y1="250" x2="270" y2="175" stroke="#9aa3b2" marker-end="url(#arr4)"/>
+
+  <!-- Step 5: parse + validate -->
+  <rect x="270" y="225" width="200" height="55" rx="6" fill="#1a1f29" stroke="#6cb6ff" stroke-width="1.5"/>
+  <text x="370" y="245" text-anchor="middle" fill="#6cb6ff" font-size="11" font-weight="600">⑤ json.loads</text>
+  <text x="370" y="260" text-anchor="middle" fill="#9aa3b2" font-size="10">+ _validate(清洗)</text>
+  <text x="370" y="272" text-anchor="middle" fill="#9aa3b2" font-size="10">clamp + 截 10 条</text>
+
+  <line x1="370" y1="200" x2="370" y2="225" stroke="#9aa3b2" marker-end="url(#arr4)"/>
+  <line x1="370" y1="280" x2="370" y2="310" stroke="#9aa3b2" marker-end="url(#arr4)"/>
+
+  <!-- Success -->
+  <rect x="280" y="310" width="180" height="40" rx="6" fill="#0f1419" stroke="#4ade80" stroke-width="1.5"/>
+  <text x="370" y="333" text-anchor="middle" fill="#4ade80" font-size="12" font-weight="600">return facts</text>
+
+  <!-- Exception handling -->
+  <rect x="540" y="150" width="220" height="130" rx="6" fill="#1a1f29" stroke="#f87171" stroke-width="1.5"/>
+  <text x="650" y="170" text-anchor="middle" fill="#f87171" font-size="11" font-weight="600">异常分级（仅 warning）</text>
+  <text x="560" y="190" fill="#9aa3b2" font-size="10">JSONDecodeError  →  畸形 JSON</text>
+  <text x="560" y="208" fill="#9aa3b2" font-size="10">ValueError/Type  →  类型错误</text>
+  <text x="560" y="226" fill="#9aa3b2" font-size="10">Exception       →  未知兜底</text>
+  <text x="560" y="252" fill="#9aa3b2" font-size="10" font-style="italic">全部 → logger.warning</text>
+  <text x="560" y="270" fill="#9aa3b2" font-size="10" font-style="italic">→ return []</text>
+
+  <line x1="470" y1="180" x2="540" y2="190" stroke="#f87171" marker-end="url(#arr5)" stroke-dasharray="3 2"/>
+  <line x1="470" y1="250" x2="540" y2="220" stroke="#f87171" marker-end="url(#arr5)" stroke-dasharray="3 2"/>
+</svg>
+  <div class="figure-caption">
+    extract() 七步流程。任何异常都被吞掉返回空列表——这是 KB 的一贯设计：失败就降级，不影响主流程。
+  </div>
+</div>
+
+<h4>_validate() 五道过滤</h4>
+
+<table>
+  <thead><tr><th>过滤规则</th><th>处理</th></tr></thead>
+  <tbody>
+    <tr><td>非 dict 元素</td><td>跳过</td></tr>
+    <tr><td><code>fact</code> 文本为空 / &lt; 10 字</td><td>跳过</td></tr>
+    <tr><td><code>confidence</code> 缺失</td><td>默认 0.7（"较明确表述"档）</td></tr>
+    <tr><td><code>confidence</code> 越界</td><td><code>min(1.0, max(0.0, x))</code> clamp</td></tr>
+    <tr><td><code>fact_category</code> 缺失</td><td>默认 <code>"strategy"</code>（90 天 TTL）</td></tr>
+    <tr><td>累计满 10 条</td><td>break 截断</td></tr>
+  </tbody>
+</table>
+
+<!-- ============================================================ -->
+<h3>4.2 FactStore（fact_store.py）</h3>
+
+<p>Milvus 的封装层，用 PyMilvus 2.5 的 <code>MilvusClient</code> API。</p>
+
+<h4>存储结构</h4>
+
+<table>
+  <thead><tr><th>字段</th><th>类型</th><th>说明</th></tr></thead>
+  <tbody>
+    <tr><td><code>vector</code></td><td>float[]</td><td>embedding 向量（默认 1024 维）</td></tr>
+    <tr><td><code>fact_text</code></td><td>string</td><td>事实陈述</td></tr>
+    <tr><td><code>source_url</code></td><td>string</td><td>来源（已还原为真实 URL）</td></tr>
+    <tr><td><code>research_topic</code></td><td>string</td><td>触发本次搜索的研究主题</td></tr>
+    <tr><td><code>confidence</code></td><td>float</td><td>抽取时的原始置信度</td></tr>
+    <tr><td><code>fact_category</code></td><td>string</td><td>时效性类别</td></tr>
+    <tr><td><code>created_at</code></td><td>int</td><td>Unix 时间戳，衰减与过滤的基准</td></tr>
+  </tbody>
+</table>
+
+<p>集合配置：COSINE 距离、<code>auto_id</code>、<code>enable_dynamic_field</code>，索引类型 <code>IVF_FLAT</code>（nlist=128）。</p>
+
+<h4>query() 四阶段流水线</h4>
+
+<div class="figure">
+<svg viewBox="0 0 900 200" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arr6" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#9aa3b2"/>
+    </marker>
+  </defs>
+
+  <rect x="20" y="80" width="140" height="50" rx="8" fill="#1a1f29" stroke="#6cb6ff" stroke-width="1.5"/>
+  <text x="90" y="100" text-anchor="middle" fill="#6cb6ff" font-size="12" font-weight="600">① 召回</text>
+  <text x="90" y="116" text-anchor="middle" fill="#9aa3b2" font-size="10">embedding → search</text>
+
+  <rect x="200" y="80" width="160" height="50" rx="8" fill="#1a1f29" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="3 2"/>
+  <text x="280" y="100" text-anchor="middle" fill="#fbbf24" font-size="12" font-weight="600">② 精排（可选）</text>
+  <text x="280" y="116" text-anchor="middle" fill="#9aa3b2" font-size="10">Reranker 交叉编码器</text>
+
+  <rect x="400" y="80" width="200" height="50" rx="8" fill="#1a1f29" stroke="#a78bfa" stroke-width="1.5"/>
+  <text x="500" y="100" text-anchor="middle" fill="#a78bfa" font-size="12" font-weight="600">③ 时效过滤</text>
+  <text x="500" y="116" text-anchor="middle" fill="#9aa3b2" font-size="10">confidence + TTL</text>
+
+  <rect x="640" y="80" width="200" height="50" rx="8" fill="#1a1f29" stroke="#4ade80" stroke-width="1.5"/>
+  <text x="740" y="100" text-anchor="middle" fill="#4ade80" font-size="12" font-weight="600">④ 衰减</text>
+  <text x="740" y="116" text-anchor="middle" fill="#9aa3b2" font-size="10">confidence × decay_factor</text>
+
+  <line x1="160" y1="105" x2="200" y2="105" stroke="#9aa3b2" marker-end="url(#arr6)"/>
+  <line x1="360" y1="105" x2="400" y2="105" stroke="#9aa3b2" marker-end="url(#arr6)"/>
+  <line x1="600" y1="105" x2="640" y2="105" stroke="#9aa3b2" marker-end="url(#arr6)"/>
+
+  <text x="90" y="170" text-anchor="middle" fill="#9aa3b2" font-size="10">max(top_k*3, 20)</text>
+  <text x="280" y="170" text-anchor="middle" fill="#9aa3b2" font-size="10">未返回的按原顺序追加</text>
+  <text x="500" y="170" text-anchor="middle" fill="#9aa3b2" font-size="10">lifecycle 模式按 category</text>
+  <text x="740" y="170" text-anchor="middle" fill="#9aa3b2" font-size="10">下限 0.3，不会归零</text>
+
+  <text x="90" y="40" text-anchor="middle" fill="#e6e8eb" font-size="13" font-weight="600">FactStore.query() 四阶段流水线</text>
+</svg>
+</div>
+
+<h4>置信度衰减公式</h4>
+
+<pre><code>decay_factor = max(0.3, 1.0 - age_days / (effective_max_age * 2))
+confidence   = raw_confidence * decay_factor</code></pre>
+
+<p>
+  下限 0.3 意味着即使事实非常老旧也不会被打到零分。
+  在 lifecycle 模式下，<code>effective_max_age</code> 使用该类别的 TTL；TTL 为 <code>None</code> 的类别（如 historical）回落到 180 天。
+</p>
+
+<h4>_embed() 重试策略</h4>
+
+<table>
+  <thead><tr><th>错误类型</th><th>状态码 / 现象</th><th>处理</th></tr></thead>
+  <tbody>
+    <tr><td>永久错误</td><td>401 / 403 / 400</td><td>立即抛 <code>KBEmbeddingFatalError</code>，<strong>不重试</strong></td></tr>
+    <tr><td>永久错误</td><td>JSON 解析 / 结构错误</td><td>立即抛 <code>KBEmbeddingFatalError</code></td></tr>
+    <tr><td>429 限流</td><td>HTTP 429</td><td>退避重试（3s / 6s），耗尽抛 <code>KBEmbeddingError</code></td></tr>
+    <tr><td>服务端错误</td><td>HTTP 5xx</td><td>退避重试（2s / 4s），耗尽抛 <code>KBEmbeddingError</code></td></tr>
+    <tr><td>网络错误</td><td>Connection / Timeout</td><td>退避重试（1.5s / 3s），耗尽抛 <code>KBEmbeddingError</code></td></tr>
+    <tr><td>未知异常</td><td>—</td><td>保守重试，耗尽抛 <code>KBEmbeddingError</code></td></tr>
+  </tbody>
+</table>
+
+<p>配置 fallback 链：<code>EMBEDDING_BASE_URL</code> → <code>LLM_BASE_URL</code>；<code>EMBEDDING_API_KEY</code> → <code>APP_TOKEN</code>。</p>
+
+<div class="callout warn">
+  <div class="callout-title">同步 / 异步现状</div>
+  <code>query()</code> 和 <code>add_facts()</code> 仍是同步阻塞调用。当前 research 节点也是同步，所以不构成问题，
+  但若后续节点异步化，需要用 <code>asyncio.to_thread</code> 包裹（目前只有 <code>_aembed()</code> 做了这层准备）。
+</div>
+
+<!-- ============================================================ -->
+<h3>4.3 Lifecycle 策略（lifecycle.py）</h3>
+
+<p>纯配置 + 判定函数，无状态。由 <code>KB_LIFECYCLE_MODE</code> 环境变量控制，默认 <code>freshness</code>，非法值静默回落。</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>模式</th>
+      <th>过滤</th>
+      <th>衰减</th>
+      <th>年龄标签</th>
+      <th>提示词措辞</th>
+      <th>效果</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td><code>off</code></td><td>✗</td><td>✗</td><td>✗</td><td>硬性禁止重搜</td><td>KB 退化为纯语义检索</td></tr>
+    <tr><td><code>inform</code></td><td>✗</td><td>✗</td><td>✓</td><td>鼓励重新验证</td><td>全部交给 LLM 自行判断</td></tr>
+    <tr><td><code>freshness</code></td><td>✓</td><td>✓</td><td>✓</td><td>鼓励重新验证</td><td>按 <code>fresh_level</code> 统一阈值</td></tr>
+    <tr><td><code>lifecycle</code></td><td>✓</td><td>✓</td><td>✓</td><td>鼓励重新验证</td><td>按 <code>fact_category</code> 逐条判断</td></tr>
+  </tbody>
+</table>
+
+<h4>freshness 模式的统一阈值</h4>
+
+<table>
+  <thead><tr><th>fresh_level</th><th>最大年龄</th><th>适用场景</th></tr></thead>
+  <tbody>
+    <tr><td><code>high</code></td><td>7 天</td><td>市场份额、价格、排名</td></tr>
+    <tr><td><code>medium</code></td><td>30 天</td><td>产品、战略、趋势</td></tr>
+    <tr><td><code>low</code></td><td>180 天</td><td>技术原理、历史</td></tr>
+  </tbody>
+</table>
+
+<h4>按类别的 TTL（lifecycle 模式）</h4>
+
+<table>
+  <thead><tr><th>fact_category</th><th>TTL</th><th>覆盖内容</th></tr></thead>
+  <tbody>
+    <tr><td><code>market_data</code></td><td>7 天</td><td>市场份额、价格、排名、增长率、营收数据</td></tr>
+    <tr><td><code>product_info</code></td><td>30 天</td><td>产品功能、规格、版本、发布信息</td></tr>
+    <tr><td><code>strategy</code></td><td>90 天</td><td>公司战略、投资方向、合作、收购</td></tr>
+    <tr><td><code>technology</code></td><td>180 天</td><td>技术原理、架构定义、标准、协议</td></tr>
+    <tr><td><code>historical</code></td><td>∞</td><td>历史事件、里程碑、已发生的事实</td></tr>
+  </tbody>
+</table>
+
+<div class="figure">
+<svg viewBox="0 0 900 280" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arr7" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#9aa3b2"/>
+    </marker>
+  </defs>
+
+  <text x="450" y="25" text-anchor="middle" fill="#e6e8eb" font-size="13" font-weight="600">Lifecycle 模式决策流</text>
+
+  <rect x="350" y="40" width="200" height="40" rx="8" fill="#1a1f29" stroke="#6cb6ff" stroke-width="1.5"/>
+  <text x="450" y="64" text-anchor="middle" fill="#6cb6ff" font-size="12">KB_LIFECYCLE_MODE env</text>
+
+  <line x1="450" y1="80" x2="450" y2="110" stroke="#9aa3b2" marker-end="url(#arr7)"/>
+
+  <rect x="350" y="110" width="200" height="36" rx="8" fill="#232938" stroke="#2e3645"/>
+  <text x="450" y="132" text-anchor="middle" fill="#e6e8eb" font-size="11">get_mode()</text>
+
+  <line x1="450" y1="146" x2="450" y2="170" stroke="#9aa3b2" marker-end="url(#arr7)"/>
+
+  <rect x="60" y="170" width="160" height="36" rx="6" fill="#1a1f29" stroke="#9aa3b2"/>
+  <text x="140" y="192" text-anchor="middle" fill="#9aa3b2" font-size="11">off</text>
+
+  <rect x="240" y="170" width="160" height="36" rx="6" fill="#1a1f29" stroke="#fbbf24"/>
+  <text x="320" y="192" text-anchor="middle" fill="#fbbf24" font-size="11">inform</text>
+
+  <rect x="420" y="170" width="160" height="36" rx="6" fill="#1a1f29" stroke="#6cb6ff"/>
+  <text x="500" y="192" text-anchor="middle" fill="#6cb6ff" font-size="11">freshness</text>
+
+  <rect x="600" y="170" width="160" height="36" rx="6" fill="#1a1f29" stroke="#4ade80"/>
+  <text x="680" y="192" text-anchor="middle" fill="#4ade80" font-size="11">lifecycle</text>
+
+  <line x1="380" y1="148" x2="140" y2="170" stroke="#9aa3b2"/>
+  <line x1="410" y1="148" x2="320" y2="170" stroke="#9aa3b2"/>
+  <line x1="450" y1="148" x2="500" y2="170" stroke="#9aa3b2"/>
+  <line x1="490" y1="148" x2="680" y2="170" stroke="#9aa3b2"/>
+
+  <text x="140" y="230" text-anchor="middle" fill="#9aa3b2" font-size="10">不过滤 不衰减</text>
+  <text x="320" y="230" text-anchor="middle" fill="#fbbf24" font-size="10">只打标签</text>
+  <text x="500" y="230" text-anchor="middle" fill="#6cb6ff" font-size="10">fresh_level 统一阈值</text>
+  <text x="680" y="230" text-anchor="middle" fill="#4ade80" font-size="10">fact_category 逐条</text>
+
+  <text x="140" y="250" text-anchor="middle" fill="#9aa3b2" font-size="10">纯语义检索</text>
+  <text x="320" y="250" text-anchor="middle" fill="#9aa3b2" font-size="10">交 LLM 判断</text>
+  <text x="500" y="250" text-anchor="middle" fill="#9aa3b2" font-size="10">由 Plan 节点判定</text>
+  <text x="680" y="250" text-anchor="middle" fill="#9aa3b2" font-size="10">最精细控制</text>
+</svg>
+  <div class="figure-caption">
+    四个模式形成"信任 KB → 不信任 KB"的连续光谱：off 完全不干预，lifecycle 精细到按事实本身的 category 控制生命周期。
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2>5. 读取侧：known_facts 的呈现</h2>
+
+<p>
+  在 <code>_generate_queries</code> 节点中，命中事实被格式化为 markdown 列表注入提示词。措辞随模式变化：
+</p>
+
+<div class="figure">
+<svg viewBox="0 0 900 240" xmlns="http://www.w3.org/2000/svg">
+  <text x="450" y="25" text-anchor="middle" fill="#e6e8eb" font-size="13" font-weight="600">known_facts 在不同模式下的呈现</text>
+
+  <rect x="30" y="50" width="280" height="160" rx="8" fill="#1a1f29" stroke="#9aa3b2" stroke-width="1.5"/>
+  <text x="170" y="72" text-anchor="middle" fill="#9aa3b2" font-size="12" font-weight="600">off 模式</text>
+  <text x="50" y="95" fill="#9aa3b2" font-size="10">## 知识库中已有的相关事实</text>
+  <text x="50" y="110" fill="#9aa3b2" font-size="10">  （请勿重复搜索这些内容）</text>
+  <text x="50" y="130" fill="#e6e8eb" font-size="10">- [90%] 2025年Q1全球AI编程</text>
+  <text x="50" y="143" fill="#e6e8eb" font-size="10">  助手市场规模达15亿美元</text>
+  <text x="50" y="156" fill="#e6e8eb" font-size="10">  (来源: https://...)</text>
+  <text x="50" y="180" fill="#9aa3b2" font-size="10" font-style="italic">硬性禁止</text>
+
+  <rect x="340" y="50" width="540" height="160" rx="8" fill="#1a1f29" stroke="#6cb6ff" stroke-width="1.5"/>
+  <text x="610" y="72" text-anchor="middle" fill="#6cb6ff" font-size="12" font-weight="600">inform / freshness / lifecycle</text>
+  <text x="360" y="95" fill="#6cb6ff" font-size="10">## 📚 知识库中已有的相关事实</text>
+  <text x="360" y="110" fill="#e6e8eb" font-size="10">- [90%] 2025年Q1全球AI编程助手市场规模达15亿美元</text>
+  <text x="360" y="123" fill="#fbbf24" font-size="10">  (🕐 刚刚, 来源: https://...)</text>
+  <text x="360" y="138" fill="#e6e8eb" font-size="10">- [72%] GitHub Copilot 占据约35%市场份额</text>
+  <text x="360" y="151" fill="#fbbf24" font-size="10">  (12天前, 来源: https://...)</text>
+  <text x="360" y="168" fill="#fbbf24" font-size="10">⚠️ 标记较早的事实可能已过时，请优先搜索获取最新信息。</text>
+  <text x="360" y="195" fill="#9aa3b2" font-size="10" font-style="italic">带年龄标签，鼓励重新验证</text>
+</svg>
+</div>
+
+<p>时间标签分三档：</p>
+<ul>
+  <li><code>&lt; 1 天</code> → 🕐 刚刚</li>
+  <li><code>&lt; 30 天</code> → N天前</li>
+  <li>否则 → N个月前</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2>6. 单例与降级机制</h2>
+
+<p>在 <code>research_agent.py</code> 中，KB 通过模块级单例延迟初始化：</p>
+
+<pre><code>_kb_store: FactStore | None = None
+_kb_extractor: FactExtractor | None = None
+
+def _get_kb_store() -> FactStore | None:
+    global _kb_store
+    if _kb_store is None:
+        try:
+            _kb_store = FactStore()
+        except (KBConnectionError, KBConfigError) as exc:
+            logger.warning(...)
+            _kb_store = False  # 哨兵
+    return _kb_store if _kb_store is not False else None</code></pre>
+
+<div class="callout tip">
+  <div class="callout-title">优雅降级</div>
+  初始化失败时把 <code>_kb_store</code> 设为 <code>False</code> 作哨兵，后续调用直接返回 <code>None</code>。
+  Milvus 起不来整个系统照常运行，只是失去长期记忆。
+</div>
+
+<h4>异常处理：读写对称的三段式</h4>
+
+<table>
+  <thead><tr><th>异常类型</th><th>语义</th><th>日志级别</th></tr></thead>
+  <tbody>
+    <tr><td><code>KBConnectionError</code> / <code>KBEmbeddingError</code></td><td>瞬时错误，下次可能恢复</td><td>warning</td></tr>
+    <tr><td><code>KBConfigError</code> / <code>KBEmbeddingFatalError</code></td><td>永久错误，需人工修复</td><td>error</td></tr>
+    <tr><td><code>Exception</code></td><td>未知兜底</td><td>warning</td></tr>
+  </tbody>
+</table>
+
+<!-- ============================================================ -->
+<h2>7. 环境变量总览</h2>
+
+<table>
+  <thead><tr><th>变量</th><th>默认值</th><th>作用</th></tr></thead>
+  <tbody>
+    <tr><td><code>MILVUS_URI</code></td><td><code>http://localhost:19530</code></td><td>Milvus 地址</td></tr>
+    <tr><td><code>EMBEDDING_DIM</code></td><td><code>1024</code></td><td>向量维度</td></tr>
+    <tr><td><code>EMBEDDING_MODEL</code></td><td><code>text-embedding-v3</code></td><td>embedding 模型</td></tr>
+    <tr><td><code>EMBEDDING_BASE_URL</code></td><td>← <code>LLM_BASE_URL</code></td><td>embedding 端点</td></tr>
+    <tr><td><code>EMBEDDING_API_KEY</code></td><td>← <code>APP_TOKEN</code></td><td>embedding 凭证</td></tr>
+    <tr><td><code>KB_LIFECYCLE_MODE</code></td><td><code>freshness</code></td><td>时效性策略模式</td></tr>
+    <tr><td><code>RERANKER_KB_ENABLED</code></td><td><code>false</code></td><td>KB 检索是否启用交叉编码器精排</td></tr>
+  </tbody>
+</table>
+
+<!-- ============================================================ -->
+<h2>8. 已知问题与改进点</h2>
+
+<div class="grid">
+  <div class="card">
+    <div class="card-title">1. JSON 数组回落路径缺失</div>
+    <div class="card-body">
+      <code>Post._extract_json()</code> 只按 <code>{...}</code> 匹配对象，不处理 <code>[...]</code> 数组。
+      LLM 漏掉围栏时静默丢弃整批事实。需要增加方括号配对扫描。
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">2. relevance 回落边界问题</div>
+    <div class="card-body">
+      <code>rerank_scores.get(orig_idx) or cand["distance_score"]</code>，
+      若 rerank 分数恰为 0.0 会被 <code>or</code> 误判 falsy 而错误回落到距离分数。严格说应改为 <code>is not None</code>。
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">3. float() 失败会连坐整批</div>
+    <div class="card-body">
+      单条 <code>confidence</code> 为非数值字符串时，异常在 <code>_validate</code> 内抛出，导致整批返回 <code>[]</code>。
+      改成循环内逐条 try/except 可只丢坏的那一条。
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">4. 无去重机制</div>
+    <div class="card-body">
+      <code>add_facts</code> 不查重，同一事实在多轮研究中被反复抽取会产生近似重复记录，
+      长期运行会稀释检索多样性。可考虑插入前做向量相似度自查或对 fact_text 做哈希去重。
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">5. 同步调用限制</div>
+    <div class="card-body">
+      <code>query()</code> / <code>add_facts()</code> 是同步阻塞的。
+      <code>graph.py</code> 部分节点已改为 <code>async def</code>，若 research 节点后续异步化，
+      Milvus 调用需用 <code>to_thread</code> 包裹。
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">6. research_topic 赋值分散</div>
+    <div class="card-body">
+      <code>research_topic</code> 既作为上下文注入提示词，又被写回每条事实作为元数据字段，
+      但赋值责任分散在 <code>extractor.py</code> 和 <code>research_agent.py</code> 两处，是隐性耦合。
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="footer-note">
+  文档版本 · v1 · 2026-09 · 对应源码版本：
+  <code>extractor.py</code> 142 行 · <code>fact_store.py</code> 481 行 · <code>lifecycle.py</code> 81 行 · <code>__init__.py</code> 42 行
+</div>
+
+</div>
+</body>
+</html>

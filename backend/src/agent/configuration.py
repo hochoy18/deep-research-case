@@ -3,8 +3,12 @@ import json
 from pydantic import BaseModel, Field
 from typing import Any, Optional, List
 from langchain_core.runnables import RunnableConfig
-from loguru import logger
 
+# 模型ID常量
+MODEL_ID_FLASH = "deepseek-v4-flash"
+MODEL_ID_PLUS = "deepseek-v4-flash"
+MODEL_ID_MAX = "deepseek-v4-pro"
+MODEL_ID_JUDEG = "deepseek-v4-pro"
 
 class ModelConfig(BaseModel):
     """模型配置项"""
@@ -16,36 +20,50 @@ class ModelConfig(BaseModel):
 
 def load_available_models_from_env() -> List[ModelConfig]:
     """从环境变量加载可用模型列表"""
+    default_models = [
+        ModelConfig(model_id=MODEL_ID_FLASH, display_name="DS4-Flash", icon="Zap", icon_color="yellow-400"),
+        ModelConfig(model_id=MODEL_ID_MAX, display_name="DS4-Pro", icon="Cpu", icon_color="purple-400"),
+    ]
     models_json = os.getenv("AVAILABLE_MODELS")
     
     if not models_json:
         # 默认模型列表
-        return [
-            ModelConfig(model_id="qwen3.6-flash-2026-04-16", display_name="Qwen-Flash", icon="Zap", icon_color="yellow-400"),
-            ModelConfig(model_id="qwen3.6-plus-2026-04-02", display_name="Qwen-Plus", icon="Zap", icon_color="orange-400"),
-            ModelConfig(model_id="qwen3.7-max-2026-05-20", display_name="Qwen-Max", icon="Cpu", icon_color="purple-400"),
-        ]
+        return default_models
     
     try:
         models_data = json.loads(models_json)
-        # logger.info(f"从环境变量加载模型列表： {models_data}")
         return [ModelConfig(**model) for model in models_data]
     except Exception as e:
         print(f"警告: 解析AVAILABLE_MODELS失败，使用默认模型列表。错误: {e}")
-        return [
-            ModelConfig(model_id="qwen3.6-flash-2026-04-16", display_name="Qwen-Flash", icon="Zap", icon_color="yellow-400"),
-            ModelConfig(model_id="qwen3.6-plus-2026-04-02", display_name="Qwen-Plus", icon="Zap", icon_color="orange-400"),
-            ModelConfig(model_id="qwen3.7-max-2026-05-20", display_name="Qwen-Max", icon="Cpu", icon_color="purple-400"),
-        ]
+        return default_models
 
 
 def get_default_model_id() -> str:
-    """获取默认模型ID（模型列表的最后一项）"""
+    """获取默认模型ID"""
     models = load_available_models_from_env()
     if models:
-        return models[1].model_id
-    return "qwen3.7-max-2026-05-20"  # 兜底默认值
+        return models[0].model_id
+    return MODEL_ID_MAX  # 兜底默认值
 
+def get_flash_model_id() -> str:
+    """获取第一个icon为Zap的模型ID"""
+    models = load_available_models_from_env()
+    for model in models:
+        if model.icon == "Zap":
+            return model.model_id
+    return models[0].model_id if models else MODEL_ID_FLASH  # 兜底默认值
+
+
+def get_plus_model_id() -> str:
+    """获取居中的模型ID"""
+    models = load_available_models_from_env()
+    if models:
+        middle_index = len(models) // 2
+        return models[middle_index].model_id
+    return MODEL_ID_PLUS  # 兜底默认值
+
+def get_judge_model_id() -> str:
+    return MODEL_ID_JUDEG  # 兜底默认值
 
 class Configuration(BaseModel):
     """agent的配置."""
@@ -57,14 +75,14 @@ class Configuration(BaseModel):
     )
 
     query_generator_model: str = Field(
-        default_factory=get_default_model_id,
+        default_factory=get_flash_model_id,
         metadata={
             "description": "用于Agent查询生成的LLM的名称."
         },
     )
 
     reflection_model: str = Field(
-        default_factory=get_default_model_id,
+        default_factory=get_plus_model_id,
         metadata={
             "description": "用于Agent反思的LLM的名称."
         },
@@ -85,6 +103,37 @@ class Configuration(BaseModel):
     max_research_loops: int = Field(
         default=2,
         metadata={"description": "要执行的最大research循环次数."},
+    )
+
+    # ── 交叉编码器重排序配置 ──────────────────────────────────────
+    reranker_kb_enabled: bool = Field(
+        default=False,
+        metadata={"description": "是否在 KB 检索（FactStore.query）中启用交叉编码器精排"},
+    )
+
+    reranker_web_enabled: bool = Field(
+        default=False,
+        metadata={"description": "是否在 Web 搜索（_web_search）中启用交叉编码器精排"},
+    )
+
+    reranker_model: str = Field(
+        default="gte-rerank",
+        metadata={"description": "重排序模型ID（DashScope TextReRank 模型）"},
+    )
+
+    reranker_api_key: str = Field(
+        default="",
+        metadata={"description": "重排序API密钥（留空则复用 DASHSCOPE_API_KEY → APP_TOKEN）"},
+    )
+
+    reranker_top_k: int = Field(
+        default=5,
+        metadata={"description": "重排序后保留的文档数量"},
+    )
+
+    reranker_min_score: float = Field(
+        default=0.0,
+        metadata={"description": "重排序后过滤的最低相关性分数（0.0-1.0）"},
     )
 
     @classmethod

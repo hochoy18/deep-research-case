@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, forwardRef, useImperativeHandle } from "react";
 import { Button } from "@/components/ui/button";
 import { SquarePen, Brain, Send, StopCircle, Zap, Cpu } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
@@ -19,12 +19,12 @@ interface InputFormProps {
   hasHistory: boolean;
 }
 
-export const InputForm: React.FC<InputFormProps> = ({
+export const InputForm = forwardRef<any, InputFormProps>(({
   onSubmit,
   onCancel,
   isLoading,
   hasHistory,
-}) => {
+}, ref) => {
   const [internalInputValue, setInternalInputValue] = useState("");
   const [effort, setEffort] = useState("low");
   const [model, setModel] = useState("qwen-turbo-latest");
@@ -40,6 +40,21 @@ export const InputForm: React.FC<InputFormProps> = ({
       }
     });
   }, []);
+
+  // 暴露给父组件的方法（用于 ChatMessagesView 的"需求确认"按钮）
+  useImperativeHandle(ref, () => ({
+    setInputValue(value: string) {
+      setInternalInputValue(value);
+    },
+    submitInput(value: string) {
+      const currentEffort = effort;
+      const currentModel = model;
+      if (value.trim()) {
+        onSubmit(value, currentEffort, currentModel);
+        setInternalInputValue("");
+      }
+    },
+  }), [effort, model, onSubmit]);
 
   const handleInternalSubmit = (e?: React.FormEvent) => {
     console.log('handleInternalSubmit exectued.....');
@@ -122,19 +137,19 @@ export const InputForm: React.FC<InputFormProps> = ({
                   value="low"
                   className="hover:bg-neutral-600 focus:bg-neutral-600 cursor-pointer"
                 >
-                  快速
+                  低
                 </SelectItem>
                 <SelectItem
                   value="medium"
                   className="hover:bg-neutral-600 focus:bg-neutral-600 cursor-pointer"
                 >
-                  均衡
+                  中
                 </SelectItem>
                 <SelectItem
                   value="high"
                   className="hover:bg-neutral-600 focus:bg-neutral-600 cursor-pointer"
                 >
-                  全面
+                  高
                 </SelectItem>
               </SelectContent>
             </Select>
@@ -172,7 +187,7 @@ export const InputForm: React.FC<InputFormProps> = ({
           <Button
             className="bg-neutral-700 border-neutral-600 text-neutral-300 cursor-pointer rounded-xl rounded-t-sm pl-2 "
             variant="default"
-            onClick={() => window.location.reload()}
+            onClick={() => window.open("/", "_blank")}
           >
             <SquarePen size={16} />
             探索新专题
@@ -181,4 +196,4 @@ export const InputForm: React.FC<InputFormProps> = ({
       </div>
     </form>
   );
-};
+});

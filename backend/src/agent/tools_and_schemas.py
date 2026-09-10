@@ -27,6 +27,10 @@ class PlanReflection(BaseModel):
     satisfy: bool = Field(
         description="用户对生成的研究计划是否满意."
     )
+    fresh_level: str = Field(
+        default="medium",
+        description="时效性需求: 'high' (市场数据/排行/价格), 'medium' (产品/战略/趋势), 'low' (技术原理/历史)"
+    )
 
 
 # ── Debate-loop Critic schemas ─────────────────────────────────────────

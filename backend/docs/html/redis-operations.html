@@ -1,0 +1,1206 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Redis 操作全景 · Deep Research</title>
+<!-- Mermaid -->
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<style>
+  :root {
+    --bg-0: #0b0f1a;
+    --bg-1: #111827;
+    --bg-2: #1a2236;
+    --line: #243049;
+    --text: #e6edf7;
+    --muted: #97a3bd;
+    --primary: #8b5cf6;
+    --primary-2: #6366f1;
+    --accent: #22d3ee;
+    --accent-2: #06b6d4;
+    --warn: #f59e0b;
+    --ok: #10b981;
+    --danger: #ef4444;
+    --code-bg: #0a1020;
+    --shadow: 0 10px 30px rgba(0,0,0,.35);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+                 "Microsoft YaHei", Roboto, Helvetica, Arial, sans-serif;
+    background:
+      radial-gradient(1200px 600px at 10% -10%, rgba(139,92,246,.18), transparent 60%),
+      radial-gradient(1000px 500px at 110% 10%, rgba(34,211,238,.15), transparent 60%),
+      var(--bg-0);
+    color: var(--text);
+    line-height: 1.7;
+    min-height: 100vh;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* Hero */
+  .hero {
+    padding: 56px 16px 32px;
+    text-align: center;
+    border-bottom: 1px solid var(--line);
+    background: linear-gradient(180deg, rgba(139,92,246,.10), transparent 60%);
+  }
+  .hero .badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 999px;
+    background: rgba(139,92,246,.18);
+    color: #c4b5fd;
+    border: 1px solid rgba(139,92,.35);
+    font-size: 12px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+  .hero h1 {
+    margin: 0 0 8px;
+    font-size: clamp(28px, 4vw, 42px);
+    letter-spacing: -0.5px;
+    background: linear-gradient(90deg, #c4b5fd, #67e8f9);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .hero p.lead { color: var(--muted); margin: 0 auto; max-width: 760px; }
+
+  /* Layout */
+  .layout {
+    display: grid;
+    grid-template-columns: 260px minmax(0, 1fr);
+    gap: 24px;
+    max-width: 1320px;
+    margin: 0 auto;
+    padding: 32px 16px;
+  }
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; }
+    .toc { position: static !important; }
+  }
+
+  /* TOC */
+  .toc {
+    position: sticky;
+    top: 24px;
+    align-self: start;
+    background: linear-gradient(180deg, var(--bg-1), var(--bg-2));
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 16px 18px;
+    box-shadow: var(--shadow);
+    max-height: calc(100vh - 48px);
+    overflow: auto;
+  }
+  .toc h3 {
+    margin: 0 0 10px;
+    font-size: 13px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+  }
+  .toc ol { margin: 0; padding-left: 20px; }
+  .toc li { margin: 6px 0; }
+  .toc a { color: var(--text); font-size: 14px; }
+  .toc a:hover { color: var(--accent); }
+
+  /* Content */
+  .content { min-width: 0; }
+  section {
+    background: linear-gradient(180deg, var(--bg-1), var(--bg-2));
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 24px 26px;
+    box-shadow: var(--shadow);
+    margin-bottom: 22px;
+  }
+  section h2 {
+    margin-top: 0;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--line);
+    font-size: 22px;
+    letter-spacing: -0.2px;
+  }
+  section h3 { margin-top: 22px; font-size: 17px; color: #c7d2fe; }
+  section p { color: var(--text); }
+  .muted { color: var(--muted); }
+
+  /* Code */
+  code {
+    font-family: "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+    background: var(--code-bg);
+    border: 1px solid var(--line);
+    padding: 1px 6px;
+    border-radius: 6px;
+    font-size: 13px;
+  }
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 14px 16px;
+    overflow: auto;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  pre code { background: none; border: none; padding: 0; }
+
+  /* Tables */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 14px 0;
+    font-size: 14px;
+  }
+  th, td {
+    border: 1px solid var(--line);
+    padding: 8px 12px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th { background: rgba(139,92,246,.10); color: #c4b5fd; }
+  tbody tr:nth-child(even) { background: rgba(255,255,255,.02); }
+
+  /* Pills */
+  .pill {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    margin-right: 6px;
+    border: 1px solid var(--line);
+    background: rgba(255,255,255,.04);
+    color: var(--muted);
+  }
+  .pill.write  { color: var(--accent); border-color: rgba(34,211,238,.35); background: rgba(34,211,238,.10); }
+  .pill.read   { color: var(--ok);     border-color: rgba(16,185,129,.35); background: rgba(16,185,129,.10); }
+  .pill.del    { color: var(--danger); border-color: rgba(239,68,68,.35);  background: rgba(239,68,68,.10); }
+  .pill.meta   { color: var(--warn);   border-color: rgba(245,158,11,.35); background: rgba(245,158,11,.10); }
+
+  /* Mermaid */
+  .mermaid {
+    background: rgba(255,255,255,.02);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 16px;
+    margin: 14px 0;
+    text-align: center;
+    overflow: auto;
+  }
+
+  /* Callout */
+  .callout {
+    border-left: 3px solid var(--accent);
+    background: rgba(34,211,238,.06);
+    padding: 12px 16px;
+    border-radius: 0 8px 8px 0;
+    margin: 14px 0;
+  }
+  .callout.warn { border-color: var(--warn); background: rgba(245,158,11,.06); }
+  .callout.tip  { border-color: var(--ok); background: rgba(16,185,129,.06); }
+
+  footer {
+    text-align: center;
+    color: var(--muted);
+    font-size: 13px;
+    padding: 24px 16px 40px;
+  }
+
+  section[id] { scroll-margin-top: 16px; }
+
+  /* key badge */
+  .key {
+    font-family: "JetBrains Mono", monospace;
+    background: rgba(34,211,238,.10);
+    border: 1px solid rgba(34,211,238,.30);
+    color: #67e8f9;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 13px;
+  }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="badge">Deep Research · Redis Internals</div>
+  <h1>Redis 操作全景文档</h1>
+  <p class="lead">项目中所有 Redis 操作的整理 —— 按 Key、按命令、按业务流程分类，含写入/读取/删除时机的精确代码定位</p>
+</div>
+
+<div class="layout">
+
+  <!-- ========== 目录 ========== -->
+  <aside class="toc">
+    <h3>目录</h3>
+    <ol>
+      <li><a href="#overview">一、整体概览</a></li>
+      <li><a href="#keys">二、按 Key 分类总览</a></li>
+      <li><a href="#session">三、auth/session.py — 登录会话</a></li>
+      <li><a href="#task-queue">四、task_queue.py — 任务队列</a></li>
+      <li><a href="#event-stream">五、task_queue.py — 事件流</a></li>
+      <li><a href="#search-cache">六、search_cache.py — 搜索缓存</a></li>
+      <li><a href="#langgraph">七、AsyncRedisSaver — LangGraph Checkpoint</a></li>
+      <li><a href="#cmds">八、按 Redis 命令分类</a></li>
+      <li><a href="#timeline">九、业务流程时间线</a></li>
+      <li><a href="#design">十、关键设计要点</a></li>
+      <li><a href="#ops">十一、运维与监控命令</a></li>
+      <li><a href="#checklist">十二、完整清单（按文件:行）</a></li>
+    </ol>
+  </aside>
+
+  <main class="content">
+
+    <!-- ========== 一、整体概览 ========== -->
+    <section id="overview">
+      <h2>一、整体概览</h2>
+      <p>
+        本项目 Redis 主要承担 <strong>4 大职责</strong>：登录会话 / 任务队列 / 任务事件流 / 搜索结果缓存。
+        另有 LangGraph 内部的 <code>AsyncRedisSaver</code> 用 Redis 做 checkpoint 状态持久化（间接使用）。
+      </p>
+
+      <h3>模块 → Redis 关系图</h3>
+      <div class="mermaid">
+flowchart LR
+    subgraph M[业务模块]
+        A1[auth/session.py]
+        A2[auth/middleware.py]
+        A3[auth/routes.py]
+        A4[auth/langgraph_auth.py]
+        T1[task_queue.py<br/>enqueue]
+        T2[task_queue.py<br/>_process_one_task]
+        T3[task_queue.py<br/>read_task_events]
+        T4[task_queue.py<br/>_get_graph]
+        C1[search_cache.py]
+    end
+
+    R[(Redis)]
+
+    A1 --> R
+    A2 --> A1
+    A3 --> A1
+    A4 --> A1
+    T1 --> R
+    T2 --> R
+    T3 --> R
+    T4 --> R
+    C1 --> R
+
+    style R fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+      </div>
+
+      <h3>职责对照表</h3>
+      <table>
+        <thead><tr><th>职责</th><th>Key 前缀</th><th>数据类型</th><th>主要模块</th></tr></thead>
+        <tbody>
+          <tr><td>登录会话</td><td><span class="key">session:{session_id}</span></td><td>Hash</td><td><code>auth/session.py</code></td></tr>
+          <tr><td>任务队列</td><td><span class="key">research:tasks</span></td><td>Stream</td><td><code>task_queue.py</code></td></tr>
+          <tr><td>任务事件流</td><td><span class="key">research:events:{task_id}</span></td><td>Stream</td><td><code>task_queue.py</code></td></tr>
+          <tr><td>搜索结果缓存</td><td><span class="key">search_cache:{md5}</span></td><td>String</td><td><code>search_cache.py</code></td></tr>
+          <tr><td>LangGraph Checkpoint</td><td><span class="key">langgraph:*</span>（内部）</td><td>（LangGraph 管理）</td><td><code>AsyncRedisSaver</code></td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ========== 二、按 Key 分类 ========== -->
+    <section id="keys">
+      <h2>二、按 Key 分类总览</h2>
+      <p>不同 Key 的特征对比：</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Key</th>
+            <th>类型</th>
+            <th>TTL</th>
+            <th>MAXLEN</th>
+            <th>写入方</th>
+            <th>读取方</th>
+            <th>删除方式</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="key">session:{id}</span></td>
+            <td>Hash</td>
+            <td>24h（每次访问续期）</td>
+            <td>—</td>
+            <td>登录 / 鉴权续期</td>
+            <td>AuthMiddleware</td>
+            <td><span class="pill del">DEL</span> 登出时</td>
+          </tr>
+          <tr>
+            <td><span class="key">research:tasks</span></td>
+            <td>Stream</td>
+            <td>—</td>
+            <td>1000</td>
+            <td>enqueue_task</td>
+            <td>worker（XREADGROUP）</td>
+            <td>MAXLEN 自动裁剪</td>
+          </tr>
+          <tr>
+            <td><span class="key">research:events:{id}</span></td>
+            <td>Stream</td>
+            <td>任务完成时设 24h</td>
+            <td>500</td>
+            <td>worker（XADD）</td>
+            <td>SSE 端点（XREAD）</td>
+            <td><span class="pill del">TTL 过期</span> 24h 后</td>
+          </tr>
+          <tr>
+            <td><span class="key">search_cache:{md5}</span></td>
+            <td>String</td>
+            <td>1h（SETEX）</td>
+            <td>—</td>
+            <td>set_cached</td>
+            <td>get_cached</td>
+            <td><span class="pill del">TTL 过期</span> / SCAN 清空</td>
+          </tr>
+          <tr>
+            <td><span class="key">langgraph:*</span></td>
+            <td>内部</td>
+            <td>7 天</td>
+            <td>—</td>
+            <td>AsyncRedisSaver</td>
+            <td>AsyncRedisSaver</td>
+            <td><span class="pill del">TTL 过期</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ========== 三、session ========== -->
+    <section id="session">
+      <h2>三、auth/session.py — 登录会话</h2>
+      <p>
+        Key：<span class="key">session:{session_id}</span>（Hash）
+      </p>
+      <p>Hash 字段：</p>
+      <pre><code>{
+    "user_id":     "1",            // str 形式存储
+    "username":    "zhangsan",
+    "last_active": "2025-...T...",  // ISO8601
+}</code></pre>
+      <p>TTL：86400 秒（24 小时），每次访问自动续期</p>
+
+      <h3>3.1 创建会话</h3>
+      <p>位置：<code>session.py:35-47</code> <code>create_session()</code></p>
+      <table>
+        <thead><tr><th>Redis 命令</th><th>作用</th></tr></thead>
+        <tbody>
+          <tr><td><code>HSET key mapping {user_id, username, last_active}</code></td><td>写入会话字段</td></tr>
+          <tr><td><code>EXPIRE key 86400</code></td><td>设置 24h TTL</td></tr>
+        </tbody>
+      </table>
+      <pre><code>session_id = secrets.token_urlsafe(32)   # 生成 32 字节随机字符串
+await r.hset(key, mapping={
+    "user_id": str(user_id),
+    "username": username,
+    "last_active": now,
+})
+await r.expire(key, SESSION_TTL)          # 24h
+return session_id</code></pre>
+      <p>触发时机：用户 <code>POST /api/login</code> 成功 → <code>routes.py:73</code></p>
+
+      <h3>3.2 获取 + 续期</h3>
+      <p>位置：<code>session.py:50-64</code> <code>get_session()</code></p>
+      <table>
+        <thead><tr><th>Redis 命令</th><th>作用</th></tr></thead>
+        <tbody>
+          <tr><td><code>EXISTS key</code></td><td>检查 session 是否存在</td></tr>
+          <tr><td><code>HSET key "last_active" now</code></td><td>更新最后活跃时间</td></tr>
+          <tr><td><code>EXPIRE key 86400</code></td><td>续期 24h</td></tr>
+          <tr><td><code>HGETALL key</code></td><td>读取全部字段</td></tr>
+        </tbody>
+      </table>
+      <pre><code>exists = await r.exists(key)
+if not exists:
+    return None
+await r.hset(key, "last_active", now)     # 续期
+await r.expire(key, SESSION_TTL)
+data = await r.hgetall(key)
+return data</code></pre>
+      <p>触发时机：每次 HTTP 请求鉴权（<code>middleware.py:40</code>）</p>
+
+      <h3>3.3 删除会话</h3>
+      <p>位置：<code>session.py:67-72</code> <code>delete_session()</code></p>
+      <table>
+        <thead><tr><th>Redis 命令</th><th>作用</th></tr></thead>
+        <tbody>
+          <tr><td><span class="pill del">DEL key</span></td><td>删除会话</td></tr>
+        </tbody>
+      </table>
+      <pre><code>await r.delete(f"{SESSION_PREFIX}{session_id}")</code></pre>
+      <p>触发时机：<code>POST /api/logout</code>（<code>routes.py:97-98</code>）</p>
+
+      <h3>3.4 业务流程序列图</h3>
+      <div class="mermaid">
+sequenceDiagram
+    autonumber
+    participant U as 用户
+    participant F as FastAPI
+    participant R as Redis
+
+    Note over F,R: 登录
+    U->>F: POST /api/login
+    F->>R: HSET session:{sid}
+    F->>R: EXPIRE session:{sid} 86400
+    R-->>F: ok
+    F-->>U: Set-Cookie: session_id
+
+    Note over F,R: 鉴权 (每个请求)
+    U->>F: HTTP Request + Cookie
+    F->>R: EXISTS session:{sid}
+    R-->>F: 1
+    F->>R: HSET last_active = now
+    F->>R: EXPIRE session:{sid} 86400
+    F->>R: HGETALL session:{sid}
+    R-->>F: {user_id, username, ...}
+    F-->>U: 业务响应
+
+    Note over F,R: 登出
+    U->>F: POST /api/logout
+    F->>R: DEL session:{sid}
+    R-->>F: 1
+    F-->>U: 删除 Cookie
+      </div>
+    </section>
+
+    <!-- ========== 四、任务队列 ========== -->
+    <section id="task-queue">
+      <h2>四、task_queue.py — 任务队列</h2>
+      <p>
+        Key：<span class="key">research:tasks</span>（Stream，单一全局队列）
+      </p>
+      <p>消费者组：<code>research-workers</code>，消费者名：<code>worker-1</code>（多实例时每实例独立名）</p>
+
+      <h3>4.1 入队任务</h3>
+      <p>位置：<code>task_queue.py:81-109</code> <code>enqueue_task()</code></p>
+      <table>
+        <thead><tr><th>Redis 命令</th><th>作用</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><code>XADD research:tasks {"task": <json>} MAXLEN 1000</code></td>
+            <td>写入新任务</td>
+          </tr>
+        </tbody>
+      </table>
+      <pre><code>task_payload = json.dumps({
+    "task_id": task_id,
+    "messages": messages,
+    "initial_search_query_count": ...,
+    "max_research_loops": ...,
+    "reasoning_model": ...,
+    "plan_status": ...,
+    "plan": ...,
+})
+await r.xadd(TASK_STREAM, {"task": task_payload}, maxlen=1000)</code></pre>
+      <p>触发时机：<code>POST /api/research</code>（<code>app.py:146-154</code>）</p>
+
+      <h3>4.2 创建消费者组</h3>
+      <p>位置：<code>task_queue.py:136-145</code> <code>_ensure_consumer_group()</code></p>
+      <table>
+        <thead><tr><th>Redis 命令</th><th>作用</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><code>XGROUP CREATE research:tasks research-workers 0 MKSTREAM</code></td>
+            <td>创建消费者组（id=0 表示从头开始消费）</td>
+          </tr>
+        </tbody>
+      </table>
+      <pre><code>await r.xgroup_create(
+    TASK_STREAM, CONSUMER_GROUP,
+    id="0", mkstream=True
+)</code></pre>
+      <p>触发时机：worker 协程启动时（<code>start_worker</code>）</p>
+
+      <h3>4.3 消费任务</h3>
+      <p>位置：<code>task_queue.py:148-157</code> <code>_process_one_task()</code></p>
+      <table>
+        <thead><tr><th>Redis 命令</th><th>作用</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><code>XREADGROUP research-workers worker-1 COUNT 1 BLOCK 5000 STREAMS research:tasks ></code></td>
+            <td>阻塞读取 1 条待处理任务（> 表示未确认消息）</td>
+          </tr>
+        </tbody>
+      </table>
+      <pre><code>result = await r.xreadgroup(
+    CONSUMER_GROUP, "worker-1",
+    {TASK_STREAM: ">"},
+    block=5000, count=1,
+)</code></pre>
+      <p>触发时机：worker 协程循环（每 5 秒轮询）</p>
+
+      <h3>4.4 确认任务</h3>
+      <p>位置：<code>task_queue.py:304-308</code> finally 块</p>
+      <table>
+        <thead><tr><th>Redis 命令</th><th>作用</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><code>XACK research:tasks research-workers <msg_id></code></td>
+            <td>确认消息已处理，从 pending list 移除</td>
+          </tr>
+        </tbody>
+      </table>
+      <pre><code>finally:
+    await r.xack(TASK_STREAM, CONSUMER_GROUP, redis_msg_id)</code></pre>
+      <p>触发时机：worker 处理完任务（无论成功/异常都进入 finally）</p>
+
+      <h3>4.5 任务队列流转图</h3>
+      <div class="mermaid">
+sequenceDiagram
+    autonumber
+    participant F as FastAPI
+    participant W as Worker
+    participant R as Redis
+
+    Note over W,R: 启动时
+    W->>R: XGROUP CREATE research:tasks<br/>research-workers 0 MKSTREAM
+
+    Note over F,R: 入队
+    F->>R: XADD research:tasks {"task": json}<br/>MAXLEN 1000
+
+    Note over W,R: 消费循环
+    loop 持续循环
+        W->>R: XREADGROUP research-workers worker-1<br/>COUNT 1 BLOCK 5000
+        alt 有任务
+            R-->>W: (msg_id, {"task": json})
+            Note over W: 执行 LangGraph 图<br/>(详见事件流章节)
+            W->>R: XACK research:tasks<br/>research-workers {msg_id}
+        else 无任务
+            Note over W: 阻塞 5s 后继续
+        end
+    end
+      </div>
+    </section>
+
+    <!-- ========== 五、事件流 ========== -->
+    <section id="event-stream">
+      <h2>五、task_queue.py — 任务事件流</h2>
+      <p>
+        Key：<span class="key">research:events:{task_id}</span>（Stream，每任务独立）
+      </p>
+      <p>TTL：任务完成时设置 24h；MAXLEN：500 条</p>
+      <p>消费者：SSE 端点（<code>GET /api/research/{id}/stream</code>）</p>
+
+      <h3>5.1 写入事件（生产者：worker）</h3>
+      <p>位置：<code>task_queue.py</code> 多个 XADD</p>
+      <table>
+        <thead>
+          <tr><th>事件类型</th><th>Redis 命令</th><th>代码位置</th><th>触发时机</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>流式 token</td>
+            <td><code>XADD research:events:{id} {"event":"{\"token\":{...}}"} MAXLEN 500</code></td>
+            <td><code>task_queue.py:186-190</code></td>
+            <td>LLM 流式输出每个 token（仅 generate_plan / cite_and_polish）</td>
+          </tr>
+          <tr>
+            <td>节点完成</td>
+            <td><code>XADD research:events:{id} {"event":"{\"<node>\":{...}}"} MAXLEN 500</code></td>
+            <td><code>task_queue.py:251-255</code></td>
+            <td>每个 LangGraph 节点执行完毕</td>
+          </tr>
+          <tr>
+            <td>finalize_answer</td>
+            <td><code>XADD research:events:{id} {"event":"{\"finalize_answer\":...}"} MAXLEN 500</code></td>
+            <td><code>task_queue.py:280-284</code></td>
+            <td>writer 子图返回（任务正常完成）</td>
+          </tr>
+          <tr>
+            <td>task_paused</td>
+            <td><code>XADD research:events:{id} {"event":"{\"task_paused\":true}"} MAXLEN 500</code></td>
+            <td><code>task_queue.py:288-292</code></td>
+            <td>图停在 awaiting_plan_confirmation 节点</td>
+          </tr>
+          <tr>
+            <td>error</td>
+            <td><code>XADD research:events:{id} {"event":"{\"error\":...}"} MAXLEN 500</code></td>
+            <td><code>task_queue.py:298-302</code></td>
+            <td>worker 捕获异常</td>
+          </tr>
+          <tr>
+            <td>TTL 设置</td>
+            <td><code>EXPIRE research:events:{id} 86400</code></td>
+            <td><code>task_queue.py:308</code></td>
+            <td>任务完成 finally</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <pre><code># 统一格式（task_queue.py:186）
+await r.xadd(
+    f"{EVENT_STREAM_PREFIX}:{task_id}",   # = "research:events:{id}"
+    {"event": event_json},                 # fields.event 是 JSON 字符串
+    maxlen=EVENT_STREAM_MAXLEN,            # 500
+)</code></pre>
+
+      <h3>5.2 读取事件（消费者：SSE 端点）</h3>
+      <p>位置：<code>task_queue.py:315-351</code> <code>read_task_events()</code></p>
+      <table>
+        <thead><tr><th>Redis 命令</th><th>作用</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><code>XREAD research:events:{id} <current_id> BLOCK 5000 COUNT 10</code></td>
+            <td>阻塞读取 10 条新事件（current_id 由 Last-Event-ID 决定）</td>
+          </tr>
+        </tbody>
+      </table>
+      <pre><code>while True:
+    result = await r.xread(
+        {stream_key: current_id},
+        block=5000,
+        count=10,
+    )
+    if result:
+        for msg_id, data in messages:
+            event_str = data.get("event", "{}")
+            current_id = msg_id   # 推进游标
+            yield event_str
+            # 终止事件检测
+            if any(k in event for k in ("error", "finalize_answer", "task_paused")):
+                return</code></pre>
+
+      <h3>5.3 事件生命周期</h3>
+      <div class="mermaid">
+stateDiagram-v2
+    [*] --> 不存在
+    不存在 --> 有数据: worker 首次 XADD<br/>(emit_token 或节点事件)
+    有数据 --> 有数据: 持续 XADD<br/>(MAXLEN 自动裁剪 ≤500)
+
+    有数据 --> 流式推送: SSE 端点 XREAD
+    流式推送 --> 有数据: 继续读 / 阻塞等待
+
+    有数据 --> 终止: worker 写入<br/>finalize_answer / task_paused / error
+    终止 --> 流式推送: SSE 端点读到终止事件
+    流式推送 --> 已结束: read_task_events return<br/>SSE 连接关闭
+    已结束 --> 已结束: 24h 内可重连<br/>(Last-Event-ID)
+    已结束 --> [*]: 24h 后 EXPIRE 自动删除
+      </div>
+
+      <h3>5.4 三种终止事件</h3>
+      <table>
+        <thead><tr><th>事件</th><th>含义</th><th>写入位置</th></tr></thead>
+        <tbody>
+          <tr><td><code>{"error": "..."}</code></td><td>任务执行异常</td><td><code>task_queue.py:294-302</code></td></tr>
+          <tr><td><code>{"finalize_answer": {...}}</code></td><td>任务正常完成</td><td><code>task_queue.py:258-284</code></td></tr>
+          <tr><td><code>{"task_paused": true}</code></td><td>任务暂停等用户</td><td><code>task_queue.py:286-292</code></td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ========== 六、search_cache ========== -->
+    <section id="search-cache">
+      <h2>六、search_cache.py — 搜索结果缓存</h2>
+      <p>
+        Key：<span class="key">search_cache:{md5(prompt)}</span>（String）
+      </p>
+      <p>值：搜索结果列表 <code>JSON</code>；TTL：3600 秒（1 小时）</p>
+
+      <h3>6.1 Key 生成</h3>
+      <p>位置：<code>search_cache.py:36-46, 77-79</code></p>
+      <pre><code>def _normalize_query(prompt):
+    """去空格/标点/小写"""
+    prompt = prompt.strip().lower()
+    prompt = re.sub(r'\s+', ' ', prompt)
+    prompt = re.sub(r'[，。！？、；：""''「」『』（）()【】\[\]]', '', prompt)
+    return prompt.strip()
+
+def _make_key(prompt):
+    return f"search_cache:{hashlib.md5(prompt.encode()).hexdigest()}"</code></pre>
+      <div class="callout tip">
+        <strong>设计要点</strong>：归一化消除格式噪音（空格、标点、大小写），MD5 保证 key 长度固定。
+      </div>
+
+      <h3>6.2 读取缓存</h3>
+      <p>位置：<code>search_cache.py:82-139</code> <code>get_cached()</code></p>
+      <table>
+        <thead><tr><th>Redis 命令</th><th>作用</th></tr></thead>
+        <tbody>
+          <tr><td><span class="pill read">GET key</span></td><td>读取缓存结果</td></tr>
+          <tr><td><span class="pill read">TTL key</span></td><td>获取剩余 TTL（日志用）</td></tr>
+        </tbody>
+      </table>
+      <pre><code>raw = r.get(key)
+if raw is None:
+    return None  # MISS
+result = json.loads(raw)
+remaining_ttl = r.ttl(key)
+return result</code></pre>
+
+      <h3>6.3 写入缓存</h3>
+      <p>位置：<code>search_cache.py:142-166</code> <code>set_cached()</code></p>
+      <table>
+        <thead><tr><th>Redis 命令</th><th>作用</th></tr></thead>
+        <tbody>
+          <tr><td><span class="pill write">SETEX key 3600 <json></span></td><td>设置缓存并自带 1h TTL</td></tr>
+        </tbody>
+      </table>
+      <pre><code>r.setex(key, DEFAULT_TTL, json.dumps(result, ensure_ascii=False))</code></pre>
+
+      <h3>6.4 清空缓存</h3>
+      <p>位置：<code>search_cache.py:169-191</code> <code>clear_cache()</code></p>
+      <table>
+        <thead><tr><th>Redis 命令</th><th>作用</th></tr></thead>
+        <tbody>
+          <tr><td><code>SCAN 0 MATCH "search_cache:*" COUNT 100</code></td><td>分批扫描所有 key</td></tr>
+          <tr><td><span class="pill del">DEL key1 key2 ...</span></td><td>批量删除</td></tr>
+        </tbody>
+      </table>
+      <pre><code>cursor = 0
+while True:
+    cursor, keys = r.scan(cursor, match=f"{REDIS_KEY_PREFIX}:*", count=100)
+    if keys:
+        deleted += r.delete(*keys)
+    if cursor == 0:
+        break</code></pre>
+
+      <h3>6.5 统计条目数</h3>
+      <p>位置：<code>search_cache.py:194-228</code> <code>cache_stats()</code></p>
+      <table>
+        <thead><tr><th>Redis 命令</th><th>作用</th></tr></thead>
+        <tbody>
+          <tr><td><code>SCAN 0 MATCH "search_cache:*" COUNT 100</code></td><td>扫描并统计 key 数量</td></tr>
+        </tbody>
+      </table>
+
+      <h3>6.6 连接探测</h3>
+      <p>位置：<code>search_cache.py:57-74</code> <code>_get_redis()</code></p>
+      <table>
+        <thead><tr><th>Redis 命令</th><th>作用</th></tr></thead>
+        <tbody>
+          <tr><td><code>PING</code></td><td>启动时探测可用性，失败则降级为内存缓存</td></tr>
+        </tbody>
+      </table>
+
+      <h3>6.7 降级机制</h3>
+      <div class="mermaid">
+flowchart TD
+    A["get_cached / set_cached"] --> B{"_get_redis()<br/>首次 PING"}
+    B -->|"成功"| C["Redis 路径"]
+    B -->|"失败"| D["_redis_available = False"]
+    D --> E["降级为<br/>_fallback_cache dict + Lock"]
+    C --> F["GET / SETEX / SCAN"]
+    E --> G["dict 操作 + TTL 校验"]
+    style C fill:#0a4f3a,stroke:#10b981,color:#e6edf7
+    style E fill:#4a3a14,stroke:#f59e0b,color:#fde68a
+      </div>
+
+      <div class="callout warn">
+        <strong>唯一带降级的模块</strong>：Redis 不可用时，search_cache 自动降级为进程内内存缓存；
+        其他模块（session / task_queue）<strong>无降级</strong>，Redis 故障会导致功能不可用。
+      </div>
+    </section>
+
+    <!-- ========== 七、LangGraph ========== -->
+    <section id="langgraph">
+      <h2>七、AsyncRedisSaver — LangGraph Checkpoint</h2>
+      <p>
+        LangGraph 内部使用 <code>AsyncRedisSaver</code> 做 state 持久化，由 <code>langgraph.checkpoint.redis.aio</code> 提供。
+        本项目在 <code>task_queue.py</code> 中初始化一次：
+      </p>
+      <p>位置：<code>task_queue.py:24, 67-74</code></p>
+      <pre><code>from langgraph.checkpoint.redis.aio import AsyncRedisSaver
+
+checkpointer = AsyncRedisSaver(
+    REDIS_URL,
+    ttl={"default_ttl": 60 * 24 * 7, "refresh_on_read": True},  # 7 天
+)
+await checkpointer.asetup()  # 自动创建所需 index/key</code></pre>
+
+      <h3>特性</h3>
+      <table>
+        <thead><tr><th>项</th><th>值</th></tr></thead>
+        <tbody>
+          <tr><td>Key 命名</td><td>由 LangGraph 内部管理（前缀 <code>langgraph:checkpoint:*</code> 等）</td></tr>
+          <tr><td>TTL</td><td>7 天，每次读取自动续期（<code>refresh_on_read=True</code>）</td></tr>
+          <tr><td>隔离维度</td><td>LangGraph <code>thread_id</code>（本项目 = <code>task_id</code>）</td></tr>
+        </tbody>
+      </table>
+
+      <h3>功能</h3>
+      <ul>
+        <li>LangGraph 节点执行过程中的 state 自动持久化</li>
+        <li>支持<strong>断点续传</strong>：同一 <code>thread_id</code> 重新执行时加载上次 state</li>
+        <li>Human-in-the-Loop（plan 确认等待）依赖此机制 —— <code>awaiting_plan_confirmation</code> 暂停时状态被 checkpoint</li>
+      </ul>
+
+      <div class="callout">
+        <strong>间接使用</strong>：本项目不直接调用 Redis 命令，所有 LangGraph 内部的 Redis 操作由
+        <code>AsyncRedisSaver</code> 封装。
+      </div>
+    </section>
+
+    <!-- ========== 八、按命令分类 ========== -->
+    <section id="cmds">
+      <h2>八、按 Redis 命令分类</h2>
+
+      <h3>8.1 写命令汇总</h3>
+      <table>
+        <thead>
+          <tr><th>命令</th><th>Key</th><th>调用位置</th><th>触发时机</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><span class="pill write">HSET</span></td><td><span class="key">session:{id}</span></td><td><code>session.py:41, 61</code></td><td>登录 / 鉴权续期</td></tr>
+          <tr><td><span class="pill write">EXPIRE</span></td><td><span class="key">session:{id}</span></td><td><code>session.py:46, 62</code></td><td>登录 / 鉴权续期</td></tr>
+          <tr><td><span class="pill del">DEL</span></td><td><span class="key">session:{id}</span></td><td><code>session.py:72</code></td><td>登出</td></tr>
+          <tr><td><span class="pill write">XADD</span></td><td><span class="key">research:tasks</span></td><td><code>task_queue.py:107</code></td><td>POST /api/research</td></tr>
+          <tr><td><span class="pill write">XADD</span> ×5</td><td><span class="key">research:events:{id}</span></td><td><code>task_queue.py:186, 251, 280, 288, 298</code></td><td>worker 节点执行 / 终止</td></tr>
+          <tr><td><span class="pill write">XACK</span></td><td><span class="key">research:tasks</span></td><td><code>task_queue.py:306</code></td><td>worker finally</td></tr>
+          <tr><td><span class="pill write">EXPIRE</span></td><td><span class="key">research:events:{id}</span></td><td><code>task_queue.py:308</code></td><td>worker finally</td></tr>
+          <tr><td><span class="pill write">XGROUP CREATE</span></td><td><span class="key">research:tasks</span></td><td><code>task_queue.py:139</code></td><td>worker 启动时</td></tr>
+          <tr><td><span class="pill write">SETEX</span></td><td><span class="key">search_cache:{md5}</span></td><td><code>search_cache.py:151</code></td><td>WebSearchAgent 搜索完成</td></tr>
+          <tr><td><span class="pill write">PING</span></td><td>（探测）</td><td><code>search_cache.py:66</code></td><td>首次连接</td></tr>
+          <tr><td><span class="pill write">SCAN</span></td><td><span class="key">search_cache:*</span></td><td><code>search_cache.py:178</code></td><td>clear_cache</td></tr>
+          <tr><td><span class="pill del">DEL</span></td><td><span class="key">search_cache:*</span></td><td><code>search_cache.py:180</code></td><td>clear_cache</td></tr>
+          <tr><td><em>LangGraph 内部</em></td><td><span class="key">langgraph:*</span></td><td><code>AsyncRedisSaver</code></td><td>state checkpoint</td></tr>
+        </tbody>
+      </table>
+
+      <h3>8.2 读命令汇总</h3>
+      <table>
+        <thead>
+          <tr><th>命令</th><th>Key</th><th>调用位置</th><th>触发时机</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><span class="pill read">EXISTS</span></td><td><span class="key">session:{id}</span></td><td><code>session.py:56</code></td><td>每次 HTTP 请求鉴权</td></tr>
+          <tr><td><span class="pill read">HGETALL</span></td><td><span class="key">session:{id}</span></td><td><code>session.py:63</code></td><td>每次 HTTP 请求鉴权</td></tr>
+          <tr><td><span class="pill read">XREADGROUP</span></td><td><span class="key">research:tasks</span></td><td><code>task_queue.py:151</code></td><td>worker 循环（5s 阻塞）</td></tr>
+          <tr><td><span class="pill read">XREAD</span></td><td><span class="key">research:events:{id}</span></td><td><code>task_queue.py:327</code></td><td>SSE 端点循环（5s 阻塞）</td></tr>
+          <tr><td><span class="pill read">GET</span></td><td><span class="key">search_cache:{md5}</span></td><td><code>search_cache.py:94</code></td><td>WebSearchAgent 搜索前</td></tr>
+          <tr><td><span class="pill read">TTL</span></td><td><span class="key">search_cache:{md5}</span></td><td><code>search_cache.py:99</code></td><td>缓存命中后</td></tr>
+          <tr><td><span class="pill read">SCAN</span></td><td><span class="key">search_cache:*</span></td><td><code>search_cache.py:203</code></td><td>cache_stats</td></tr>
+          <tr><td><em>LangGraph 内部</em></td><td><span class="key">langgraph:*</span></td><td><code>AsyncRedisSaver</code></td><td>state 恢复</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ========== 九、业务流程时间线 ========== -->
+    <section id="timeline">
+      <h2>九、业务流程时间线</h2>
+      <p>一个完整任务涉及的所有 Redis 操作（按时间顺序）：</p>
+
+      <div class="mermaid">
+sequenceDiagram
+    autonumber
+    participant U as 用户
+    participant F as FastAPI
+    participant W as Worker
+    participant S as SSE 端点
+    participant R as Redis
+
+    rect rgb(34,211,238,0.06)
+    Note over U,R: ① 登录
+    U->>F: POST /api/login
+    F->>R: HSET session:{sid}
+    F->>R: EXPIRE session:{sid} 86400
+    F-->>U: Set-Cookie: session_id
+    end
+
+    rect rgb(139,92,246,0.06)
+    Note over U,R: ② 提交任务
+    U->>F: POST /api/research
+    F->>R: EXISTS + HGETALL session:{sid}<br/>(鉴权)
+    F->>R: XADD research:tasks<br/>{"task": json}
+    F-->>U: {task_id, stream_url}
+    end
+
+    rect rgb(245,158,11,0.06)
+    Note over W,R: ③ Worker 启动（一次性）
+    W->>R: XGROUP CREATE research:tasks<br/>research-workers 0 MKSTREAM
+    W->>R: AsyncRedisSaver.asetup()
+    end
+
+    rect rgb(245,158,11,0.06)
+    Note over W,R: ④ Worker 消费
+    W->>R: XREADGROUP research:tasks<br/>BLOCK 5000
+    R-->>W: (msg_id, {"task": json})
+    end
+
+    rect rgb(245,158,11,0.06)
+    Note over W,R: ⑤ Worker 执行 + 推送（循环）
+    loop 每个 LangGraph 节点
+        opt 搜索节点
+            W->>R: GET search_cache:{md5}
+            alt 命中
+                R-->>W: cached result
+            else 未命中
+                W->>W: 调用 MCP 搜索
+                W->>R: SETEX search_cache:{md5} 3600
+            end
+        end
+        W->>R: XADD research:events:{id}<br/>节点事件
+        opt 流式 token
+            W->>R: XADD research:events:{id}<br/>token 事件
+        end
+    end
+    end
+
+    rect rgb(16,185,129,0.06)
+    Note over S,R: ⑥ SSE 推送（异步并行）
+    U->>S: GET /api/research/{id}/stream
+    S->>R: EXISTS + HGETALL session:{sid}<br/>(鉴权)
+    S->>R: XREAD research:events:{id}<br/>BLOCK 5000
+    R-->>S: 新事件
+    S-->>U: data: ...\n\n
+    end
+
+    rect rgb(239,68,68,0.06)
+    Note over W,R: ⑦ 任务结束
+    W->>R: XADD research:events:{id}<br/>finalize_answer
+    S->>R: XREAD 返回终止事件
+    S-->>U: data: {"finalize_answer":...}\n\n<br/>SSE 连接关闭
+    W->>R: XACK research:tasks
+    W->>R: EXPIRE research:events:{id} 86400
+    end
+
+    rect rgb(100,116,139,0.06)
+    Note over F,R: ⑧ 登出（用户主动）
+    U->>F: POST /api/logout
+    F->>R: DEL session:{sid}
+    end
+
+    rect rgb(50,50,50,0.10)
+    Note over R: ⑨ 自动清理
+    Note over R: 24h 后 session / events 自动过期<br/>1h 后 search_cache 自动过期<br/>7d 后 langgraph checkpoint 自动过期
+    end
+      </div>
+    </section>
+
+    <!-- ========== 十、设计要点 ========== -->
+    <section id="design">
+      <h2>十、关键设计要点</h2>
+
+      <h3>10.1 连接管理</h3>
+      <table>
+        <thead><tr><th>模块</th><th>连接方式</th><th>特点</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><code>auth/session.py</code></td>
+            <td><code>_redis</code> 全局单例（asyncio）</td>
+            <td>无连接参数配置，最简单</td>
+          </tr>
+          <tr>
+            <td><code>task_queue.py</code></td>
+            <td><code>_redis</code> 全局单例（asyncio）</td>
+            <td><code>socket_connect_timeout=2s</code> + <code>socket_timeout=10s</code> + <code>retry_on_timeout=True</code> + <code>health_check_interval=30s</code></td>
+          </tr>
+          <tr>
+            <td><code>search_cache.py</code></td>
+            <td><code>_redis_client</code> 全局单例（同步）</td>
+            <td>PING 健康检查 + 失败降级</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>10.2 降级策略对比</h3>
+      <table>
+        <thead><tr><th>模块</th><th>降级行为</th><th>代码位置</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><code>search_cache.py</code></td>
+            <td>Redis 不可用 → <strong>内存 dict + Lock</strong></td>
+            <td><code>search_cache.py:53-74, 114-138, 160-166</code></td>
+          </tr>
+          <tr>
+            <td><code>task_queue.py</code></td>
+            <td><strong>无降级</strong>，入队失败 → 503</td>
+            <td><code>app.py:155-160</code></td>
+          </tr>
+          <tr>
+            <td><code>auth/session.py</code></td>
+            <td><strong>无降级</strong>，session 失效 → 401</td>
+            <td><code>middleware.py:34-45</code></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>10.3 TTL 与清理策略</h3>
+      <table>
+        <thead><tr><th>Key</th><th>TTL</th><th>MAXLEN</th><th>主动清理</th></tr></thead>
+        <tbody>
+          <tr><td><span class="key">session:{id}</span></td><td>24h（每次访问续期）</td><td>—</td><td>DEL（登出）</td></tr>
+          <tr><td><span class="key">research:tasks</span></td><td>—</td><td>1000</td><td>MAXLEN 自动</td></tr>
+          <tr><td><span class="key">research:events:{id}</span></td><td>24h（任务完成时设置）</td><td>500</td><td>EXPIRE 自动</td></tr>
+          <tr><td><span class="key">search_cache:{md5}</span></td><td>1h（SETEX）</td><td>—</td><td>TTL 自动 / SCAN 清空</td></tr>
+          <tr><td><span class="key">langgraph:*</span></td><td>7d（refresh_on_read）</td><td>—</td><td>TTL 自动</td></tr>
+        </tbody>
+      </table>
+
+      <h3>10.4 并发与原子性</h3>
+      <table>
+        <thead><tr><th>场景</th><th>设计</th></tr></thead>
+        <tbody>
+          <tr><td>同一 session 多次续期</td><td><code>HSET + EXPIRE</code> 都是原子的</td></tr>
+          <tr><td>Worker 抢占任务</td><td>Consumer Group 保证消息只被一个 worker 处理（XREADGROUP + XACK）</td></tr>
+          <tr><td>SSE 多客户端订阅同一 task</td><td>Redis Stream 支持多 XREAD 消费者，各自维护 <code>current_id</code></td></tr>
+          <tr><td>任务重复提交</td><td>前端可传同一 <code>task_id</code>，复用 LangGraph checkpoint（断点续传）</td></tr>
+          <tr><td>MAXLEN 裁剪</td><td>Redis Stream 的 MAXLEN ~ 近似裁剪（O(1)），精确裁剪用 <code>XTRIM</code></td></tr>
+        </tbody>
+      </table>
+
+      <h3>10.5 数据量估算</h3>
+      <p>假设每天 1000 个研究任务：</p>
+      <table>
+        <thead><tr><th>Key</th><th>估算量</th><th>备注</th></tr></thead>
+        <tbody>
+          <tr><td>活跃 session</td><td>几十 ~ 几百</td><td>取决于 DAU</td></tr>
+          <tr><td>research:tasks</td><td>≤ 1000 条</td><td>MAXLEN 限制</td></tr>
+          <tr><td>research:events:&#123;id&#125;</td><td>500 条 / 任务，24h 内</td><td>1000 任务 × 500 = 50 万条上限</td></tr>
+          <tr><td>search_cache</td><td>取决于查询多样性</td><td>1h TTL 短窗口</td></tr>
+          <tr><td>langgraph checkpoint</td><td>1000 任务 / 7 天</td><td>每任务多个节点 state</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ========== 十一、运维命令 ========== -->
+    <section id="ops">
+      <h2>十一、运维与监控命令</h2>
+
+      <h3>11.1 队列与事件流</h3>
+      <pre><code># 查看任务队列长度
+XLEN research:tasks
+
+# 查看某任务事件数
+XLEN research:events:45ba2ef3-4303-460c-b1a2-774df1ca9583
+
+# 查看消费者组状态
+XINFO GROUPS research:tasks
+
+# 查看未确认消息
+XPENDING research:tasks research-workers
+
+# 读取最新 10 条事件（任意时刻手动调试）
+XREVRANGE research:events:45ba2ef3-... + - COUNT 10</code></pre>
+
+      <h3>11.2 会话管理</h3>
+      <pre><code># 查看活跃 session 数
+KEYS session:* | wc -l
+
+# 查看某 session 内容
+HGETALL session:abc123...
+
+# 查看某 session TTL
+TTL session:abc123...</code></pre>
+
+      <h3>11.3 搜索缓存</h3>
+      <pre><code># 查看缓存条目数
+KEYS search_cache:* | wc -l
+# 或 SCAN 版本（生产安全）
+SCAN 0 MATCH search_cache:* COUNT 100
+
+# 查看某缓存剩余 TTL
+TTL search_cache:abc123...
+
+# 手动清空所有缓存
+redis-cli --scan --pattern "search_cache:*" | xargs redis-cli DEL</code></pre>
+
+      <h3>11.4 LangGraph Checkpoint</h3>
+      <pre><code># 查看所有 checkpoint key
+KEYS langgraph:* | head -20
+
+# 查看 checkpoint TTL
+TTL langgraph:checkpoint:...</code></pre>
+
+      <h3>11.5 整体健康度</h3>
+      <pre><code># 总 key 数
+DBSIZE
+
+# 内存占用
+INFO memory
+
+# 客户端连接
+INFO clients
+
+# 慢查询
+SLOWLOG GET 10</code></pre>
+    </section>
+
+    <!-- ========== 十二、完整清单 ========== -->
+    <section id="checklist">
+      <h2>十二、完整清单（按文件:行）</h2>
+      <p>所有 Redis 操作的精确代码定位：</p>
+      <pre><code>──── auth/session.py ────────────────────────────────────────────
+session.py:31         redis.from_url(REDIS_URL)               # 连接
+session.py:41         r.hset(key, mapping={...})              # 创建会话
+session.py:46         r.expire(key, SESSION_TTL)              # 创建时 TTL
+session.py:56         r.exists(key)                           # 鉴权检查
+session.py:61         r.hset(key, "last_active", now)         # 续期
+session.py:62         r.expire(key, SESSION_TTL)              # 续期 TTL
+session.py:63         r.hgetall(key)                          # 读取会话
+session.py:72         r.delete(f"session:{session_id}")      # 登出
+
+──── task_queue.py ──────────────────────────────────────────────
+task_queue.py:52      redis.from_url(REDIS_URL)               # 连接
+task_queue.py:71      checkpointer.asetup()                   # LangGraph 初始化
+task_queue.py:107     r.xadd("research:tasks", {"task": ...}) # 入队
+task_queue.py:139     r.xgroup_create("research:tasks",       # 创建消费者组
+                           "research-workers", id="0",
+                           mkstream=True)
+task_queue.py:151     r.xreadgroup("research-workers",        # 消费
+                           "worker-1", {...},
+                           block=5000, count=1)
+task_queue.py:186     r.xadd("research:events:{id}",          # token 事件
+                           {"event": ...})
+task_queue.py:251     r.xadd("research:events:{id}",          # 节点事件
+                           {"event": ...})
+task_queue.py:280     r.xadd("research:events:{id}",          # finalize
+                           {"event": ...})
+task_queue.py:288     r.xadd("research:events:{id}",          # task_paused
+                           {"event": ...})
+task_queue.py:298     r.xadd("research:events:{id}",          # error
+                           {"event": ...})
+task_queue.py:306     r.xack("research:tasks",                # 确认
+                           "research-workers", msg_id)
+task_queue.py:308     r.expire("research:events:{id}", 86400) # 设置 TTL
+task_queue.py:327     r.xread({stream_key: current_id},       # SSE 读取
+                           block=5000, count=10)
+
+──── search_cache.py ────────────────────────────────────────────
+search_cache.py:65    redis.from_url(REDIS_URL)               # 连接
+search_cache.py:66    _redis_client.ping()                    # 健康检查
+search_cache.py:94    r.get(key)                              # 读取
+search_cache.py:99    r.ttl(key)                              # 剩余 TTL
+search_cache.py:151   r.setex(key, DEFAULT_TTL, json.dumps()) # 写入
+search_cache.py:178   r.scan(cursor, match="search_cache:*")  # 清空 - SCAN
+search_cache.py:180   r.delete(*keys)                         # 清空 - DEL
+search_cache.py:203   r.scan(cursor, match="search_cache:*")  # 统计 - SCAN
+
+──── （间接）langgraph.checkpoint.redis.aio ─────────────────────
+由 AsyncRedisSaver 封装，代码位置：task_queue.py:67-72
+TTL：7 天，refresh_on_read=True</code></pre>
+    </section>
+
+  </main>
+</div>
+
+<footer>
+  Deep Research Backend · Redis 操作全景文档
+</footer>
+
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'dark',
+    themeVariables: {
+      primaryColor: '#1a2236',
+      primaryTextColor: '#e6edf7',
+      primaryBorderColor: '#8b5cf6',
+      lineColor: '#22d3ee',
+      secondaryColor: '#111827',
+      tertiaryColor: '#0a1020',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif',
+    },
+    flowchart: { curve: 'basis', padding: 12 },
+    sequence: { actorMargin: 60, messageMargin: 40 },
+  });
+</script>
+
+</body>
+</html>

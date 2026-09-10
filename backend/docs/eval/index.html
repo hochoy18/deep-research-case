@@ -1,0 +1,1355 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>评估打分功能详解 · DeepResearch Agent</title>
+
+<!-- Mermaid: 流程 / 时序 / 状态 / 类图 -->
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+
+<style>
+  :root {
+    --bg-0: #0b0f1a;
+    --bg-1: #111827;
+    --bg-2: #1a2236;
+    --bg-3: #232d44;
+    --line: #243049;
+    --text: #e6edf7;
+    --muted: #97a3bd;
+    --primary: #8b5cf6;
+    --primary-2: #6366f1;
+    --accent: #22d3ee;
+    --accent-2: #06b6d4;
+    --warn: #f59e0b;
+    --ok: #10b981;
+    --danger: #ef4444;
+    --code-bg: #0a1020;
+    --shadow: 0 10px 30px rgba(0,0,0,.35);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+                 "Microsoft YaHei", Roboto, Helvetica, Arial, sans-serif;
+    background:
+      radial-gradient(1200px 600px at 10% -10%, rgba(139,92,246,.18), transparent 60%),
+      radial-gradient(1000px 500px at 110% 10%, rgba(34,211,238,.15), transparent 60%),
+      var(--bg-0);
+    color: var(--text);
+    line-height: 1.75;
+    min-height: 100vh;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* Hero */
+  .hero {
+    padding: 56px 16px 36px;
+    text-align: center;
+    border-bottom: 1px solid var(--line);
+    background: linear-gradient(180deg, rgba(139,92,246,.10), transparent 60%);
+  }
+  .hero .badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 999px;
+    background: rgba(139,92,246,.18);
+    color: #c4b5fd;
+    border: 1px solid rgba(139,92,.35);
+    font-size: 12px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .hero h1 {
+    font-size: 36px;
+    margin: 14px 0 6px;
+    background: linear-gradient(90deg, #c4b5fd, #67e8f9, #f0abfc);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .hero p { color: var(--muted); margin: 6px 0 0; font-size: 14px; }
+  .hero .meta {
+    margin-top: 16px;
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .pill {
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: rgba(255,255,255,.04);
+    border: 1px solid var(--line);
+    color: var(--muted);
+  }
+  .pill.primary { color: #c4b5fd; border-color: rgba(139,92,.4); background: rgba(139,92,.12); }
+  .pill.accent  { color: #67e8f9; border-color: rgba(34,211,.4); background: rgba(34,211,.10); }
+  .pill.ok      { color: #6ee7b7; border-color: rgba(16,185,.4); background: rgba(16,185,.10); }
+
+  /* Layout */
+  .container {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 32px 24px 80px;
+  }
+
+  /* TOC */
+  .toc {
+    background: linear-gradient(180deg, rgba(34,211,238,.06), transparent);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 18px 22px;
+    margin-bottom: 36px;
+  }
+  .toc h3 {
+    margin: 0 0 10px;
+    font-size: 13px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+  }
+  .toc ol {
+    margin: 0;
+    padding-left: 22px;
+    columns: 2;
+    column-gap: 36px;
+  }
+  .toc li { margin: 4px 0; }
+  .toc a { font-size: 14px; }
+
+  /* Section */
+  section {
+    margin-bottom: 56px;
+    scroll-margin-top: 24px;
+  }
+  h2 {
+    font-size: 24px;
+    margin: 0 0 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+  }
+  h2 .num {
+    display: inline-block;
+    min-width: 32px;
+    height: 32px;
+    line-height: 32px;
+    text-align: center;
+    border-radius: 8px;
+    background: linear-gradient(135deg, var(--primary), var(--primary-2));
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+  }
+  h3 {
+    font-size: 18px;
+    margin: 28px 0 12px;
+    color: #c4b5fd;
+  }
+  h4 {
+    font-size: 15px;
+    margin: 20px 0 8px;
+    color: #67e8f9;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  p { margin: 10px 0; }
+
+  /* Cards & Grids */
+  .grid {
+    display: grid;
+    gap: 14px;
+  }
+  .grid-3 { grid-template-columns: repeat(3, 1fr); }
+  .grid-2 { grid-template-columns: repeat(2, 1fr); }
+  @media (max-width: 880px) {
+    .grid-3, .grid-2 { grid-template-columns: 1fr; }
+    .toc ol { columns: 1; }
+  }
+  .card {
+    background: linear-gradient(180deg, rgba(255,255,255,.02), transparent);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 16px 18px;
+  }
+  .card .label {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+  }
+  .card .value {
+    font-size: 22px;
+    margin-top: 4px;
+    font-weight: 600;
+  }
+  .card.primary { border-color: rgba(139,92,.4); background: rgba(139,92,.05); }
+  .card.accent  { border-color: rgba(34,211,.4); background: rgba(34,211,.05); }
+  .card.ok      { border-color: rgba(16,185,.4); background: rgba(16,185,.05); }
+  .card.warn    { border-color: rgba(245,158,.4); background: rgba(245,158,.05); }
+  .card.danger  { border-color: rgba(239,68,.4);  background: rgba(239,68,.05); }
+  .card.primary .value { color: #c4b5fd; }
+  .card.accent  .value { color: #67e8f9; }
+  .card.ok      .value { color: #6ee7b7; }
+  .card.warn    .value { color: #fcd34d; }
+  .card.danger  .value { color: #fca5a5; }
+
+  /* Tables */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 14px 0;
+    font-size: 14px;
+  }
+  th, td {
+    text-align: left;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--line);
+    vertical-align: top;
+  }
+  th {
+    background: var(--bg-2);
+    color: var(--muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 1px;
+  }
+  tr:hover td { background: rgba(255,255,255,.02); }
+  td code, th code { font-size: 12px; }
+
+  /* Code */
+  code {
+    font-family: "JetBrains Mono", "SF Mono", Consolas, monospace;
+    background: var(--code-bg);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 13px;
+    color: #fcd34d;
+  }
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 14px 16px;
+    overflow-x: auto;
+    font-size: 13px;
+    line-height: 1.6;
+    margin: 12px 0;
+  }
+  pre code {
+    background: transparent;
+    padding: 0;
+    color: var(--text);
+  }
+  .cmd { color: #c4b5fd; }
+  .str { color: #86efac; }
+  .com { color: #64748b; font-style: italic; }
+  .key { color: #67e8f9; }
+
+  /* Callout */
+  .callout {
+    border-left: 3px solid var(--primary);
+    background: rgba(139,92,246,.06);
+    padding: 12px 16px;
+    border-radius: 0 10px 10px 0;
+    margin: 14px 0;
+    font-size: 14px;
+  }
+  .callout.accent { border-color: var(--accent); background: rgba(34,211,.06); }
+  .callout.warn   { border-color: var(--warn);   background: rgba(245,158,.06); }
+  .callout.ok     { border-color: var(--ok);     background: rgba(16,185,.06); }
+  .callout strong { color: #fcd34d; }
+
+  /* Mermaid container */
+  .mermaid {
+    background: rgba(255,255,255,.02);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 18px;
+    margin: 16px 0;
+    overflow-x: auto;
+  }
+
+  /* SVG / Canvas wrappers */
+  .figure {
+    background: rgba(255,255,255,.02);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 18px;
+    margin: 16px 0;
+    text-align: center;
+  }
+  .figure svg, .figure canvas {
+    max-width: 100%;
+    height: auto;
+  }
+  .figure .cap {
+    color: var(--muted);
+    font-size: 12px;
+    margin-top: 10px;
+    text-align: left;
+  }
+
+  /* Score bar */
+  .bar {
+    background: var(--bg-3);
+    border-radius: 4px;
+    height: 8px;
+    overflow: hidden;
+    margin: 4px 0;
+  }
+  .bar > div {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary), var(--accent));
+  }
+
+  /* KV list */
+  dl.kv {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 8px 16px;
+    font-size: 14px;
+  }
+  dl.kv dt { color: var(--muted); }
+  dl.kv dd { margin: 0; }
+
+  footer {
+    text-align: center;
+    color: var(--muted);
+    padding: 20px 0;
+    border-top: 1px solid var(--line);
+    font-size: 12px;
+  }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <span class="badge">DeepResearch · Eval Framework</span>
+  <h1>评估打分功能详解</h1>
+  <p>从快速上手到源码级集成 · LLM-as-Judge 驱动的端到端 & 组件级质量评估</p>
+  <div class="meta">
+    <span class="pill primary">端到端评估</span>
+    <span class="pill accent">组件级评估</span>
+    <span class="pill ok">LLM-as-Judge</span>
+    <span class="pill">7 个评分维度</span>
+    <span class="pill">10 个测试用例</span>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- TOC -->
+  <nav class="toc">
+    <h3>目录</h3>
+    <ol>
+      <li><a href="#overview">概览：做什么</a></li>
+      <li><a href="#quickstart">快速上手（5 分钟）</a></li>
+      <li><a href="#entry">入口与运行参数</a></li>
+      <li><a href="#walkthrough">逐步详解</a></li>
+      <li><a href="#integration">在 application 中的集成</a></li>
+      <li><a href="#scenarios">典型场景示例</a></li>
+      <li><a href="#advanced">进阶与排错</a></li>
+      <li><a href="#appendix">附录：评分维度</a></li>
+    </ol>
+  </nav>
+
+  <!-- 1. Overview -->
+  <section id="overview">
+    <h2><span class="num">1</span>概览：这个评估框架做什么</h2>
+
+    <p>本框架使用 <strong>LLM-as-Judge</strong> 方法对 DeepResearch Agent 的产出做两类质量评估：</p>
+
+    <div class="grid grid-3">
+      <div class="card primary">
+        <div class="label">评估层级 1</div>
+        <div class="value">端到端 (e2e)</div>
+        <p>对最终研究报告做 5 维度评分（事实 / 覆盖 / 结构 / 时效 / 引用），用于判断整体产出是否可用。</p>
+      </div>
+      <div class="card accent">
+        <div class="label">评估层级 2</div>
+        <div class="value">组件级 (comp)</div>
+        <p>对每个节点（plan / queries / summarization / critique / citations / plan reflection）独立打分，定位问题节点。</p>
+      </div>
+      <div class="card ok">
+        <div class="label">核心机制</div>
+        <div class="value">LLM-as-Judge</div>
+        <p>用另一个 LLM 对 agent 产出评分，强制结构化 JSON 输出，Pydantic 强类型校验，1–5 分自动裁剪。</p>
+      </div>
+    </div>
+
+    <h3>关键设计目标</h3>
+    <div class="mermaid">
+flowchart LR
+    A[改动 prompt / graph] --> B[跑 eval]
+    B --> C{分数变化?}
+    C -->|提升| D[保留改动]
+    C -->|下降| E[回滚 / 调优]
+    B --> F[生成 JSON 报告]
+    F --> G[CI 阈值门禁]
+    style A fill:#1a2236,stroke:#8b5cf6,color:#e6edf7
+    style D fill:#10b981,color:#fff
+    style E fill:#ef4444,color:#fff
+    </div>
+
+    <h3>核心数据流（一次评估的最短路径）</h3>
+    <div class="mermaid">
+sequenceDiagram
+    autonumber
+    participant U as 用户 / CI
+    participant CLI as run_eval.py
+    participant EV as Evaluator
+    participant G as LangGraph (agent.graph)
+    participant J as Judge (LLM)
+    participant FS as 本地文件系统
+
+    U->>CLI: python -m eval.run_eval --mode all
+    CLI->>EV: 初始化 Evaluator(judge_model_id)
+    CLI->>EV: run_e2e(topics) / run_components(topics)
+    loop 每个 topic
+        EV->>G: graph.invoke(...)
+        G-->>EV: state (report / queries / plan / sources)
+        EV->>J: evaluate_xxx(prompt)
+        J->>J: Agent(prompt) + 3 次重试 + JSON 抽取
+        J-->>EV: Pydantic 评分对象
+    end
+    EV-->>CLI: EvalReport
+    CLI->>FS: save_eval_report(report.json)
+    CLI->>U: 打印 format_eval_report 摘要
+    </div>
+  </section>
+
+  <!-- 2. Quickstart -->
+  <section id="quickstart">
+    <h2><span class="num">2</span>快速上手（5 分钟跑起来）</h2>
+
+    <div class="grid grid-2">
+      <div>
+        <h4>Step 1 · 准备环境</h4>
+<pre><code><span class="com"># 进入 backend 目录</span>
+cd backend
+
+<span class="com"># 首次：安装依赖</span>
+pip install -e .
+
+<span class="com"># 确认 .env 配置</span>
+cat .env | grep -E "LLM_BASE_URL|APP_TOKEN|MCP_APP_ID"</code></pre>
+      </div>
+      <div>
+        <h4>Step 2 · 快速验证</h4>
+<pre><code><span class="com"># 单条 topic 跑端到端（约 1-3 分钟）</span>
+python -m eval.run_eval --mode e2e \
+  --topic <span class="str">"2025年AI芯片市场趋势"</span>
+
+<span class="com"># 看到 Overall: x.x/5 即成功</span></code></pre>
+      </div>
+      <div>
+        <h4>Step 3 · 跑完整测试集</h4>
+<pre><code><span class="com"># 10 个 topic，端到端 + 组件级</span>
+python -m eval.run_eval --mode all \
+  --output eval_results.json</code></pre>
+      </div>
+      <div>
+        <h4>Step 4 · 查看报告</h4>
+<pre><code><span class="com"># 终端已打印摘要；JSON 在文件中</span>
+cat eval_results.json | python -m json.tool | less
+
+<span class="com"># 或只看分数</span>
+python -c <span class="str">"import json; \
+d=json.load(open('eval_results.json')); \
+print(d['timestamp'])"</span></code></pre>
+      </div>
+    </div>
+
+    <div class="callout ok">
+      <strong>提示</strong>：第一次跑建议先用 <code>--mode e2e --topic "..."</code> 单条验证，避免 10 条全跑等太久。完整跑通常 10–30 分钟（取决于 Judge 模型和搜索响应）。
+    </div>
+  </section>
+
+  <!-- 3. Entry -->
+  <section id="entry">
+    <h2><span class="num">3</span>入口与运行参数</h2>
+
+    <h3>CLI 入口文件</h3>
+    <p><code>eval/run_eval.py</code> —— <code>python -m eval.run_eval</code> 直接执行此文件的 <code>main()</code>。</p>
+
+    <h3>完整参数表</h3>
+    <table>
+      <tr>
+        <th>参数</th>
+        <th>取值</th>
+        <th>默认</th>
+        <th>说明</th>
+      </tr>
+      <tr><td><code>--mode</code></td><td><code>e2e</code> / <code>comp</code> / <code>all</code></td><td><code>e2e</code></td><td>评估模式</td></tr>
+      <tr><td><code>--topic</code></td><td>字符串</td><td>—</td><td>单条 topic，覆盖测试集（快速验证用）</td></tr>
+      <tr><td><code>--judge-model</code></td><td>模型 ID</td><td><code>EVAL_MODEL</code> 环境变量</td><td>Judge LLM 的模型</td></tr>
+      <tr><td><code>--output</code></td><td>文件路径</td><td><code>eval_report_YYYYMMDD_HHMMSS.json</code></td><td>报告保存路径</td></tr>
+      <tr><td><code>--test-set</code></td><td>JSON 文件名</td><td><code>test_set.json</code></td><td>切换测试集</td></tr>
+      <tr><td><code>--initial-queries</code></td><td>整数</td><td>topic 自带</td><td>覆盖所有 topic 的初始查询数</td></tr>
+      <tr><td><code>--max-loops</code></td><td>整数</td><td>topic 自带</td><td>覆盖所有 topic 的最大反思循环数</td></tr>
+      <tr><td><code>--feedback</code></td><td>字符串</td><td>—</td><td>模拟用户在 plan 确认阶段的反馈</td></tr>
+      <tr><td><code>--expected-intent</code></td><td><code>proceed</code> / <code>replan</code></td><td>—</td><td>预期系统行为</td></tr>
+    </table>
+
+    <h3>最常用一行命令</h3>
+    <div class="figure">
+<svg viewBox="0 0 900 200" xmlns="http://www.w3.org/2000/svg" style="max-width:100%;">
+  <defs>
+    <linearGradient id="cmdG" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#8b5cf6"/>
+      <stop offset="100%" stop-color="#22d3ee"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="900" height="200" fill="#0a1020" rx="10"/>
+  <text x="20" y="34" fill="#c4b5fd" font-size="13" font-family="monospace">$ python -m eval.run_eval --mode all --judge-model qwen3.7-max</text>
+  <line x1="20" y1="48" x2="880" y2="48" stroke="#243049"/>
+  <text x="20" y="78"  fill="#97a3bd" font-size="13" font-family="monospace">$ python -m eval.run_eval --mode e2e --topic "2025年AI芯片市场趋势"</text>
+  <text x="20" y="108" fill="#97a3bd" font-size="13" font-family="monospace">$ python -m eval.run_eval --mode comp --feedback "加入开源模型分析" \</text>
+  <text x="40" y="128" fill="#97a3bd" font-size="13" font-family="monospace">    --expected-intent replan</text>
+  <text x="20" y="158" fill="#97a3bd" font-size="13" font-family="monospace">$ python -m eval.run_eval --mode all --initial-queries 5 --max-loops 10</text>
+  <rect x="20" y="172" width="860" height="2" fill="url(#cmdG)"/>
+</svg>
+      <div class="cap">图 1：从上到下，完整测试集 / 单条验证 / 需求澄清模拟 / 调高搜索强度。</div>
+    </div>
+  </section>
+
+  <!-- 4. Walkthrough -->
+  <section id="walkthrough">
+    <h2><span class="num">4</span>逐步详解：每一步在干什么</h2>
+
+    <h3>4.1 整体执行流水线</h3>
+    <div class="mermaid">
+flowchart TD
+    A["load_test_set()<br/>读 test_set.json 或 --topic"] --> B["构造 List[TopicCfg]"]
+    B --> C["CLI 覆盖参数<br/>(--initial-queries 等)"]
+    C --> D["Evaluator(judge_model_id)<br/>初始化 Judge"]
+    D --> E{--mode}
+    E -->|e2e / all| F["run_e2e(topics)"]
+    E -->|comp / all| G["run_components(topics)"]
+    F --> H["format_eval_report 终端摘要"]
+    G --> H
+    H --> I["save_eval_report JSON 落盘"]
+    style A fill:#1a2236,stroke:#8b5cf6
+    style D fill:#1a2236,stroke:#06b6d4
+    style H fill:#10b981,color:#fff
+    style I fill:#10b981,color:#fff
+    </div>
+
+    <h3>4.2 核心调度：_invoke_agent_with_feedback（最关键函数）</h3>
+    <p>位置：<code>eval/evaluator.py:179-294</code>。它决定了一次评估到底跑几次 agent、如何模拟用户反馈，是评估框架的"指挥中心"。</p>
+
+    <h4>三阶段拆解</h4>
+    <div class="mermaid">
+flowchart TD
+    Start([开始：评估一个 topic]) --> P1["<b>Phase 1</b><br/>graph.invoke(topic)<br/>生成 plan_a + plan_messages"]
+    P1 --> P2["<b>Phase 2</b><br/>发送用户反馈<br/>plan_status = confirmed"]
+    P2 --> Check{plan_status<br/>判定结果}
+
+    Check -->|"unconfirmed"| P3["<b>Phase 3</b><br/>用新 plan_b 重新执行<br/>plan_status = confirmed"]
+    Check -->|"confirmed<br/>(实际等于 proceed)"| Done
+    Check -->|"llm_proceed /<br/>direct_proceed"| Done["<b>FinalState</b><br/>收集产物：<br/>report / sources / queries<br/>search_query / is_sufficient"]
+
+    P3 --> Done
+    Done --> End([结束])
+
+    Check -.->|actual_behavior| Note["llm_proceed / direct_proceed /<br/>replan_then_proceed<br/>(evaluator.py:242-270)"]
+
+    classDef phase fill:#0e2438,stroke:#22d3ee,color:#e6edf7,stroke-width:1.5px
+    classDef decision fill:#3a2a10,stroke:#f59e0b,color:#fcd34d,stroke-width:1.5px
+    classDef done fill:#0f2a22,stroke:#10b981,color:#6ee7b7,stroke-width:1.5px
+    classDef note fill:none,stroke:#97a3bd,color:#97a3bd,stroke-dasharray:5 5
+    classDef startEnd fill:#1a2236,stroke:#8b5cf6,color:#c4b5fd,stroke-width:1.5px
+
+    class Start,End startEnd
+    class P1,P2,P3 phase
+    class Check decision
+    class Done done
+    class Note note
+    </div>
+
+    <h4>三种 actual_behavior 判定逻辑</h4>
+    <table>
+      <tr><th>actual_behavior</th><th>触发条件</th><th>含义</th></tr>
+      <tr>
+        <td><code>direct_proceed</code></td>
+        <td>用户反馈含硬编码关键字（"需求确认" / "开始研究"）</td>
+        <td>短路直接继续，不调 LLM 意图识别</td>
+      </tr>
+      <tr>
+        <td><code>llm_proceed</code></td>
+        <td>LLM 意图识别判断用户满意</td>
+        <td>走完整意图识别路径，结果是继续</td>
+      </tr>
+      <tr>
+        <td><code>replan_then_proceed</code></td>
+        <td>LLM 识别到反馈不满意，触发 replan</td>
+        <td>生成新 plan_b，再走 Phase 3 确认继续</td>
+      </tr>
+    </table>
+
+    <h3>4.3 _CaptureCtx：原始搜索结果捕获机制</h3>
+    <p>问题：<code>graph</code> 的 <code>web_search</code> 节点只把摘要存进 state，原始页面被丢弃，导致摘要保真度评估无法做反查。</p>
+    <p>解法：<strong>monkey-patch</strong> <code>agent.base_agent.WebSearchAgent.step</code>，只在研究阶段激活。</p>
+
+    <div class="figure">
+<svg viewBox="0 0 900 320" xmlns="http://www.w3.org/2000/svg" style="max-width:100%;">
+  <defs>
+    <linearGradient id="capG" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#ef4444"/>
+    </linearGradient>
+    <marker id="arr" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#22d3ee"/>
+    </marker>
+  </defs>
+  <rect x="0" y="0" width="900" height="320" fill="#0a1020" rx="10"/>
+
+  <!-- Original call -->
+  <rect x="20" y="30" width="180" height="60" rx="8" fill="#1a2236" stroke="#243049"/>
+  <text x="110" y="55" fill="#c4b5fd" font-size="13" text-anchor="middle">WebSearchAgent.step</text>
+  <text x="110" y="75" fill="#97a3bd" font-size="11" text-anchor="middle">原方法</text>
+
+  <!-- Arrow 1 -->
+  <line x1="200" y1="60" x2="280" y2="60" stroke="#22d3ee" stroke-width="2" marker-end="url(#arr)"/>
+
+  <!-- Patched call -->
+  <rect x="290" y="30" width="220" height="60" rx="8" fill="#1a2236" stroke="#06b6d4"/>
+  <text x="400" y="55" fill="#67e8f9" font-size="13" text-anchor="middle">_patched_step</text>
+  <text x="400" y="75" fill="#97a3bd" font-size="11" text-anchor="middle">monkey-patch 注入</text>
+
+  <!-- Arrow 2 -->
+  <line x1="510" y1="60" x2="590" y2="60" stroke="#22d3ee" stroke-width="2" marker-end="url(#arr)"/>
+
+  <!-- Inner step -->
+  <rect x="600" y="30" width="280" height="60" rx="8" fill="#1a2236" stroke="#243049"/>
+  <text x="740" y="55" fill="#e6edf7" font-size="13" text-anchor="middle">self._orig_step(prompt)</text>
+  <text x="740" y="75" fill="#97a3bd" font-size="11" text-anchor="middle">正常执行 LLM 摘要</text>
+
+  <!-- Down arrow to capture -->
+  <line x1="400" y1="90" x2="400" y2="160" stroke="#f59e0b" stroke-width="2" marker-end="url(#arr)"/>
+
+  <!-- Capture box -->
+  <rect x="240" y="170" width="560" height="60" rx="8" fill="rgba(245,158,11,.08)" stroke="#f59e0b"/>
+  <text x="520" y="195" fill="#fcd34d" font-size="13" text-anchor="middle">self.raw_results.append({query, pages})</text>
+  <text x="520" y="215" fill="#97a3bd" font-size="11" text-anchor="middle">捕获原始页面（摘要前）→ 用于摘要保真度评估</text>
+
+  <!-- Bottom: scope -->
+  <rect x="20" y="250" width="860" height="50" rx="8" fill="rgba(16,185,129,.06)" stroke="#10b981"/>
+  <text x="450" y="275" fill="#6ee7b7" font-size="12" text-anchor="middle">✓ 仅在研究阶段激活：capture.patch() → ... → capture.unpatch()</text>
+  <text x="450" y="290" fill="#97a3bd" font-size="11" text-anchor="middle">✗ 不污染 Phase 1 / Phase 2 的 plan 节点（plan 节点不调 WebSearchAgent）</text>
+</svg>
+      <div class="cap">图 2：monkey-patch 注入示意。研究阶段开始时 <code>capture.patch()</code>，结束后 <code>unpatch()</code> 还原。</div>
+    </div>
+
+    <h3>4.4 Judge._call：LLM 调用 + 3 次重试</h3>
+    <p>位置：<code>eval/judge.py:167-190</code>。所有评分方法的统一入口。</p>
+
+<pre><code><span class="key">def</span> _call(self, prompt):
+    agent = Agent(model_id=self.model_id)
+    <span class="key">for</span> attempt <span class="key">in</span> range(3):
+        <span class="key">try</span>:
+            raw = agent(prompt)
+            json_str = Post.extract_pattern(raw, pattern=<span class="str">"json"</span>)
+            <span class="key">return</span> json.loads(json_str)
+        <span class="key">except</span> Exception:
+            <span class="key">continue</span>  <span class="com"># 失败重试，最多 3 次</span>
+    <span class="key">return</span> {}  <span class="com"># 全部失败返回空 dict</span></code></pre>
+
+    <div class="callout accent">
+      <strong>关键依赖</strong>：
+      <ul>
+        <li><code>agent.base_agent.Agent</code> —— 通用 LLM 调用（<strong>复用 application 的同款 Agent，不另起炉灶</strong>）</li>
+        <li><code>agent.post.Post.extract_pattern</code> —— 抽 <code>```json ... ```</code> 块的正则工具</li>
+      </ul>
+    </div>
+
+    <h3>4.5 组件级评估：对每个中间产物打分</h3>
+    <p>位置：<code>eval/evaluator.py:317-401</code>。一次完整流水线跑完后，逐节点评分。</p>
+
+    <table>
+      <tr><th>中间产物</th><th>来源 state key</th><th>Judge 方法</th></tr>
+      <tr><td>研究计划</td><td><code>effective_plan = plan_b or plan_a</code></td><td><code>evaluate_plan</code></td></tr>
+      <tr><td>搜索查询</td><td><code>state["search_query"]</code></td><td><code>evaluate_queries</code> + <code>evaluate_plan_query_alignment</code></td></tr>
+      <tr><td>摘要</td><td><code>state["web_search_result"]</code> + <code>capture.raw_results</code></td><td><code>evaluate_summarization</code>（每条）</td></tr>
+      <tr><td>反思</td><td><code>is_sufficient</code>, <code>knowledge_gap</code>, <code>follow_up_queries</code></td><td><code>evaluate_critique</code></td></tr>
+      <tr><td>引用</td><td>最终报告 + <code>sources_gathered</code></td><td><code>evaluate_citations</code></td></tr>
+      <tr><td>计划反思</td><td>仅当配置 <code>user_feedback</code> + <code>expected_intent</code></td><td><code>evaluate_plan_reflection</code></td></tr>
+    </table>
+
+    <h3>4.6 7 套评分维度的可视化对照</h3>
+    <div class="figure">
+<svg viewBox="0 0 1000 480" xmlns="http://www.w3.org/2000/svg" style="max-width:100%;">
+  <defs>
+    <radialGradient id="ringG" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="rgba(139,92,246,.25)"/>
+      <stop offset="100%" stop-color="rgba(139,92,246,0)"/>
+    </radialGradient>
+  </defs>
+  <rect x="0" y="0" width="1000" height="480" fill="#0a1020" rx="10"/>
+
+  <!-- Center -->
+  <circle cx="500" cy="240" r="80" fill="url(#ringG)"/>
+  <circle cx="500" cy="240" r="55" fill="#1a2236" stroke="#8b5cf6" stroke-width="2"/>
+  <text x="500" y="235" fill="#c4b5fd" font-size="14" text-anchor="middle" font-weight="bold">评估对象</text>
+  <text x="500" y="255" fill="#97a3bd" font-size="11" text-anchor="middle">7 维度</text>
+
+  <!-- Nodes around -->
+  <!-- Top: e2e -->
+  <rect x="380" y="40" width="240" height="50" rx="25" fill="#10b981" opacity="0.15" stroke="#10b981"/>
+  <text x="500" y="72" fill="#6ee7b7" font-size="13" text-anchor="middle">端到端报告（5 维度）</text>
+
+  <!-- Around: 6 component nodes -->
+  <!-- Plan (top-left) -->
+  <line x1="450" y1="200" x2="280" y2="120" stroke="#243049" stroke-width="1.5"/>
+  <circle cx="240" cy="110" r="34" fill="#1a2236" stroke="#8b5cf6" stroke-width="2"/>
+  <text x="240" y="105" fill="#c4b5fd" font-size="11" text-anchor="middle">Plan</text>
+  <text x="240" y="120" fill="#97a3bd" font-size="9" text-anchor="middle">3 维度</text>
+
+  <!-- Queries (left) -->
+  <line x1="445" y1="240" x2="120" y2="240" stroke="#243049" stroke-width="1.5"/>
+  <circle cx="90" cy="240" r="34" fill="#1a2236" stroke="#06b6d4" stroke-width="2"/>
+  <text x="90" y="235" fill="#67e8f9" font-size="11" text-anchor="middle">Queries</text>
+  <text x="90" y="250" fill="#97a3bd" font-size="9" text-anchor="middle">3 维度</text>
+
+  <!-- Plan→Query (bottom-left) -->
+  <line x1="450" y1="280" x2="280" y2="380" stroke="#243049" stroke-width="1.5"/>
+  <circle cx="240" cy="390" r="34" fill="#1a2236" stroke="#06b6d4" stroke-width="2"/>
+  <text x="240" y="385" fill="#67e8f9" font-size="10" text-anchor="middle">Plan→Query</text>
+  <text x="240" y="400" fill="#97a3bd" font-size="9" text-anchor="middle">3 维度</text>
+
+  <!-- Summarization (bottom) -->
+  <line x1="500" y1="295" x2="500" y2="380" stroke="#243049" stroke-width="1.5"/>
+  <circle cx="500" cy="410" r="34" fill="#1a2236" stroke="#f59e0b" stroke-width="2"/>
+  <text x="500" y="405" fill="#fcd34d" font-size="10" text-anchor="middle">Summarize</text>
+  <text x="500" y="420" fill="#97a3bd" font-size="9" text-anchor="middle">3 维度</text>
+
+  <!-- Critique (bottom-right) -->
+  <line x1="550" y1="280" x2="720" y2="380" stroke="#243049" stroke-width="1.5"/>
+  <circle cx="760" cy="390" r="34" fill="#1a2236" stroke="#f59e0b" stroke-width="2"/>
+  <text x="760" y="385" fill="#fcd34d" font-size="11" text-anchor="middle">Critique</text>
+  <text x="760" y="400" fill="#97a3bd" font-size="9" text-anchor="middle">3 维度</text>
+
+  <!-- Citations (right) -->
+  <line x1="555" y1="240" x2="880" y2="240" stroke="#243049" stroke-width="1.5"/>
+  <circle cx="910" cy="240" r="34" fill="#1a2236" stroke="#06b6d4" stroke-width="2"/>
+  <text x="910" y="235" fill="#67e8f9" font-size="11" text-anchor="middle">Citations</text>
+  <text x="910" y="250" fill="#97a3bd" font-size="9" text-anchor="middle">逐条</text>
+
+  <!-- Plan Reflection (top-right) -->
+  <line x1="550" y1="200" x2="720" y2="120" stroke="#243049" stroke-width="1.5"/>
+  <circle cx="760" cy="110" r="34" fill="#1a2236" stroke="#8b5cf6" stroke-width="2"/>
+  <text x="760" y="105" fill="#c4b5fd" font-size="10" text-anchor="middle">Reflection</text>
+  <text x="760" y="120" fill="#97a3bd" font-size="9" text-anchor="middle">2 维度</text>
+
+  <!-- Legend -->
+  <g transform="translate(20, 460)">
+    <circle cx="10" cy="-4" r="6" fill="#10b981"/>
+    <text x="22" y="0" fill="#97a3bd" font-size="10">端到端</text>
+    <circle cx="80" cy="-4" r="6" fill="#8b5cf6"/>
+    <text x="92" y="0" fill="#97a3bd" font-size="10">计划相关</text>
+    <circle cx="160" cy="-4" r="6" fill="#06b6d4"/>
+    <text x="172" y="0" fill="#97a3bd" font-size="10">查询/引用</text>
+    <circle cx="260" cy="-4" r="6" fill="#f59e0b"/>
+    <text x="272" y="0" fill="#97a3bd" font-size="10">内容质量</text>
+  </g>
+</svg>
+      <div class="cap">图 3：7 个评分维度的关系图。中心是「评估对象」，环绕 1 个端到端 + 6 个组件级评分维度。</div>
+    </div>
+  </section>
+
+  <!-- 5. Integration -->
+  <section id="integration">
+    <h2><span class="num">5</span>在整个 application 中的集成关系</h2>
+
+    <h3>5.1 模块依赖图</h3>
+    <div class="mermaid">
+flowchart TB
+    subgraph EVAL ["eval/ 包"]
+        RE["run_eval.py<br/>(CLI 入口)"]
+        EV["evaluator.py<br/>Evaluator + 报告生成"]
+        JD["judge.py<br/>Judge + Pydantic"]
+        PR["prompts.py<br/>7 套评分提示词"]
+    end
+
+    subgraph AGENT ["agent/ 包 (application 核心)"]
+        GR["graph.py<br/>LangGraph 流水线"]
+        CF["configuration.py<br/>Configuration + 模型"]
+        BA["base_agent.py<br/>Agent + WebSearchAgent"]
+        PO["post.py<br/>Post.extract_pattern"]
+    end
+
+    APP["src/agent/app.py<br/>(FastAPI 主链路)"]
+
+    RE --> EV
+    EV --> JD
+    EV --> GR
+    EV --> CF
+    JD --> PR
+    JD --> BA
+    JD --> PO
+
+    APP -. 调用 .- GR
+
+    classDef evalNode fill:#1a1530,stroke:#8b5cf6,color:#c4b5fd,stroke-width:1.5px
+    classDef agentNode fill:#0e2438,stroke:#06b6d4,color:#67e8f9,stroke-width:1.5px
+    classDef appNode fill:#0f2a22,stroke:#10b981,color:#6ee7b7,stroke-width:2px
+    classDef subgraphEval fill:#0a0a1a,stroke:#8b5cf6,color:#c4b5fd
+    classDef subgraphAgent fill:#0a1620,stroke:#06b6d4,color:#67e8f9
+
+    class RE,EV,JD,PR evalNode
+    class GR,CF,BA,PO agentNode
+    class APP appNode
+    class EVAL subgraphEval
+    class AGENT subgraphAgent
+    </div>
+
+    <div class="callout">
+      <strong>关键事实</strong>：评估框架<strong>不修改</strong> application 主链路任何文件，<strong>只 import 并调用</strong>。它是 application 的"旁路观察者"。
+      <ul style="margin: 8px 0 0;">
+        <li>改 agent 的 prompt / graph 结构后，可以<strong>直接重跑 eval 看分数变化</strong></li>
+        <li>不会因为跑评估而污染 production 状态（LangGraph 用 <code>thread_id=f"eval-..."</code> 隔离，配置见 <code>evaluator.py:192</code>）</li>
+      </ul>
+    </div>
+
+    <h3>5.2 完整数据流（一次评估的端到端调用链）</h3>
+    <div class="mermaid">
+flowchart TD
+    JSON["test_set.json"]
+    JSON -->|"load_test_set()"| TC["List[TopicCfg]"]
+
+    TC -->|"run_e2e(topics)<br/>run_components(topics)"| EVR["Evaluator"]
+
+    EVR --> INV["_invoke_agent_with_feedback(cfg)"]
+
+    INV --> P1["Phase 1<br/>graph.invoke(topic)"]
+    P1 --> PA["plan_a, plan_messages"]
+
+    PA --> P2["Phase 2<br/>plan_status=confirmed<br/>+ user message"]
+    P2 -->|"unconfirmed"| P3["Phase 3<br/>replan + 继续"]
+    P2 -->|"confirmed / proceed"| FS["FinalState"]
+    P3 --> FS
+
+    FS -->|"report / sources / queries<br/>is_sufficient / plan"| EX["评估对象"]
+
+    EX --> J1["evaluate_report"]
+    EX --> J2["evaluate_plan / queries"]
+    EX --> J3["evaluate_summarization"]
+    EX --> J4["evaluate_critique"]
+    EX --> J5["evaluate_citations"]
+    EX --> J6["evaluate_plan_query_alignment"]
+    EX --> J7["evaluate_plan_reflection"]
+
+    J1 --> CALL["Judge._call(prompt) × 3 重试"]
+    J2 --> CALL
+    J3 --> CALL
+    J4 --> CALL
+    J5 --> CALL
+    J6 --> CALL
+    J7 --> CALL
+
+    CALL -->|"Agent(prompt)<br/>+ Post.extract_pattern<br/>+ json.loads"| PD["Pydantic 评分对象"]
+
+    PD --> REP["EvalReport"]
+    REP --> FMT["format_eval_report<br/>终端摘要"]
+    REP --> SAV["save_eval_report<br/>eval_report_YYYYMMDD_HHMMSS.json"]
+
+    style JSON fill:#1a2236,stroke:#8b5cf6
+    style REP fill:#10b981,color:#fff
+    style SAV fill:#10b981,color:#fff
+    style CALL fill:#1a2236,stroke:#f59e0b
+    </div>
+
+    <h3>5.3 评估框架 vs application 主链路：边界对比</h3>
+    <table>
+      <tr>
+        <th>维度</th>
+        <th>评估框架（旁路观察）</th>
+        <th>主链路（FastAPI）</th>
+      </tr>
+      <tr>
+        <td>触发 agent</td>
+        <td><code>graph.invoke(...)</code> 直接调用</td>
+        <td>HTTP API 异步触发，可能用 checkpoint</td>
+      </tr>
+      <tr>
+        <td>HITL plan 确认</td>
+        <td>模拟两/三阶段：硬编码"需求确认"或 LLM 意图识别</td>
+        <td>真人在前端点确认</td>
+      </tr>
+      <tr>
+        <td>环境变量</td>
+        <td>加载 <code>.env</code> 后调 LLM</td>
+        <td>启动时加载 .env</td>
+      </tr>
+      <tr>
+        <td>Judge 模型</td>
+        <td><strong>建议与 Agent 模型不同</strong>（防止自评偏差）</td>
+        <td>与 Agent 同模型</td>
+      </tr>
+      <tr>
+        <td>报告输出</td>
+        <td>写本地 JSON 文件</td>
+        <td>流式返回到客户端</td>
+      </tr>
+    </table>
+
+    <h3>5.4 关键集成点对照表</h3>
+    <table>
+      <tr><th>集成点</th><th>文件</th><th>作用</th></tr>
+      <tr><td>调用 LangGraph</td><td><code>evaluator.py</code> (L199, 210, 229, 250)</td><td><code>graph.invoke(...)</code> 触发流水线</td></tr>
+      <tr><td>构造 LLM</td><td><code>judge.py</code> (L171)</td><td><code>Agent(model_id=self.model_id)</code></td></tr>
+      <tr><td>抽 JSON</td><td><code>judge.py</code> (L177)</td><td><code>Post.extract_pattern(raw, pattern="json")</code></td></tr>
+      <tr><td>默认 Judge 模型</td><td><code>judge.py</code> (L160)</td><td><code>os.getenv("EVAL_MODEL")</code> / <code>get_judge_model_id()</code></td></tr>
+      <tr><td>配置覆盖</td><td><code>evaluator.py</code> (L192-194)</td><td><code>configurable.thread_id</code> + <code>number_of_initial_queries</code> + <code>max_research_loops</code></td></tr>
+      <tr><td>拦截搜索</td><td><code>evaluator.py</code> (L56-69)</td><td><code>WebSearchAgent.step</code> monkey-patch</td></tr>
+      <tr><td>报告序列化</td><td><code>evaluator.py</code> (L483-491)</td><td><code>pydantic.model_dump</code> → JSON</td></tr>
+    </table>
+
+    <h3>5.5 评分维度的分值分布（评分量纲参考）</h3>
+    <p>以下是用 Canvas 绘制的动态评分仪表盘示例（悬停可见 hover 效果）。</p>
+
+    <div class="figure">
+      <canvas id="scoreCanvas" width="900" height="320"></canvas>
+      <div class="cap">图 4：评分量纲可视化。1–1.9 不可用（红）/ 2.0–2.9 较差（橙）/ 3.0–3.9 合格（青）/ 4.0–5.0 优秀（绿）。</div>
+    </div>
+
+    <h3>5.6 测试用例分布</h3>
+    <div class="figure">
+      <canvas id="topicCanvas" width="900" height="280"></canvas>
+      <div class="cap">图 5：10 个测试用例在「领域 × 难度」上的分布。深色为基础 5 条，浅色为需求澄清 5 条。</div>
+    </div>
+  </section>
+
+  <!-- 6. Scenarios -->
+  <section id="scenarios">
+    <h2><span class="num">6</span>典型场景示例</h2>
+
+    <h3>场景 A · 改完 prompt 看报告质量是否提升</h3>
+<pre><code><span class="com"># 1. baseline</span>
+python -m eval.run_eval --mode e2e --output before.json
+
+<span class="com"># 2. 改完 prompt，重跑</span>
+python -m eval.run_eval --mode e2e --output after.json
+
+<span class="com"># 3. 对比两个 JSON 的 overall_score</span>
+python -c <span class="str">"
+import json
+for f in ['before.json','after.json']:
+    d = json.load(open(f))
+    scores = [r['score']['overall_score'] for r in d['e2e_results'] if r.get('score')]
+    print(f'{f}: avg={sum(scores)/len(scores):.2f} (n={len(scores)})')
+"</span></code></pre>
+
+    <h3>场景 B · 测试 plan 反思节点对"否定反馈"的处理</h3>
+<pre><code>python -m eval.run_eval --mode comp \
+  --topic <span class="str">"规范驱动开发（SDD）与AGENTS.md的关系及最佳实践"</span> \
+  --feedback <span class="str">"这个计划完全不对，我需要的是对比分析SDD与传统开发方法的差异"</span> \
+  --expected-intent replan</code></pre>
+
+    <p>预期：<code>actual_behavior = replan_then_proceed</code>，且 <code>plan_reflection_score</code> 中 <code>feedback_incorporation</code> 评分反映新 plan 是否真正改写了方向。</p>
+
+    <h3>场景 C · 调高搜索强度看边际收益</h3>
+<pre><code><span class="com"># 默认：2 查询 / 2 循环</span>
+python -m eval.run_eval --mode all --output low_effort.json
+
+<span class="com"># 强化：5 查询 / 10 循环</span>
+python -m eval.run_eval --mode all --initial-queries 5 --max-loops 10 --output high_effort.json</code></pre>
+
+    <p>对比两份报告的 <code>information_coverage</code> / <code>factual_accuracy</code> / <code>summarization_scores</code> 均值——评估"搜索强度-质量"的边际收益。</p>
+
+    <h3>场景 D · CI 中作为质量门禁</h3>
+<pre><code><span class="com"># 1. 跑评估</span>
+python -m eval.run_eval --mode comp --topic <span class="str">"xxx"</span> --output ci_report.json
+
+<span class="com"># 2. 解析 overall_score 做阈值检查</span>
+python -c <span class="str">"
+import json, sys
+d = json.load(open('ci_report.json'))
+for r in d['component_results']:
+    if r.get('plan_score') and r['plan_score']['overall_score'] < 3.5:
+        print(f'FAIL: {r[\"topic\"]} plan_score < 3.5')
+        sys.exit(1)
+print('PASS')
+"</span></code></pre>
+
+    <div class="callout warn">
+      <strong>CI 注意事项</strong>：CI 环境需要配置 <code>APP_TOKEN</code> / <code>LLM_BASE_URL</code> / <code>MCP_APP_ID</code> 并有网络访问权限，否则会跑失败。
+    </div>
+
+    <h3>场景对比决策树</h3>
+    <div class="mermaid">
+flowchart TD
+    Q1{想测什么?}
+    Q1 -->|整体报告质量| Q2{e2e 还是 comp?}
+    Q1 -->|某个节点质量| C1["用 <b>comp</b> 模式"]
+    Q1 -->|改完 prompt 是否更好| S1["跑两次对比 JSON<br/>(场景 A)"]
+    Q1 -->|用户反馈处理| S2["comp + --feedback<br/>(场景 B)"]
+    Q1 -->|搜索强度边际收益| S3["不同 --max-loops<br/>(场景 C)"]
+
+    Q2 -->|只看总分| A1["--mode e2e"]
+    Q2 -->|想定位问题节点| A2["--mode comp"]
+
+    classDef question fill:#3a2a10,stroke:#f59e0b,color:#fcd34d,stroke-width:1.5px
+    classDef leaf fill:#1a2236,stroke:#243049,color:#e6edf7
+    classDef scenario fill:#1a1530,stroke:#8b5cf6,color:#c4b5fd,stroke-width:1.5px
+
+    class Q1,Q2 question
+    class C1,A1,A2 leaf
+    class S1,S2,S3 scenario
+    </div>
+  </section>
+
+  <!-- 7. Advanced -->
+  <section id="advanced">
+    <h2><span class="num">7</span>进阶：自定义与排错</h2>
+
+    <h3>7.1 加一个新的评分维度</h3>
+    <ol>
+      <li>在 <code>eval/prompts.py</code> 加一套 <code>XXX_JUDGE_INSTRUCTIONS</code> 模板，结尾强制 JSON 结构</li>
+      <li>在 <code>eval/judge.py</code>：
+        <ul>
+          <li>加 <code>XxxScore(BaseModel)</code> 评分模型</li>
+          <li>加 <code>evaluate_xxx(...)</code> 方法（调用 <code>_safe_format</code> + <code>_call</code> + <code>XxxScore(**result)</code>）</li>
+        </ul>
+      </li>
+      <li>在 <code>eval/evaluator.py</code>：
+        <ul>
+          <li>加 <code>ComponentResult.xxx_score</code> 字段</li>
+          <li>在 <code>_eval_one_topic_components</code> 末尾追加调用</li>
+        </ul>
+      </li>
+      <li>在 <code>eval/evaluator.py:format_eval_report</code> 加打印逻辑</li>
+    </ol>
+
+    <h3>7.2 替换 Judge 模型</h3>
+<pre><code><span class="com"># 方式 1：环境变量（推荐）</span>
+export EVAL_MODEL=qwen3.7-max
+python -m eval.run_eval --mode all
+
+<span class="com"># 方式 2：CLI 参数</span>
+python -m eval.run_eval --mode all --judge-model qwen3.7-max</code></pre>
+
+    <h3>7.3 常见错误与排错</h3>
+    <table>
+      <tr>
+        <th>现象</th>
+        <th>可能原因</th>
+        <th>排查</th>
+      </tr>
+      <tr>
+        <td><code>[Judge] 全部 3 次尝试均失败</code></td>
+        <td>Judge LLM 没返回有效 JSON</td>
+        <td>查 <code>EVAL_MODEL</code> 是否可达；查 prompt 里是否含特殊字符</td>
+      </tr>
+      <tr>
+        <td>终端 <code>错误: xxx</code> 但 JSON 里有 <code>error</code> 字段</td>
+        <td>agent 流水线本身异常</td>
+        <td>看 logger 输出；用 <code>--mode e2e --topic "..."</code> 复现</td>
+      </tr>
+      <tr>
+        <td>报告里 <code>plan_reflection_score</code> 缺失</td>
+        <td>topic 没配 <code>user_feedback</code> + <code>expected_intent</code></td>
+        <td>预期行为，不是 bug</td>
+      </tr>
+      <tr>
+        <td>报告里 <code>citation_score</code> 缺失</td>
+        <td>最终报告太短或没有引用</td>
+        <td>加 <code>--max-loops 3</code> 让 agent 多查几轮</td>
+      </tr>
+      <tr>
+        <td>报告里 <code>plan_query_alignment_score</code> 缺失</td>
+        <td>agent 没生成 plan（被 <code>plan_status</code> 跳过）</td>
+        <td>检查 graph 的 plan 节点逻辑</td>
+      </tr>
+    </table>
+
+    <h3>7.4 调试技巧</h3>
+    <ul>
+      <li><strong>最小复现</strong>：<code>--mode e2e --topic "..."</code> + 单条 topic</li>
+      <li><strong>只看分数不看 JSON</strong>：跑完直接看终端摘要，定位到具体 topic 后再 <code>jq</code> 看 JSON 详情</li>
+      <li><strong>调 prompt</strong>：改 <code>eval/prompts.py</code> 后重跑，<strong>只重跑受影响的那一维度</strong>（比如只改 <code>CITATION_JUDGE_INSTRUCTIONS</code>，就把 JSON 里 <code>citation_score</code> 单独提取对比）</li>
+      <li><strong>跑多次取均值</strong>：每次跑结果会波动（搜索结果 + LLM 生成 + Judge 评分都有随机性），重要评估建议跑 3 次</li>
+    </ul>
+  </section>
+
+  <!-- 8. Appendix -->
+  <section id="appendix">
+    <h2><span class="num">8</span>附录：评分维度一览</h2>
+
+    <h3>端到端（5 维度）</h3>
+    <table>
+      <tr><th>维度</th><th>1 分含义</th><th>5 分含义</th></tr>
+      <tr><td>事实准确性</td><td>大量无依据的陈述或明显错误</td><td>所有关键陈述均有来源支撑，无幻觉</td></tr>
+      <tr><td>信息覆盖度</td><td>仅涉及极少数方面，遗漏严重</td><td>全面覆盖主题所有关键维度</td></tr>
+      <tr><td>逻辑结构</td><td>结构混乱，逻辑断裂</td><td>结构严谨，逻辑清晰，层层递进</td></tr>
+      <tr><td>时效性</td><td>信息陈旧，未考虑时效性</td><td>信息均在近期，充分体现时效性</td></tr>
+      <tr><td>引用质量</td><td>无引用或引用来源为不可信来源</td><td>引用规范，来源可信，标注清晰</td></tr>
+    </table>
+
+    <h3>组件级（7 维度）</h3>
+    <table>
+      <tr><th>维度</th><th>关键字段</th></tr>
+      <tr><td>Plan</td><td><code>requirement_coverage</code> / <code>question_clarity</code> / <code>structure_quality</code></td></tr>
+      <tr><td>Queries</td><td><code>coverage</code> / <code>independence</code> / <code>search_friendliness</code></td></tr>
+      <tr><td>Plan→Query</td><td><code>coverage_consistency</code> / <code>plan_fidelity</code> / <code>structural_decomposition</code> + <code>cross_reference_table</code></td></tr>
+      <tr><td>Summarisation</td><td><code>factual_fidelity</code> / <code>key_info_extraction</code> / <code>source_attribution</code> + <code>hallucinations</code></td></tr>
+      <tr><td>Critique</td><td><code>sufficiency_judgment</code> / <code>gap_identification</code> / <code>follow_up_query_quality</code> + <code>is_sufficiency_correct</code></td></tr>
+      <tr><td>Citations</td><td>逐条审计：<code>valid / weak / content_mismatch / url_not_found</code></td></tr>
+      <tr><td>Plan Reflection</td><td><code>intent_recognition</code> / <code>feedback_incorporation</code> + <code>actual_behavior</code></td></tr>
+    </table>
+
+    <h3>链路诊断表（README 给出）</h3>
+    <table>
+      <tr><th>得分模式</th><th>优化点</th></tr>
+      <tr><td>Plan 低 / Queries 高</td><td>优化 <code>plan_instructions</code></td></tr>
+      <tr><td>Plan 高 / Queries 低</td><td>优化 <code>query_writer_instructions</code></td></tr>
+      <tr><td>Plan→Query 低</td><td>检查 query 是否遵循 plan 边界</td></tr>
+      <tr><td>Summarisation 低</td><td>优化 <code>web_searcher_instructions</code>（幻觉）</td></tr>
+      <tr><td>Critique 低</td><td>优化 <code>reflection_instructions</code> 或调 <code>max_research_loops</code></td></tr>
+      <tr><td>Citations 低</td><td>检查 <code>resolve_urls</code> 映射逻辑</td></tr>
+      <tr><td>Plan Reflection 低</td><td>优化 <code>plan_reflection_instructions</code> 或 <code>PlanReflection</code> schema</td></tr>
+    </table>
+  </section>
+
+</div>
+
+<footer>
+  DeepResearch Agent · 评估打分功能详解 · backend/docs/eval/index.html
+</footer>
+
+<!-- Mermaid init -->
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'dark',
+    themeVariables: {
+      primaryColor: '#1a2236',
+      primaryTextColor: '#e6edf7',
+      primaryBorderColor: '#8b5cf6',
+      lineColor: '#22d3ee',
+      secondaryColor: '#0a1020',
+      tertiaryColor: '#111827',
+      fontFamily: '-apple-system, "PingFang SC", "Microsoft YaHei", sans-serif'
+    },
+    flowchart: { curve: 'basis', padding: 12 },
+    sequence: { actorMargin: 60 }
+  });
+</script>
+
+<!-- Canvas: 评分量纲仪表盘 -->
+<script>
+(function() {
+  const canvas = document.getElementById('scoreCanvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = 900 * dpr;
+  canvas.height = 320 * dpr;
+  canvas.style.width = '900px';
+  canvas.style.height = '320px';
+  ctx.scale(dpr, dpr);
+
+  // background
+  ctx.fillStyle = '#0a1020';
+  ctx.fillRect(0, 0, 900, 320);
+
+  // Title
+  ctx.fillStyle = '#c4b5fd';
+  ctx.font = '600 16px -apple-system, "PingFang SC", sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('评分量纲分布（1–5 分）', 30, 30);
+
+  ctx.fillStyle = '#97a3bd';
+  ctx.font = '12px -apple-system, "PingFang SC", sans-serif';
+  ctx.fillText('总分越接近 5 越好；Judge 强制 clamp 在 [1, 5]', 30, 50);
+
+  // 4 zones
+  const zones = [
+    { label: '不可用', range: '1.0–1.9', from: 0, to: 1.8, color: '#ef4444', hint: '基本事实错误 / 结构严重缺陷' },
+    { label: '较差',  range: '2.0–2.9', from: 1.8, to: 2.8, color: '#f59e0b', hint: '存在明显问题，需要调整 Agent 配置' },
+    { label: '合格',  range: '3.0–3.9', from: 2.8, to: 3.8, color: '#22d3ee', hint: '可用，但有明确改进空间' },
+    { label: '优秀',  range: '4.0–5.0', from: 3.8, to: 5.0, color: '#10b981', hint: '报告质量接近人工撰写' },
+  ];
+
+  const chartX = 60, chartY = 100, chartW = 820, chartH = 90;
+  zones.forEach(z => {
+    const x = chartX + (z.from / 5) * chartW;
+    const w = ((z.to - z.from) / 5) * chartW;
+    ctx.fillStyle = z.color + '33';
+    ctx.fillRect(x, chartY, w, chartH);
+    ctx.strokeStyle = z.color;
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(x, chartY, w, chartH);
+
+    ctx.fillStyle = z.color;
+    ctx.font = '600 14px -apple-system';
+    ctx.textAlign = 'center';
+    ctx.fillText(z.label, x + w/2, chartY + 32);
+
+    ctx.fillStyle = '#97a3bd';
+    ctx.font = '11px -apple-system';
+    ctx.fillText(z.range, x + w/2, chartY + 52);
+
+    ctx.fillStyle = '#e6edf7';
+    ctx.font = '11px -apple-system';
+    ctx.fillText(z.hint, x + w/2, chartY + 72);
+  });
+
+  // Axis
+  ctx.strokeStyle = '#243049';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(chartX, chartY + chartH);
+  ctx.lineTo(chartX + chartW, chartY + chartH);
+  ctx.stroke();
+
+  ctx.fillStyle = '#97a3bd';
+  ctx.font = '10px -apple-system';
+  ctx.textAlign = 'center';
+  for (let i = 0; i <= 5; i++) {
+    const x = chartX + (i / 5) * chartW;
+    ctx.fillText(i.toString(), x, chartY + chartH + 16);
+    ctx.beginPath();
+    ctx.moveTo(x, chartY + chartH);
+    ctx.lineTo(x, chartY + chartH + 4);
+    ctx.stroke();
+  }
+
+  // Sample point (example)
+  const sampleX = chartX + (3.4 / 5) * chartW;
+  ctx.fillStyle = '#fcd34d';
+  ctx.beginPath();
+  ctx.arc(sampleX, chartY + chartH + 30, 6, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#fcd34d';
+  ctx.font = '11px -apple-system';
+  ctx.textAlign = 'center';
+  ctx.fillText('示例：3.4/5', sampleX, chartY + chartH + 50);
+  ctx.fillStyle = '#97a3bd';
+  ctx.font = '10px -apple-system';
+  ctx.fillText('（合格区·偏优秀）', sampleX, chartY + chartH + 65);
+})();
+
+// Canvas: 测试用例分布
+(function() {
+  const canvas = document.getElementById('topicCanvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = 900 * dpr;
+  canvas.height = 280 * dpr;
+  canvas.style.width = '900px';
+  canvas.style.height = '280px';
+  ctx.scale(dpr, dpr);
+
+  ctx.fillStyle = '#0a1020';
+  ctx.fillRect(0, 0, 900, 280);
+
+  ctx.fillStyle = '#c4b5fd';
+  ctx.font = '600 16px -apple-system';
+  ctx.textAlign = 'left';
+  ctx.fillText('测试用例分布：领域 × 难度', 30, 30);
+
+  const topics = [
+    { name: 'AI编程助手',    domain: '科技',     diff: 'medium', base: true },
+    { name: '人民币汇率',    domain: '金融',     diff: 'medium', base: true },
+    { name: '特斯拉FSD',     domain: '政策',     diff: 'medium', base: true },
+    { name: '半导体供应链',  domain: '产业',     diff: 'high',   base: true },
+    { name: 'SDD+AGENTS.md', domain: '方法论',   diff: 'low',    base: true },
+    { name: '+确认反馈',     domain: '科技',     diff: 'medium', base: false },
+    { name: '+市场替换',     domain: '金融',     diff: 'medium', base: false },
+    { name: '+补充需求',     domain: '政策',     diff: 'medium', base: false },
+    { name: '+极简确认',     domain: '产业',     diff: 'high',   base: false },
+    { name: '+否定反馈',     domain: '方法论',   diff: 'low',    base: false },
+  ];
+
+  const domains = ['科技', '金融', '政策', '产业', '方法论'];
+  const diffs   = ['low', 'medium', 'high'];
+  const diffLabel = { low: '低', medium: '中', high: '高' };
+  const diffY = { low: 80, medium: 140, high: 200 };
+
+  const x0 = 100, xStep = 160;
+
+  // Axes
+  ctx.strokeStyle = '#243049';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(x0 - 20, 50);
+  ctx.lineTo(x0 - 20, 250);
+  ctx.moveTo(x0 - 20, 250);
+  ctx.lineTo(x0 + 800, 250);
+  ctx.stroke();
+
+  // Y labels
+  ctx.fillStyle = '#97a3bd';
+  ctx.font = '11px -apple-system';
+  ctx.textAlign = 'right';
+  diffs.forEach(d => {
+    ctx.fillText('难度：' + diffLabel[d], x0 - 28, diffY[d] + 4);
+  });
+
+  // X labels
+  ctx.textAlign = 'center';
+  domains.forEach((dm, i) => {
+    ctx.fillStyle = '#97a3bd';
+    ctx.fillText(dm, x0 + i * xStep + 60, 270);
+  });
+
+  // Draw bubbles
+  topics.forEach(t => {
+    const di = domains.indexOf(t.domain);
+    const y = diffY[t.diff];
+    // base topics get solid, reflection ones get outlined + offset
+    const baseX = x0 + di * xStep + 40;
+    const x = t.base ? baseX : baseX + 30;
+
+    ctx.fillStyle = t.base ? '#8b5cf6' : 'rgba(139,92,246,0.2)';
+    ctx.strokeStyle = '#8b5cf6';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(x, y, t.base ? 12 : 11, 0, Math.PI * 2);
+    ctx.fill();
+    if (!t.base) ctx.stroke();
+
+    ctx.fillStyle = t.base ? '#fff' : '#c4b5fd';
+    ctx.font = '600 11px -apple-system';
+    ctx.textAlign = 'center';
+    ctx.fillText(t.base ? 'B' : 'R', x, y + 4);
+
+    // Label
+    ctx.fillStyle = '#e6edf7';
+    ctx.font = '11px -apple-system';
+    ctx.fillText(t.name, x, y - 22);
+  });
+
+  // Legend
+  ctx.fillStyle = '#8b5cf6';
+  ctx.beginPath();
+  ctx.arc(770, 60, 8, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#e6edf7';
+  ctx.font = '11px -apple-system';
+  ctx.textAlign = 'left';
+  ctx.fillText('B 基础 5 条', 785, 64);
+
+  ctx.fillStyle = 'rgba(139,92,246,0.2)';
+  ctx.strokeStyle = '#8b5cf6';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(770, 84, 8, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = '#e6edf7';
+  ctx.fillText('R 需求澄清 5 条', 785, 88);
+})();
+</script>
+
+</body>
+</html>

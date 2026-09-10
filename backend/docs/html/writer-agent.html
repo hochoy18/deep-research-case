@@ -1,0 +1,1246 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>WriterAgent 子图详解 · Deep Research</title>
+<!-- Mermaid -->
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<style>
+  :root {
+    --bg-0: #0b0f1a;
+    --bg-1: #111827;
+    --bg-2: #1a2236;
+    --line: #243049;
+    --text: #e6edf7;
+    --muted: #97a3bd;
+    --primary: #8b5cf6;
+    --primary-2: #6366f1;
+    --accent: #22d3ee;
+    --accent-2: #06b6d4;
+    --warn: #f59e0b;
+    --ok: #10b981;
+    --danger: #ef4444;
+    --code-bg: #0a1020;
+    --shadow: 0 10px 30px rgba(0,0,0,.35);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+                 "Microsoft YaHei", Roboto, Helvetica, Arial, sans-serif;
+    background:
+      radial-gradient(1200px 600px at 10% -10%, rgba(139,92,246,.18), transparent 60%),
+      radial-gradient(1000px 500px at 110% 10%, rgba(34,211,238,.15), transparent 60%),
+      var(--bg-0);
+    color: var(--text);
+    line-height: 1.7;
+    min-height: 100vh;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .hero {
+    padding: 56px 16px 32px;
+    text-align: center;
+    border-bottom: 1px solid var(--line);
+    background: linear-gradient(180deg, rgba(139,92,246,.10), transparent 60%);
+  }
+  .hero .badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 999px;
+    background: rgba(139,92,246,.18);
+    color: #c4b5fd;
+    border: 1px solid rgba(139,92,.35);
+    font-size: 12px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+  .hero h1 {
+    margin: 0 0 8px;
+    font-size: clamp(28px, 4vw, 42px);
+    letter-spacing: -0.5px;
+    background: linear-gradient(90deg, #c4b5fd, #67e8f9);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .hero p.lead { color: var(--muted); margin: 0 auto; max-width: 760px; }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 260px minmax(0, 1fr);
+    gap: 24px;
+    max-width: 1320px;
+    margin: 0 auto;
+    padding: 32px 16px;
+  }
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; }
+    .toc { position: static !important; }
+  }
+
+  .toc {
+    position: sticky;
+    top: 24px;
+    align-self: start;
+    background: linear-gradient(180deg, var(--bg-1), var(--bg-2));
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 16px 18px;
+    box-shadow: var(--shadow);
+    max-height: calc(100vh - 48px);
+    overflow: auto;
+  }
+  .toc h3 {
+    margin: 0 0 10px;
+    font-size: 13px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+  }
+  .toc ol { margin: 0; padding-left: 20px; }
+  .toc li { margin: 6px 0; }
+  .toc a { color: var(--text); font-size: 14px; }
+  .toc a:hover { color: var(--accent); }
+
+  .content { min-width: 0; }
+  section {
+    background: linear-gradient(180deg, var(--bg-1), var(--bg-2));
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 24px 26px;
+    box-shadow: var(--shadow);
+    margin-bottom: 22px;
+  }
+  section h2 {
+    margin-top: 0;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--line);
+    font-size: 22px;
+    letter-spacing: -0.2px;
+  }
+  section h3 { margin-top: 22px; font-size: 17px; color: #c7d2fe; }
+  section h4 { margin-top: 16px; font-size: 15px; color: #a5b4fc; }
+  section p { color: var(--text); }
+  .muted { color: var(--muted); }
+
+  code {
+    font-family: "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+    background: var(--code-bg);
+    border: 1px solid var(--line);
+    padding: 1px 6px;
+    border-radius: 6px;
+    font-size: 13px;
+  }
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 14px 16px;
+    overflow: auto;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  pre code { background: none; border: none; padding: 0; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 14px 0;
+    font-size: 14px;
+  }
+  th, td {
+    border: 1px solid var(--line);
+    padding: 8px 12px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th { background: rgba(139,92,246,.10); color: #c4b5fd; }
+  tbody tr:nth-child(even) { background: rgba(255,255,255,.02); }
+
+  .pill {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    margin-right: 6px;
+    border: 1px solid var(--line);
+    background: rgba(255,255,255,.04);
+    color: var(--muted);
+  }
+  .pill.ok    { color: var(--ok);    border-color: rgba(16,185,129,.35); background: rgba(16,185,129,.10); }
+  .pill.warn  { color: var(--warn);  border-color: rgba(245,158,11,.35); background: rgba(245,158,11,.10); }
+  .pill.danger{ color: var(--danger);border-color: rgba(239,68,68,.35);  background: rgba(239,68,68,.10); }
+  .pill.info  { color: var(--accent);border-color: rgba(34,211,238,.35); background: rgba(34,211,238,.10); }
+
+  .mermaid {
+    background: rgba(255,255,255,.02);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 16px;
+    margin: 14px 0;
+    text-align: center;
+    overflow: auto;
+  }
+
+  .callout {
+    border-left: 3px solid var(--accent);
+    background: rgba(34,211,238,.06);
+    padding: 12px 16px;
+    border-radius: 0 8px 8px 0;
+    margin: 14px 0;
+  }
+  .callout.warn { border-color: var(--warn); background: rgba(245,158,11,.06); }
+  .callout.tip  { border-color: var(--ok); background: rgba(16,185,129,.06); }
+
+  footer {
+    text-align: center;
+    color: var(--muted);
+    font-size: 13px;
+    padding: 24px 16px 40px;
+  }
+
+  section[id] { scroll-margin-top: 16px; }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="badge">Deep Research · Sub-Agent</div>
+  <h1>WriterAgent 子图详解</h1>
+  <p class="lead">写作 + Critic 辩论循环：outline → draft ↔ critic_review → cite_and_polish</p>
+</div>
+
+<div class="layout">
+
+  <!-- ========== 目录 ========== -->
+  <aside class="toc">
+    <h3>目录</h3>
+    <ol>
+      <li><a href="#overview">一、文件结构</a></li>
+      <li><a href="#big-picture">二、整体流程图（子图全貌）</a></li>
+      <li><a href="#outline">三、_outline：生成大纲</a></li>
+      <li><a href="#draft">四、_draft：写草稿（含修订逻辑）</a></li>
+      <li><a href="#critic">五、_critic_review：Critic 审稿</a></li>
+      <li><a href="#route">六、_route_after_critic：四重退出保险</a></li>
+      <li><a href="#polish">七、_cite_and_polish：终稿润色</a></li>
+      <li><a href="#graph">八、图构建与边定义</a></li>
+      <li><a href="#state-flow">九、state 字段读写映射</a></li>
+      <li><a href="#debate-loop">十、辩论循环状态机</a></li>
+      <li><a href="#url-replace">十一、短 URL 替换机制</a></li>
+      <li><a href="#stream">十二、流式输出链路</a></li>
+      <li><a href="#sequence">十三、完整时序图</a></li>
+      <li><a href="#design">十四、设计要点与风险</a></li>
+    </ol>
+  </aside>
+
+  <main class="content">
+
+    <!-- ========== 一、文件结构 ========== -->
+    <section id="overview">
+      <h2>一、文件结构</h2>
+      <p>文件 <code>writer_agent.py</code> 共 313 行，结构如下：</p>
+
+      <div class="mermaid">
+flowchart LR
+    A["writer_agent.py<br/>(313 行)"] --> B["常量与导入<br/>:1-46"]
+    A --> C["节点实现<br/>:48-283"]
+    A --> D["图构建<br/>:286-308"]
+
+    C --> C1["_outline<br/>:52-71"]
+    C --> C2["_draft<br/>:74-116"]
+    C --> C3["_critic_review<br/>:119-178"]
+    C --> C4["_route_after_critic<br/>:181-233"]
+    C --> C5["_cite_and_polish<br/>:236-283"]
+
+    D --> F["writer_agent_graph<br/>:308"]
+
+    style F fill:#0a4f3a,stroke:#10b981,color:#e6edf7
+      </div>
+
+      <h3>节点调用关系</h3>
+      <div class="mermaid">
+flowchart LR
+    O["_outline<br/>(:52)"] --> D1["_draft<br/>(:74)"]
+    D1 --> C["_critic_review<br/>(:119)"]
+    C --> R["_route_after_critic<br/>(:181)"]
+    R -->|"通过"| P["_cite_and_polish<br/>(:236)"]
+    R -->|"不通过"| D2["_draft 修订<br/>(:74)"]
+    D2 --> C
+
+    style O fill:#1a2236,stroke:#8b5cf6,color:#e6edf7
+    style D1 fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+    style D2 fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+    style C fill:#1a3a2a,stroke:#10b981,color:#e6edf7
+    style P fill:#0a4f3a,stroke:#10b981,color:#e6edf7
+      </div>
+
+      <h3>节点角色对比</h3>
+      <table>
+        <thead><tr><th>节点</th><th>角色</th><th>LLM 类型</th><th>调用次数</th></tr></thead>
+        <tbody>
+          <tr><td>_outline</td><td>规划者</td><td><code>Agent.astep</code></td><td>1 次</td></tr>
+          <tr><td>_draft</td><td>写作者（首版/修订）</td><td><code>Agent.astep</code></td><td>1 ~ (max_revisions+1) 次</td></tr>
+          <tr><td>_critic_review</td><td>审稿者</td><td><code>JsonAgent.astep</code></td><td>1 ~ (max_revisions+1) 次</td></tr>
+          <tr><td>_route_after_critic</td><td>路由器（同步，无 LLM）</td><td>—</td><td>—</td></tr>
+          <tr><td>_cite_and_polish</td><td>润色者（流式）</td><td><code>Agent.astream_step</code></td><td>1 次</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ========== 二、整体流程图 ========== -->
+    <section id="big-picture">
+      <h2>二、整体流程图（子图全貌）</h2>
+      <p>这是 WriterAgent 子图的<strong>完整执行路径</strong>。注意 draft 和 critic_review 之间的循环。</p>
+
+      <div class="mermaid">
+flowchart TD
+    START(["START"]) --> OUT["_outline<br/>生成大纲<br/>(一次性)"]
+    OUT --> D1["_draft<br/>首版草稿<br/>revision_count=0"]
+    D1 --> CR1["_critic_review<br/>第 1 次审稿"]
+    CR1 --> R{"_route_after_critic<br/>四重保险决策"}
+
+    R -->|"ready=True"| P1["_cite_and_polish"]
+    R -->|"score>=8.0"| P1
+    R -->|"score>=6.0<br/>AND revision>=1"| P1
+    R -->|"revision>=max_revisions=3"| P1
+    R -->|"以上都不满足"| D2["_draft<br/>第 2 次修订<br/>revision_count=1<br/>注入 critic_feedback"]
+
+    D2 --> CR2["_critic_review<br/>第 2 次审稿"]
+    CR2 --> R
+    CR2 -. "若仍不通过" .-> D3["_draft<br/>第 3 次修订<br/>revision_count=2"]
+    D3 -. "..." .-> CR3["_critic_review<br/>第 3 次审稿"]
+    CR3 -. "若仍不通过" .-> D4["_draft<br/>第 4 次修订<br/>revision_count=3"]
+    D4 -. "达到 max_revisions" .-> CR4["_critic_review<br/>第 4 次审稿"]
+    CR4 -. "强制退出" .-> P2["_cite_and_polish"]
+
+    P1 --> END(["END<br/>→ 父图 finalize_answer"])
+    P2 --> END
+
+    style OUT fill:#1a2236,stroke:#8b5cf6,color:#e6edf7
+    style D1 fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+    style D2 fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+    style CR1 fill:#1a3a2a,stroke:#10b981,color:#e6edf7
+    style CR2 fill:#1a3a2a,stroke:#10b981,color:#e6edf7
+    style P1 fill:#0a4f3a,stroke:#10b981,color:#e6edf7
+    style P2 fill:#0a4f3a,stroke:#10b981,color:#e6edf7
+    style END fill:#0a4f3a,stroke:#10b981,color:#e6edf7
+      </div>
+
+      <div class="callout">
+        <strong>关键观察</strong>：理论上最多执行 4 次 <code>draft</code>（首版 + 3 次修订）+ 4 次 <code>critic_review</code>，
+        然后强制进入 <code>cite_and_polish</code>。
+      </div>
+    </section>
+
+    <!-- ========== 三、_outline ========== -->
+    <section id="outline">
+      <h2>三、_outline：生成大纲（:52-71）</h2>
+
+      <h3>核心代码</h3>
+      <pre><code>async def _outline(state, config):
+    """Generate a structured report outline from the research topic and plan."""
+    reasoning_model = state.get("reasoning_model") or configurable.answer_model
+
+    agent = Agent(model_id=reasoning_model)
+    agent.set_step_prompt(outline_instructions)
+
+    raw = await agent.astep(
+        research_topic=get_research_topic(state["messages"]),
+        research_proposal=state.get("plan", ""),
+        summaries="\n---\n\n".join(state["web_search_result"]),
+    )
+    outline = Post.extract_pattern(raw, pattern="markdown")
+
+    return {
+        "report_outline": outline,        # 新增：报告大纲
+        "revision_count": 0,               # 新增：修订计数（初始化为 0）
+        "max_revisions": DEFAULT_MAX_REVISIONS,  # 新增：修订上限（默认 3）
+    }</code></pre>
+
+      <h3>数据流图</h3>
+      <div class="mermaid">
+flowchart LR
+    A["state.web_search_result<br/>(list of summaries)"] -->|"join with ---"| B["单字符串<br/>'sum1\\n---\\n\\nsum2\\n---\\n\\nsum3'"]
+    A2["state.messages"] --> C["get_research_topic()"]
+    A3["state.plan"] --> D["research_proposal"]
+    B --> E["Agent.astep<br/>prompt=outline_instructions"]
+    C --> E
+    D --> E
+    E -->|"raw LLM output"| F["Post.extract_pattern<br/>(markdown)"]
+    F --> G["state.report_outline"]
+
+    H["state.reasoning_model"] -->|"or configurable.answer_model"| I["model_id"]
+
+    style G fill:#0a4f3a,stroke:#10b981,color:#e6edf7
+      </div>
+
+      <h3>写入的 state 字段</h3>
+      <table>
+        <thead><tr><th>字段</th><th>类型</th><th>初值</th><th>下游消费者</th></tr></thead>
+        <tbody>
+          <tr><td><code>report_outline</code></td><td>str (markdown)</td><td>LLM 输出的 outline</td><td>_draft（作为 prompt 注入）</td></tr>
+          <tr><td><code>revision_count</code></td><td>int</td><td>0</td><td>_route_after_critic（判断是否到上限）</td></tr>
+          <tr><td><code>max_revisions</code></td><td>int</td><td>3 (DEFAULT_MAX_REVISIONS)</td><td>_route_after_critic</td></tr>
+        </tbody>
+      </table>
+
+      <div class="callout tip">
+        <strong>只执行 1 次</strong>：<code>outline</code> 节点只执行一次（无循环），
+        后续修订（<code>_draft</code> 重入）时，<code>report_outline</code> 不变，<code>revision_count</code> 递增。
+      </div>
+    </section>
+
+    <!-- ========== 四、_draft ========== -->
+    <section id="draft">
+      <h2>四、_draft：写草稿（:74-116）</h2>
+      <p>同一个节点承担两种角色：<strong>首版草稿</strong> 和 <strong>修订草稿</strong>，通过 <code>critic_feedback</code> 区分。</p>
+
+      <h3>核心代码</h3>
+      <pre><code>async def _draft(state, config):
+    """Draft (or revise) the full report following the outline."""
+    reasoning_model = state.get("reasoning_model") or configurable.answer_model
+    feedback = state.get("critic_feedback", "")          # ★ 上轮 Critic 反馈
+    outline_text = state.get("report_outline", "")
+    is_revision = bool(feedback)                          # ★ 有 feedback 即为修订
+    revision = state.get("revision_count", 0) + (1 if is_revision else 0)
+
+    if is_revision:
+        revision_context = (
+            f"\n# 修订说明 (第 {revision} 次修订)\n"
+            f"请根据以下审稿意见修改上一版草稿：\n\n"
+            f"{feedback}\n\n"
+            f"请逐条处理上述问题，优先修复 critical 和 major 级别的问题。"
+            f"保留上版草稿中审稿人没有异议的内容。\n"
+        )
+        return_update = {"revision_count": revision, "critic_feedback": ""}
+    else:
+        revision_context = ""
+        return_update = {}
+
+    agent = Agent(model_id=reasoning_model)
+    agent.set_step_prompt(draft_instructions)
+    raw = await agent.astep(
+        current_date=...,
+        research_topic=...,
+        research_proposal=...,
+        outline=outline_text,
+        summaries="\n---\n\n".join(state["web_search_result"]),
+        revision_context=revision_context,                # 修订模式下注入审稿意见
+    )
+    draft = Post.extract_pattern(raw, pattern="markdown")
+
+    return {**return_update, "report_draft": draft}</code></pre>
+
+      <h3>首版 vs 修订 对比图</h3>
+      <div class="mermaid">
+flowchart TD
+    subgraph First["首版（is_revision=False）"]
+        F1["feedback = ''"] --> F2["revision_context = ''"]
+        F2 --> F3["return_update = {}<br/>(不更新 revision_count)"]
+        F3 --> F4["Agent.astep<br/>prompt=draft_instructions<br/>(仅用 outline 写)"]
+        F4 --> F5["return report_draft"]
+    end
+
+    subgraph Revision["修订（is_revision=True）"]
+        R1["feedback = critic 上轮反馈"] --> R2["revision_count + 1"]
+        R2 --> R3["revision_context =<br/>'# 修订说明 (第 N 次修订)'<br/>+ feedback"]
+        R3 --> R4["return_update = {<br/>revision_count: N,<br/>critic_feedback: ''<br/>(清空 feedback)"]
+        R4 --> R5["Agent.astep<br/>prompt=draft_instructions<br/>(注入 revision_context)"]
+        R5 --> R6["return report_draft"]
+    end
+      </div>
+
+      <h3>关键的 state 操作</h3>
+      <div class="mermaid">
+flowchart LR
+    A["首版"] -->|"不写"| B["revision_count"]
+    A -->|"写"| C["report_draft"]
+    A -->|"不写"| D["critic_feedback"]
+
+    E["修订"] -->|"写"| B["revision_count (N+1)"]
+    E -->|"写"| C["report_draft (新版本)"]
+    E -->|"清空"| D["critic_feedback (→ '')"]
+
+    style C fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+      </div>
+
+      <h3>Prompt 注入差异</h3>
+      <table>
+        <thead><tr><th>prompt 字段</th><th>首版</th><th>修订</th></tr></thead>
+        <tbody>
+          <tr><td><code>outline</code></td><td>✓</td><td>✓（不变）</td></tr>
+          <tr><td><code>summaries</code></td><td>✓</td><td>✓（不变）</td></tr>
+          <tr><td><code>research_topic</code></td><td>✓</td><td>✓（不变）</td></tr>
+          <tr><td><code>revision_context</code></td><td>空字符串</td><td><code># 修订说明 (第 N 次修订)\n + feedback</code></td></tr>
+        </tbody>
+      </table>
+
+      <div class="callout warn">
+        <strong>完整重写</strong>：修订模式下，<code>_draft</code> 仍然让 LLM <strong>输出完整报告</strong>
+        （而非增量修改），只是在 prompt 中注入"修订说明"引导 LLM 基于上版修改。
+      </div>
+    </section>
+
+    <!-- ========== 五、_critic_review ========== -->
+    <section id="critic">
+      <h2>五、_critic_review：Critic 审稿（:119-178）</h2>
+      <p>用 <code>JsonAgent</code> + <code>CritiqueResult</code> schema 输出结构化评分。</p>
+
+      <h3>核心代码</h3>
+      <pre><code>async def _critic_review(state, config):
+    """Critic reviews the draft and returns structured feedback."""
+    reasoning_model = state.get("reasoning_model") or configurable.answer_model
+    draft_text = state.get("report_draft", "")
+
+    agent = JsonAgent(model_id=reasoning_model, keys=CritiqueResult)
+    agent.set_step_prompt(critic_review_instructions)
+    result = await agent.astep(
+        research_topic=...,
+        research_proposal=...,
+        summaries=...,
+        draft=draft_text,
+    )
+
+    # 降级：Critic LLM 失败 → 直接放行
+    if not isinstance(result, CritiqueResult):
+        return {
+            "critic_feedback": "",
+            "critic_score": 8.0,
+            "ready_for_polish": True,
+        }
+
+    # 格式化 issues 为文本
+    if result.issues:
+        issues_text = "\n".join(
+            f"- [{iss.severity.upper()}] {iss.location}: {iss.problem}\n"
+            f"  建议: {iss.suggestion}"
+            for iss in result.issues
+        )
+    else:
+        issues_text = "无明显问题。"
+
+    feedback = (
+        f"## 审稿评分: {result.overall_rating}/10\n"
+        f"## 综合评价: {result.summary}\n\n"
+        f"## 具体问题:\n{issues_text}"
+    )
+
+    return {
+        "critic_feedback": feedback,
+        "critic_score": result.overall_rating,
+        "ready_for_polish": result.ready_for_polish,
+    }</code></pre>
+
+      <h3>输入输出图</h3>
+      <div class="mermaid">
+flowchart LR
+    A["state.report_draft<br/>(string)"] --> C
+    A2["state.messages<br/>(research_topic)"] --> C
+    A3["state.plan<br/>(research_proposal)"] --> C
+    A4["state.web_search_result<br/>(summaries)"] --> C
+
+    C["JsonAgent.astep<br/>keys=CritiqueResult<br/>prompt=critic_review_instructions"] --> D{"isinstance?<br/>CritiqueResult"}
+
+    D -->|"否<br/>(LLM 失败)"| E1["fallback:<br/>score=8.0<br/>ready=True<br/>feedback=''"]
+    D -->|"是"| E2["格式化 feedback"]
+
+    E2 --> F["state.critic_feedback<br/>(string)"]
+    E1 --> G["state.critic_score"]
+    E2 --> G
+    E1 --> H["state.ready_for_polish"]
+    E2 --> H
+
+    style F fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+    style G fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+    style H fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+      </div>
+
+      <h3>CritiqueResult schema（推测）</h3>
+      <pre><code>class Issue(TypedDict):
+    severity: Literal["critical", "major", "minor"]   # 问题严重度
+    location: str                                       # 问题位置（章节/段落）
+    problem: str                                        # 问题描述
+    suggestion: str                                     # 修改建议
+
+class CritiqueResult(TypedDict):
+    overall_rating: float         # 0-10 评分
+    summary: str                  # 综合评价
+    issues: list[Issue]           # 问题列表
+    ready_for_polish: bool        # Critic 自评：是否可发布</code></pre>
+
+      <h3>反馈文本格式示例</h3>
+      <pre><code>## 审稿评分: 6.5/10
+## 综合评价: 报告整体结构清晰，但数据来源单一，关键结论缺乏支撑。
+
+## 具体问题:
+- [CRITICAL] 第三章：核心数据未标注来源年份
+  建议: 补充具体数据的时间点，注明数据来源是 2024 还是 2025
+- [MAJOR] 第五章：图表缺失
+  建议: 增加市场规模趋势图，提升可读性
+- [MINOR] 引言：第一段过长
+  建议: 拆分引言段落，前 3 句即可</code></pre>
+
+      <h3>Issues 严重度分布</h3>
+      <div class="mermaid">
+flowchart LR
+    A["Issues 列表"] --> B["critical"]
+    A --> C["major"]
+    A --> D["minor"]
+    B -->|"问题严重<br/>必须修复"| E["_draft 修订<br/>优先处理"]
+    C -->|"重要问题"| E
+    D -->|"次要问题<br/>可保留"| F["_cite_and_polish"]
+
+    style B fill:#4a1414,stroke:#ef4444,color:#fecaca
+    style C fill:#4a3a14,stroke:#f59e0b,color:#fde68a
+    style D fill:#3a4a14,stroke:#84cc16,color:#ecfccb
+      </div>
+    </section>
+
+    <!-- ========== 六、四重退出保险 ========== -->
+    <section id="route">
+      <h2>六、_route_after_critic：四重退出保险（:181-233）</h2>
+      <p>这是<strong>同步函数</strong>（无 LLM 调用），仅根据 state 决定下一步节点。</p>
+
+      <h3>核心代码</h3>
+      <pre><code>def _route_after_critic(state, config) -> str:
+    """决定：继续修改或进入终审润色。
+
+    三重退出保险（设计理由：不能完全信任 LLM Critic 的自评，
+    Critic 和 Writer 可能共用同一模型，存在"自己审自己"的偏差）：
+      1. Critic 明确标记 ready_for_polish — LLM 判断质量合格
+      2. critic_score >= 8.0 — 质量达标，即使 Critic 标记未 ready 也提前退出
+      3. critic_score >= 6.0 且 revision_count >= 1 — 至少改过一次且评分及格
+      4. revision_count >= max_revisions — 安全兜底，强制退出
+    """
+    revision = state.get("revision_count", 0)
+    max_rev = state.get("max_revisions", DEFAULT_MAX_REVISIONS)
+    ready = state.get("ready_for_polish", False)
+    score = state.get("critic_score", 0.0)
+
+    if ready:                return _CITE_AND_POLISH   # 条件 1
+    if score >= 8.0:         return _CITE_AND_POLISH   # 条件 2
+    if score >= 6.0 and revision >= 1: return _CITE_AND_POLISH  # 条件 3
+    if revision >= max_rev:  return _CITE_AND_POLISH   # 条件 4
+    return _DRAFT                                       # 否则回 draft 修订</code></pre>
+
+      <h3>决策流程图（精确）</h3>
+      <div class="mermaid">
+flowchart TD
+    A["_route_after_critic 开始"] --> B{"ready_for_polish<br/>== True?"}
+    B -->|"True"| C1["返回 _CITE_AND_POLISH<br/>★ 条件 1"]
+
+    B -->|"False"| D{"critic_score<br/>>= 8.0?"}
+    D -->|"True"| C2["返回 _CITE_AND_POLISH<br/>★ 条件 2"]
+    D -->|"False"| E{"critic_score >= 6.0<br/>AND<br/>revision_count >= 1?"}
+    E -->|"True"| C3["返回 _CITE_AND_POLISH<br/>★ 条件 3"]
+    E -->|"False"| F{"revision_count<br/>>= max_revisions?"}
+    F -->|"True"| C4["返回 _CITE_AND_POLISH<br/>★ 条件 4"]
+    F -->|"False"| G["返回 _DRAFT<br/>(回草稿修订)"]
+
+    C1 --> END([cite_and_polish])
+    C2 --> END
+    C3 --> END
+    C4 --> END
+    G --> LOOP([draft 修订])
+
+    style C1 fill:#0a4f3a,stroke:#10b981,color:#e6edf7
+    style C2 fill:#0a4f3a,stroke:#10b981,color:#e6edf7
+    style C3 fill:#0a4f3a,stroke:#10b981,color:#e6edf7
+    style C4 fill:#0a4f3a,stroke:#10b981,color:#e6edf7
+    style G fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+      </div>
+
+      <h3>四重保险的真实触发场景</h3>
+      <table>
+        <thead><tr><th>条件</th><th>触发场景</th><th>典型数据</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>条件 1：<code>ready=True</code></td>
+            <td>Critic LLM 自评说"可以发布"</td>
+            <td><code>ready=True, score=7.0</code></td>
+          </tr>
+          <tr>
+            <td>条件 2：<code>score >= 8.0</code></td>
+            <td>Critic 评分高但忘了置 ready</td>
+            <td><code>ready=False, score=8.5</code></td>
+          </tr>
+          <tr>
+            <td>条件 3：<code>score >= 6.0 AND revision >= 1</code></td>
+            <td>Critic 觉得还行但不够好，已经改过 1 次</td>
+            <td><code>ready=False, score=7.0, revision=1</code></td>
+          </tr>
+          <tr>
+            <td>条件 4：<code>revision >= max_revisions</code></td>
+            <td>Critic 永远不满足（最多改 3 次强制退出）</td>
+            <td><code>ready=False, score=4.0, revision=3</code></td>
+          </tr>
+          <tr>
+            <td>回 draft</td>
+            <td>以上都不满足</td>
+            <td><code>ready=False, score=4.0, revision=0</code></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>防御矩阵</h3>
+      <div class="mermaid">
+flowchart LR
+    subgraph Risks["潜在风险"]
+        R1["Critic LLM 自评偏差<br/>（永远 ready=False）"]
+        R2["Critic 与 Writer 共用模型<br/>→ 自己审自己"]
+        R3["LLM 评分不稳定<br/>（同分反复）"]
+    end
+
+    subgraph Defenses["四重保险防御"]
+        D1["条件 1：<br/>LLM 自评"]
+        D2["条件 2：<br/>硬阈值 8.0"]
+        D3["条件 3：<br/>软阈值 6.0 +<br/>至少改过一次"]
+        D4["条件 4：<br/>强制上限 3"]
+    end
+
+    R1 -.->|突破| D2
+    R2 -.->|突破| D4
+    R3 -.->|突破| D3
+      </div>
+    </section>
+
+    <!-- ========== 七、_cite_and_polish ========== -->
+    <section id="polish">
+      <h2>七、_cite_and_polish：终稿润色（:236-283）</h2>
+      <p>这是<strong>唯一流式</strong>的 WriterAgent 节点。两个步骤：LLM 润色 + 短 URL 替换。</p>
+
+      <h3>核心代码</h3>
+      <pre><code>async def _cite_and_polish(state, config):
+    """Finalise: LLM polish + replace short URLs with real URLs + deduplicate sources."""
+    reasoning_model = state.get("reasoning_model") or configurable.answer_model
+    draft_text = state.get("report_draft", "")
+
+    # Step A — LLM polish pass (流式)
+    agent = Agent(model_id=reasoning_model)
+    agent.set_step_prompt(polish_instructions)
+
+    emit_token = config.get("configurable", {}).get("_emit_token")
+    if emit_token:
+        async def on_token(text: str) -> None:
+            await emit_token(text, "cite_and_polish")
+        raw = await agent.astream_step(on_token, ...)
+    else:
+        raw = await agent.astep(...)
+
+    polished = Post.extract_pattern(raw, pattern="markdown")
+
+    # Step B — 短 URL → 真实 URL + 来源去重
+    unique_sources = []
+    for source in state.get("sources_gathered", []):
+        if source["short_url"] in polished:
+            polished = polished.replace(source["short_url"], source["value"])
+            unique_sources.append(source)
+
+    return {
+        "messages": [AIMessage(content=polished)],     # 最终报告
+        "sources_gathered": unique_sources,             # 去重后的引用源
+    }</code></pre>
+
+      <h3>完整流程图</h3>
+      <div class="mermaid">
+flowchart TD
+    A["进入 _cite_and_polish"] --> B{"config._emit_token<br/>存在?"}
+
+    B -->|"是"| C1["构造 on_token(text):<br/>await emit_token(text, 'cite_and_polish')"]
+    B -->|"否"| C2["跳过 on_token"]
+
+    C1 --> D["Agent.astream_step(on_token, ...)<br/>流式 LLM 调用"]
+    C2 --> E["Agent.astep(...)<br/>非流式 LLM 调用"]
+
+    D --> F["Post.extract_pattern<br/>(markdown)"]
+    E --> F
+
+    F --> G["polished: str"]
+
+    G --> H["遍历 state.sources_gathered"]
+    H --> I{"source.short_url<br/>in polished?"}
+    I -->|"否 (未引用)"| H
+    I -->|"是 (被引用)"| J["polished = polished.replace(<br/>short_url, value)"]
+    J --> K["unique_sources.append(source)"]
+    K --> H
+
+    H -->|"遍历完"| L["return {<br/>messages: [AIMessage(polished)],<br/>sources_gathered: unique_sources<br/>}"]
+    L --> M(["END → 父图"])
+
+    style M fill:#0a4f3a,stroke:#10b981,color:#e6edf7
+      </div>
+
+      <h3>URL 替换示例</h3>
+      <div class="mermaid">
+flowchart LR
+    subgraph Before["polished（润色后）"]
+        A1["'AI芯片市场规模达 100亿<br/>详见 http://resea.tech/abc<br/>http://resea.tech/xyz 也提到...'"]
+    end
+
+    subgraph Replace["遍历 sources_gathered 替换"]
+        B1["source1:<br/>short_url='http://resea.tech/abc'<br/>value='https://real.url/a'"]
+        B2["source2:<br/>short_url='http://resea.tech/xyz'<br/>value='https://real.url/b'"]
+    end
+
+    subgraph After["最终 polished"]
+        C1["'AI芯片市场规模达 100亿<br/>详见 https://real.url/a<br/>https://real.url/b 也提到...'"]
+    end
+
+    Before --> Replace --> After
+
+    style After fill:#0a4f3a,stroke:#10b981,color:#e6edf7
+      </div>
+
+      <h3>去重逻辑</h3>
+      <p>未被 polished 引用的 source<strong>不会</strong>进入最终 <code>sources_gathered</strong>。</p>
+
+      <div class="mermaid">
+flowchart TD
+    A["sources_gathered<br/>(ResearchAgent 传入,<br/>可能 N 条)"] --> B["遍历检查每条"]
+    B --> C{"short_url 在<br/>polished 中?"}
+    C -->|"是"| D["加入 unique_sources<br/>(替换短 URL)"]
+    C -->|"否"| E["跳过<br/>(未引用)"]
+
+    D --> F["unique_sources<br/>(只保留被引用的)"]
+    E --> F
+
+    style F fill:#0a4f3a,stroke:#10b981,color:#e6edf7
+      </div>
+
+      <div class="callout tip">
+        <strong>双重作用</strong>：
+        ① 短 URL → 真实 URL（专业性）<br/>
+        ② sources_gathered 去重（只保留被引用源）
+      </div>
+    </section>
+
+    <!-- ========== 八、图构建 ========== -->
+    <section id="graph">
+      <h2>八、图构建与边定义（:286-308）</h2>
+
+      <h3>构建代码</h3>
+      <pre><code>_builder = StateGraph(OverallState, config_schema=Configuration)
+
+_builder.add_node(_OUTLINE, _outline)                      # 节点 1
+_builder.add_node(_DRAFT, _draft)                          # 节点 2
+_builder.add_node(_CRITIC_REVIEW, _critic_review)          # 节点 3
+_builder.add_node(_CITE_AND_POLISH, _cite_and_polish)      # 节点 4
+
+# 边定义（5 条）
+_builder.add_edge(START, _OUTLINE)                                            # 边 1
+_builder.add_edge(_OUTLINE, _DRAFT)                                            # 边 2
+_builder.add_edge(_DRAFT, _CRITIC_REVIEW)                                     # 边 3
+_builder.add_conditional_edges(                                                # 边 4
+    _CRITIC_REVIEW, _route_after_critic, [_DRAFT, _CITE_AND_POLISH]
+)
+_builder.add_edge(_CITE_AND_POLISH, END)                                       # 边 5
+
+writer_agent_graph = _builder.compile(name="WriterAgent")</code></pre>
+
+      <h3>图结构图（精确边定义）</h3>
+      <div class="mermaid">
+flowchart LR
+    S(["START"]) -->|add_edge| O["outline"]
+    O -->|add_edge| D["draft"]
+    D -->|add_edge| C["critic_review"]
+    C -->|"add_conditional_edges<br/>route_after_critic"| R{"draft or<br/>cite_and_polish?"}
+    R -->|"[_DRAFT]"| D2["draft (重入)"]
+    R -->|"[_CITE_AND_POLISH]"| P["cite_and_polish"]
+    D2 -. "重入 critic_review" .-> C
+    P -->|add_edge| E(["END"])
+
+    style O fill:#1a2236,stroke:#8b5cf6,color:#e6edf7
+    style D fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+    style D2 fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+    style C fill:#1a3a2a,stroke:#10b981,color:#e6edf7
+    style P fill:#0a4f3a,stroke:#10b981,color:#e6edf7
+      </div>
+
+      <h3>边类型对照表</h3>
+      <table>
+        <thead><tr><th>#</th><th>边</th><th>类型</th><th>条件</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td><code>START → outline</code></td><td>普通边</td><td>无（固定）</td></tr>
+          <tr><td>2</td><td><code>outline → draft</code></td><td>普通边</td><td>无（固定）</td></tr>
+          <tr><td>3</td><td><code>draft → critic_review</code></td><td>普通边</td><td>无（固定）</td></tr>
+          <tr><td>4</td><td><code>critic_review → [draft, cite_and_polish]</code></td><td><strong>条件边</strong></td><td><code>route_after_critic</code> 返回值</td></tr>
+          <tr><td>5</td><td><code>cite_and_polish → END</code></td><td>普通边</td><td>无（固定）</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ========== 九、state 字段读写映射 ========== -->
+    <section id="state-flow">
+      <h2>九、state 字段读写映射</h2>
+
+      <h3>每个节点读/写的字段</h3>
+      <table>
+        <thead><tr><th>节点</th><th>读（input）</th><th>写（output）</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><code>_outline</code></td>
+            <td><code>messages</code>, <code>plan</code>, <code>web_search_result</code>, <code>reasoning_model</code></td>
+            <td><code>report_outline</code>, <code>revision_count</code>, <code>max_revisions</code></td>
+          </tr>
+          <tr>
+            <td><code>_draft</code></td>
+            <td><code>messages</code>, <code>plan</code>, <code>web_search_result</code>, <code>report_outline</code>, <code>critic_feedback</code>, <code>revision_count</code>, <code>reasoning_model</code></td>
+            <td><code>report_draft</code>, (修订时) <code>revision_count</code>, (修订时) <code>critic_feedback=""</code></td>
+          </tr>
+          <tr>
+            <td><code>_critic_review</code></td>
+            <td><code>messages</code>, <code>plan</code>, <code>web_search_result</code>, <code>report_draft</code>, <code>reasoning_model</code></td>
+            <td><code>critic_feedback</code>, <code>critic_score</code>, <code>ready_for_polish</code></td>
+          </tr>
+          <tr>
+            <td><code>_route_after_critic</code></td>
+            <td><code>revision_count</code>, <code>max_revisions</code>, <code>ready_for_polish</code>, <code>critic_score</code></td>
+            <td>（无写）</td>
+          </tr>
+          <tr>
+            <td><code>_cite_and_polish</code></td>
+            <td><code>report_draft</code>, <code>sources_gathered</code>, <code>reasoning_model</code></td>
+            <td><code>messages</code> (= [AIMessage]), <code>sources_gathered</code> (去重)</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>state 字段生命周期图</h3>
+      <div class="mermaid">
+flowchart LR
+    subgraph S1["_outline"]
+        A1["report_outline<br/>+ revision_count=0<br/>+ max_revisions=3"]
+    end
+
+    subgraph S2["_draft (首版)"]
+        B1["report_draft"]
+    end
+
+    subgraph S3["_critic_review"]
+        C1["critic_feedback<br/>critic_score<br/>ready_for_polish"]
+    end
+
+    subgraph S4["_draft (修订)"]
+        D1["report_draft (新)<br/>revision_count+1<br/>清空 critic_feedback"]
+    end
+
+    subgraph S5["_cite_and_polish"]
+        E1["messages=[AIMessage]<br/>sources_gathered 去重"]
+    end
+
+    S1 --> S2 --> S3 --> S4 --> S3
+    S3 -. "通过" .-> S5
+
+    style S1 fill:#1a2236,stroke:#8b5cf6,color:#e6edf7
+    style S2 fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+    style S3 fill:#1a3a2a,stroke:#10b981,color:#e6edf7
+    style S4 fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+    style S5 fill:#0a4f3a,stroke:#10b981,color:#e6edf7
+      </div>
+    </section>
+
+    <!-- ========== 十、辩论循环状态机 ========== -->
+    <section id="debate-loop">
+      <h2>十、辩论循环状态机</h2>
+      <p>把循环展开成一个完整的状态机图（最多 4 个 draft + 4 个 critic）。</p>
+
+      <div class="mermaid">
+stateDiagram-v2
+    [*] --> OUTLINED: _outline
+    OUTLINED --> DRAFT_V0: _draft (rev=0)
+
+    DRAFT_V0 --> CRITIC_V0: _critic_review
+
+    CRITIC_V0 --> POLISH: 4 重保险通过
+    CRITIC_V0 --> DRAFT_V1: 不通过
+
+    DRAFT_V1 --> CRITIC_V1: _critic_review
+    CRITIC_V1 --> POLISH: 4 重保险通过
+    CRITIC_V1 --> DRAFT_V2: 不通过
+
+    DRAFT_V2 --> CRITIC_V2: _critic_review
+    CRITIC_V2 --> POLISH: 4 重保险通过
+    CRITIC_V2 --> DRAFT_V3: 不通过 (rev=2→3)
+
+    DRAFT_V3 --> CRITIC_V3: _critic_review
+    CRITIC_V3 --> POLISH: 强制退出 (rev=3 ≥ max_revisions)
+
+    POLISH --> [*]: _cite_and_polish → END
+
+    note right of POLISH
+      4 重保险中的任何一个满足：
+      1. ready=True
+      2. score >= 8.0
+      3. score >= 6.0 AND rev >= 1
+      4. rev >= max_revisions
+    end note
+
+    note right of DRAFT_V3
+      即使 Critic 仍不满意，
+      rev_count 已达上限，必须退出
+    end note
+      </div>
+    </section>
+
+    <!-- ========== 十一、短 URL 替换机制 ========== -->
+    <section id="url-replace">
+      <h2>十一、短 URL 替换机制</h2>
+      <p>上游 ResearchAgent 生成的 <code>sources_gathered</code> 中 URL 是<strong>短链</strong>，WriterAgent 终稿时还原为<strong>真实 URL</strong>。</p>
+
+      <h3>数据来源链</h3>
+      <div class="mermaid">
+flowchart LR
+    A["ResearchAgent 子图<br/>research_agent.py:215"] -->|"resolve_urls(response, id)"| B["sources_gathered:<br/>[{short_url, value, label}, ...]"]
+    B -->|"operator.add 累积<br/>(operator.add reducer)"| C["OverallState.sources_gathered"]
+    C -->|"传入"| D["WriterAgent 子图<br/>writer_agent.py:270"]
+    D -->|"遍历 + replace"| E["polished 文本<br/>短 URL → 真实 URL"]
+    E --> F["AIMessage 加入 state.messages"]
+
+    style A fill:#1a2236,stroke:#8b5cf6,color:#e6edf7
+    style D fill:#1a2236,stroke:#8b5cf6,color:#e6edf7
+    style F fill:#0a4f3a,stroke:#10b981,color:#e6edf7
+      </div>
+
+      <h3>替换算法复杂度</h3>
+      <p>代码：<code>writer_agent.py:269-273</code></p>
+      <pre><code>for source in state.get("sources_gathered", []):
+    if source["short_url"] in polished:                    # O(N×M) substring check
+        polished = polished.replace(source["short_url"], source["value"])
+        unique_sources.append(source)</code></pre>
+
+      <p>时间复杂度：<strong>O(N×M)</strong>，其中 N = 来源数，M = polished 长度。</p>
+
+      <div class="callout warn">
+        <strong>潜在性能问题</strong>：<code>str.replace()</code> 会创建新字符串（不可变），对大文档 + 多源场景可能慢。
+        可考虑一次性正则替换：<code>re.sub(pattern, lambda m: url_map[m.group(0)], polished)</code>
+      </div>
+    </section>
+
+    <!-- ========== 十二、流式输出链路 ========== -->
+    <section id="stream">
+      <h2>十二、流式输出链路</h2>
+      <p><code>_cite_and_polish</code> 是 WriterAgent 中<strong>唯一</strong>启用流式的节点。</p>
+
+      <h3>完整链路（4 层）</h3>
+      <div class="mermaid">
+sequenceDiagram
+    autonumber
+    participant LLM as LLM API
+    participant AS as astream_step<br/>(base_agent.py:238)
+    participant OT as on_token<br/>(节点内闭包)
+    participant ET as emit_token<br/>(task_queue.py:179)
+    participant R as Redis
+    participant SSE as SSE 端点
+    participant B as 浏览器
+
+    loop 每个 token chunk
+        LLM-->>AS: chunk (delta.content)
+        AS->>AS: full_response += token
+        AS->>OT: await on_token(token)
+        OT->>ET: await emit_token(token, "cite_and_polish")
+        ET->>R: XADD research:events:{id}<br/>{"event": "{\"token\":...}"}
+        R-->>SSE: XREAD 返回
+        SSE-->>B: data: {"token":...}\n\n<br/>前端打字效果
+    end
+      </div>
+
+      <h3>emit_token 注入路径</h3>
+      <div class="mermaid">
+flowchart LR
+    A["_process_one_task<br/>(task_queue.py:179)"] -->|"config['_emit_token'] = emit_token"| B["LangGraph config"]
+    B -->|"astream 传递"| C["节点函数<br/>(config: RunnableConfig)"]
+    C --> D["config.get('_emit_token')"]
+    D -->|"存在"| E["构造 on_token 闭包"]
+    E --> F["astream_step(on_token, ...)"]
+
+    style A fill:#1a2236,stroke:#8b5cf6,color:#e6edf7
+    style F fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+      </div>
+
+      <div class="callout">
+        <strong>为什么只有 polish 流式</strong>：用户最关心最终报告的呈现。
+        outline/draft/critic 中间过程太长，全流式推送开销大。
+      </div>
+    </section>
+
+    <!-- ========== 十三、完整时序图 ========== -->
+    <section id="sequence">
+      <h2>十三、完整时序图</h2>
+      <p>展示 WriterAgent 与父图、LLM、Redis 的完整交互。</p>
+
+      <div class="mermaid">
+sequenceDiagram
+    autonumber
+    participant Main as 父图
+    participant WA as WriterAgent
+    participant O as _outline
+    participant D as _draft
+    participant Cr as _critic_review
+    participant R as _route_after_critic
+    participant P as _cite_and_polish
+    participant LLM as LLM API
+    participant ET as emit_token
+    participant Redis as Redis
+
+    Main->>WA: astream 进入子图
+    Note over WA: 接收 state (含 web_search_result,<br/>sources_gathered, plan 等)
+
+    WA->>O: 执行
+    O->>LLM: Agent.astep(outline_instructions)
+    LLM-->>O: outline
+    O-->>WA: return report_outline + revision_count=0
+
+    WA->>D: 首版草稿
+    D->>LLM: Agent.astep(draft_instructions)
+    LLM-->>D: draft v0
+    D-->>WA: return report_draft
+
+    rect rgb(34,211,238,0.08)
+    Note over WA,LLM: Critic ↔ Writer 辩论循环（最多 4 轮）
+    end
+
+    loop 最多 4 次
+        WA->>Cr: 审稿
+        Cr->>LLM: JsonAgent.astep(critic_review_instructions)
+        LLM-->>Cr: CritiqueResult
+
+        Cr-->>WA: return critic_feedback + score + ready
+        WA->>R: 路由决策
+        R-->>WA: 返回 _DRAFT 或 _CITE_AND_POLISH
+
+        alt 不通过
+            WA->>D: 修订草稿
+            D->>LLM: Agent.astep(注入 revision_context)
+            LLM-->>D: revised draft
+            D-->>WA: return report_draft (新版本, revision_count+1)
+        end
+    end
+
+    WA->>P: 终稿润色
+    P->>LLM: astream_step(on_token)
+
+    loop 每个 token
+        LLM-->>P: chunk
+        P->>ET: on_token(token)
+        ET->>Redis: XADD research:events:{id}<br/>{"event": {"token":...}}
+    end
+
+    LLM-->>P: polished
+    P->>P: 短 URL → 真实 URL + 去重
+    P-->>WA: return messages=[AIMessage] + sources_gathered
+    WA-->>Main: 子图结束 → writer node 事件
+    Main->>Redis: XADD research:events:{id}<br/>{"event": {"finalize_answer":...}}
+    Main->>Redis: XACK + EXPIRE 24h
+      </div>
+    </section>
+
+    <!-- ========== 十四、设计要点 ========== -->
+    <section id="design">
+      <h2>十四、设计要点与风险</h2>
+
+      <h3>14.1 模型复用风险</h3>
+      <div class="mermaid">
+flowchart LR
+    A["WriterAgent 4 个节点"] -->|"都使用"| M["reasoning_model<br/>or answer_model<br/>(同一模型)"]
+    M --> O["outline"]
+    M --> D["draft"]
+    M --> Cr["critic_review"]
+    M --> P["cite_and_polish"]
+
+    D -. "自己审自己" .-> Cr
+
+    style M fill:#4a3a14,stroke:#f59e0b,color:#fde68a
+    style D fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+    style Cr fill:#1a3a2a,stroke:#10b981,color:#e6edf7
+      </div>
+
+      <div class="callout warn">
+        <strong>风险</strong>：Writer 和 Critic 共用同一模型 → LLM 倾向给自己打高分 / 不愿指出自己的问题。<br/>
+        <strong>缓解</strong>：四重退出保险 + 硬阈值 8.0 + 修订上限 3。<br/>
+        <strong>改进建议</strong>：用不同模型（如 critic 用更强的 reasoning 模型）。
+      </div>
+
+      <h3>14.2 异常防御层级</h3>
+      <table>
+        <thead><tr><th>节点</th><th>LLM 失败处理</th></tr></thead>
+        <tbody>
+          <tr><td><code>_outline</code></td><td><code>Agent.astep</code> 返回空字符串 → outline 为空但流程继续</td></tr>
+          <tr><td><code>_draft</code></td><td>同上，draft 为空但流程继续</td></tr>
+          <tr><td><code>_critic_review</code></td><td>返回非 <code>CritiqueResult</code> → <code>score=8.0, ready=True</code> → 直接放行</td></tr>
+          <tr><td><code>_cite_and_polish</code></td><td>同 outline，polished 为空但流程继续</td></tr>
+          <tr><td><code>emit_token</code></td><td>双重 try/except 兜底，不中断流式</td></tr>
+        </tbody>
+      </table>
+
+      <h3>14.3 与上游/父图的接口</h3>
+      <div class="mermaid">
+flowchart TD
+    RAG["ResearchAgent 子图"] -->|"写 state:<br/>web_search_result<br/>sources_gathered<br/>plan"| ST["OverallState<br/>(共享)"]
+    ST --> WA["WriterAgent 子图"]
+    WA -->|"messages=[AIMessage]<br/>sources_gathered (去重)"| ST
+
+    P["父图 graph.py"] -->|"add_node('write', WA)"| WA
+    WA -->|"writer node 事件"| P
+    P -->|"提取 final_msg → finalize_answer"| MainOut["SSE 客户端"]
+
+    style WA fill:#1a2236,stroke:#8b5cf6,color:#e6edf7
+    style MainOut fill:#0a4f3a,stroke:#10b981,color:#e6edf7
+      </div>
+
+      <h3>14.4 潜在改进点</h3>
+      <ol>
+        <li>
+          <strong>Critic 与 Writer 共用模型</strong>：可能"自己审自己"。<br/>
+          → 建议用不同 reasoning_model 给 Critic。
+        </li>
+        <li>
+          <strong>URL 替换是 O(N×M)</strong>：大文档 + 多源场景可能慢。<br/>
+          → 建议一次性 <code>re.sub()</code> 替换。
+        </li>
+        <li>
+          <strong>没有 token 成本控制</strong>：辩论循环最多 4×2 次 LLM 调用。<br/>
+          → 建议根据任务长度动态调整 max_revisions。
+        </li>
+        <li>
+          <strong><code>ready_for_polish=True</code> 即使 score=0 也通过</strong>：<br/>
+          → 改进：可加 score 硬下限（如 ready=True 要求 score >= 5）。
+        </li>
+        <li>
+          <strong>修订内容累积</strong>：每次 draft 都重写完整报告，而非增量修改。<br/>
+          → 改进：可考虑保留上版 + 只修改 critic 指出问题的章节。
+        </li>
+      </ol>
+    </section>
+
+  </main>
+</div>
+
+<footer>
+  Deep Research Backend · WriterAgent 子图详解 · 基于 src/agent/sub_agents/writer_agent.py:1-313
+</footer>
+
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'dark',
+    themeVariables: {
+      primaryColor: '#1a2236',
+      primaryTextColor: '#e6edf7',
+      primaryBorderColor: '#8b5cf6',
+      lineColor: '#22d3ee',
+      secondaryColor: '#111827',
+      tertiaryColor: '#0a1020',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif',
+    },
+    flowchart: { curve: 'basis', padding: 12 },
+    sequence: { actorMargin: 60, messageMargin: 40 },
+    stateDiagram: { fontSize: '13px' },
+  });
+</script>
+
+</body>
+</html>

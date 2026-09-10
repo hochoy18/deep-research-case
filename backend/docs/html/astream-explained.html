@@ -1,0 +1,1071 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>astream() 详解 · Deep Research</title>
+<!-- Mermaid for flow / sequence / state diagrams -->
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<style>
+  :root {
+    --bg-0: #0b0f1a;
+    --bg-1: #111827;
+    --bg-2: #1a2236;
+    --line: #243049;
+    --text: #e6edf7;
+    --muted: #97a3bd;
+    --primary: #8b5cf6;
+    --primary-2: #6366f1;
+    --accent: #22d3ee;
+    --accent-2: #06b6d4;
+    --warn: #f59e0b;
+    --ok: #10b981;
+    --danger: #ef4444;
+    --code-bg: #0a1020;
+    --shadow: 0 10px 30px rgba(0,0,0,.35);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+                 "Microsoft YaHei", Roboto, Helvetica, Arial, sans-serif;
+    background:
+      radial-gradient(1200px 600px at 10% -10%, rgba(139,92,246,.18), transparent 60%),
+      radial-gradient(1000px 500px at 110% 10%, rgba(34,211,238,.15), transparent 60%),
+      var(--bg-0);
+    color: var(--text);
+    line-height: 1.7;
+    min-height: 100vh;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* Hero */
+  .hero {
+    padding: 56px 16px 32px;
+    text-align: center;
+    border-bottom: 1px solid var(--line);
+    background: linear-gradient(180deg, rgba(139,92,246,.10), transparent 60%);
+  }
+  .hero .badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 999px;
+    background: rgba(139,92,246,.18);
+    color: #c4b5fd;
+    border: 1px solid rgba(139,92,.35);
+    font-size: 12px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+  .hero h1 {
+    margin: 0 0 8px;
+    font-size: clamp(28px, 4vw, 42px);
+    letter-spacing: -0.5px;
+    background: linear-gradient(90deg, #c4b5fd, #67e8f9);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .hero p.lead { color: var(--muted); margin: 0 auto; max-width: 820px; }
+  .hero .src {
+    display: inline-block;
+    margin-top: 12px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--line);
+    background: var(--code-bg);
+    font-family: "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+    font-size: 12px;
+    color: var(--accent);
+  }
+
+  /* Layout */
+  .layout {
+    display: grid;
+    grid-template-columns: 260px minmax(0, 1fr);
+    gap: 24px;
+    max-width: 1320px;
+    margin: 0 auto;
+    padding: 32px 16px;
+  }
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; }
+    .toc { position: static !important; }
+  }
+
+  /* TOC */
+  .toc {
+    position: sticky;
+    top: 24px;
+    align-self: start;
+    background: linear-gradient(180deg, var(--bg-1), var(--bg-2));
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 16px 18px;
+    box-shadow: var(--shadow);
+    max-height: calc(100vh - 48px);
+    overflow: auto;
+  }
+  .toc h3 {
+    margin: 0 0 10px;
+    font-size: 13px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+  }
+  .toc ol { margin: 0; padding-left: 20px; }
+  .toc li { margin: 6px 0; }
+  .toc a { color: var(--text); font-size: 14px; }
+  .toc a:hover { color: var(--accent); }
+
+  /* Content */
+  .content { min-width: 0; }
+  section {
+    background: linear-gradient(180deg, var(--bg-1), var(--bg-2));
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 24px 26px;
+    box-shadow: var(--shadow);
+    margin-bottom: 22px;
+  }
+  section h2 {
+    margin-top: 0;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--line);
+    font-size: 22px;
+    letter-spacing: -0.2px;
+  }
+  section h3 { margin-top: 22px; font-size: 17px; color: #c7d2fe; }
+  section h4 { margin-top: 16px; font-size: 15px; color: #a5b4fc; }
+  section p { color: var(--text); }
+  .muted { color: var(--muted); }
+
+  /* Code */
+  code {
+    font-family: "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+    background: var(--code-bg);
+    border: 1px solid var(--line);
+    padding: 1px 6px;
+    border-radius: 6px;
+    font-size: 13px;
+  }
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 14px 16px;
+    overflow: auto;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  pre code { background: none; border: none; padding: 0; }
+
+  /* Tables */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 14px 0;
+    font-size: 14px;
+  }
+  th, td {
+    border: 1px solid var(--line);
+    padding: 8px 12px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th { background: rgba(139,92,246,.10); color: #c4b5fd; }
+  tbody tr:nth-child(even) { background: rgba(255,255,255,.02); }
+
+  /* Pills */
+  .pill {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    margin-right: 6px;
+    border: 1px solid var(--line);
+    background: rgba(255,255,255,.04);
+    color: var(--muted);
+  }
+  .pill.write   { color: var(--accent); border-color: rgba(34,211,238,.35); background: rgba(34,211,238,.10); }
+  .pill.read    { color: var(--ok);     border-color: rgba(16,185,129,.35); background: rgba(16,185,129,.10); }
+  .pill.del     { color: var(--danger); border-color: rgba(239,68,68,.35);  background: rgba(239,68,68,.10); }
+  .pill.warn    { color: var(--warn);   border-color: rgba(245,158,11,.35); background: rgba(245,158,11,.10); }
+  .pill.primary { color: #c4b5fd;        border-color: rgba(139,92,246,.35); background: rgba(139,92,246,.10); }
+
+  /* Mermaid */
+  .mermaid {
+    background: rgba(255,255,255,.02);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 16px;
+    margin: 14px 0;
+    text-align: center;
+    overflow: auto;
+  }
+
+  /* Callout */
+  .callout {
+    border-left: 3px solid var(--accent);
+    background: rgba(34,211,238,.06);
+    padding: 12px 16px;
+    border-radius: 0 8px 8px 0;
+    margin: 14px 0;
+  }
+  .callout.warn { border-color: var(--warn); background: rgba(245,158,11,.06); }
+  .callout.tip  { border-color: var(--ok);   background: rgba(16,185,129,.06); }
+  .callout.danger { border-color: var(--danger); background: rgba(239,68,68,.06); }
+
+  /* Step list */
+  .steps { counter-reset: step; list-style: none; padding: 0; }
+  .steps > li {
+    counter-increment: step;
+    padding: 10px 14px 10px 50px;
+    position: relative;
+    margin: 6px 0;
+    background: rgba(255,255,255,.02);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+  }
+  .steps > li::before {
+    content: counter(step);
+    position: absolute;
+    left: 12px;
+    top: 8px;
+    width: 28px;
+    height: 28px;
+    line-height: 28px;
+    text-align: center;
+    background: var(--primary);
+    color: white;
+    border-radius: 50%;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  /* Sub-list (numbered Chinese) */
+  .substeps { counter-reset: substep; list-style: none; padding: 0; margin: 8px 0; }
+  .substeps > li {
+    counter-increment: substep;
+    padding: 6px 0 6px 32px;
+    position: relative;
+  }
+  .substeps > li::before {
+    content: counter(substep, cjk-ideographic) "、";
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  /* Two-col data block */
+  .data-grid {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 8px 16px;
+    margin: 14px 0;
+    padding: 12px 16px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: rgba(255,255,255,.02);
+  }
+  .data-grid dt {
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .data-grid dd {
+    margin: 0;
+    color: var(--text);
+  }
+
+  footer {
+    text-align: center;
+    color: var(--muted);
+    font-size: 13px;
+    padding: 24px 16px 40px;
+  }
+
+  section[id] { scroll-margin-top: 16px; }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="badge">Deep Research · Backend Internals</div>
+  <h1>astream() 详解</h1>
+  <p class="lead">
+    面向 deep-research-case 后端的 <code>persistent_graph.astream(initial_state, config, subgraphs=True)</code> 全景拆解——
+    从图的拓扑结构、checkpointer 持久化、subgraph 事件穿透，到 Redis Stream 推送与前端 SSE 消费。
+  </p>
+  <span class="src">src/agent/task_queue.py:220</span>
+</div>
+
+<div class="layout">
+
+  <!-- ========== 目录 ========== -->
+  <aside class="toc">
+    <h3>目录</h3>
+    <ol>
+      <li><a href="#overview">一、整体代码与执行流程</a></li>
+      <li><a href="#topology">二、主图拓扑与子图嵌套</a></li>
+      <li><a href="#persistent-graph">三、参数 1：persistent_graph</a></li>
+      <li><a href="#initial-state">四、参数 2：initial_state</a></li>
+      <li><a href="#config">五、参数 3：config</a></li>
+      <li><a href="#subgraphs">六、参数 4：subgraphs=True</a></li>
+      <li><a href="#event-format">七、事件格式与解析</a></li>
+      <li><a href="#pipeline">八、事件流管道</a></li>
+      <li><a href="#timeline">九、时序图</a></li>
+      <li><a href="#mapping">十、子图事件名映射</a></li>
+      <li><a href="#gotchas">十一、易踩的坑</a></li>
+    </ol>
+  </aside>
+
+  <main class="content">
+
+    <!-- ========== 一、整体代码与执行流程 ========== -->
+    <section id="overview">
+      <h2>一、整体代码与执行流程</h2>
+      <p>
+        这段代码出现在 <code>task_queue.py</code> 的消费者协程里 —— Redis Streams 后台 worker 从
+        <code>research:tasks</code> 拉取任务后，驱动 LangGraph 图执行，并把每个事件原封不动转发到
+        <code>research:events:{task_id}</code>，最终由 FastAPI 的 SSE 端点推给前端。
+      </p>
+
+      <h3>1.1 核心代码（简化）</h3>
+      <pre><code>async for event in persistent_graph.astream(
+    initial_state, config, subgraphs=True
+):
+    if not isinstance(event, tuple) or len(event) != 2:
+        continue
+    namespace, data = event
+    node_name = list(data.keys())[0]
+    # ...翻译 / 写入 Redis Stream / SSE 推送</code></pre>
+
+      <h3>1.2 系统拓扑图</h3>
+      <div class="mermaid">
+flowchart LR
+    subgraph TaskIn["任务输入"]
+      T1["Redis Stream<br/>research:tasks<br/><span class='pill write'>XADD 入队</span>"]
+    end
+    subgraph Worker["消费协程"]
+      W1["_run_task()<br/>XREADGROUP"]
+    end
+    subgraph Graph["persistent_graph"]
+      G1["generate_plan"]
+      G2["evaluate_plan"]
+      G3["confirm_plan"]
+      G4["research<br/><span class='pill primary'>子图</span>"]
+      G5["write<br/><span class='pill primary'>子图</span>"]
+      CK["AsyncRedisSaver<br/><span class='pill primary'>thread_id=task_id</span>"]
+      G1 --> G2
+      G2 --> G3
+      G3 --> G4
+      G4 --> G5
+      G5 -. checkpoint .-> CK
+    end
+    subgraph EventOut["事件输出"]
+      E1["Redis Stream<br/>research:events:{id}"]
+      E2["FastAPI SSE<br/>read_task_events()"]
+      E3["前端 EventSource"]
+    end
+    T1 -->|"XREADGROUP"| W1
+    W1 -->|"astream(subgraphs=True)"| G1
+    G5 -->|"namespace tuple"| E1
+    CK -. resume .-> W1
+    E1 -->|"XREAD"| E2
+    E2 -->|"yield data:"| E3
+
+    style T1 fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+    style W1 fill:#1a2236,stroke:#8b5cf6,color:#e6edf7
+    style CK fill:#0a1020,stroke:#243049,color:#e6edf7,stroke-dasharray:4 3
+    style E1 fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+    style E2 fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+    style E3 fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+    style G4 fill:#3a2e5c,stroke:#8b5cf6,color:#e6edf7,stroke-width:2px
+    style G5 fill:#3a2e5c,stroke:#8b5cf6,color:#e6edf7,stroke-width:2px
+      </div>
+      <p class="muted" style="font-size:13px;">
+        图 1：任务从入队到前端渲染的完整链路。LangGraph 图节点、checkpointer、子图边界都在 <code>persistent_graph</code> 这一容器内统一调度；
+        事件从 astream 出来后经过"翻译 → XADD → SSE"三段管道送达浏览器。
+      </p>
+    </section>
+
+    <!-- ========== 二、主图拓扑与子图嵌套 ========== -->
+    <section id="topology">
+      <h2>二、主图拓扑与子图嵌套</h2>
+      <p>
+        你的 <code>build_graph()</code> 构造的是一棵复合图：顶层是 4 个 main-graph 节点 + 2 个嵌套子图节点，由条件边驱动控制流。
+        这是为什么必须开 <code>subgraphs=True</code> —— 子图内部的状态变更默认不会穿透边界上报。
+      </p>
+
+      <h3>2.1 节点拓扑图</h3>
+      <div class="mermaid">
+flowchart TD
+    START(["START"]) --> GP["generate_plan (主图)"]
+    GP --> EP{"evaluate_plan (条件路由)"}
+
+    EP -->|"plan_status=unconfirmed"| APC["awaiting_plan_confirmation (HITL 暂停)"]
+    EP -->|"plan 为空"| REPLAN["replan"]
+    EP -->|"plan_status=confirmed"| CP["confirm_plan"]
+
+    REPLAN -.-> GP
+    CP --> RA["research (子图)"]
+    RA --> WR["write (子图)"]
+    WR --> END(["END"])
+
+    style START fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+    style END fill:#0a4f3a,stroke:#10b981,color:#e6edf7
+    style GP fill:#1a2236,stroke:#8b5cf6,color:#e6edf7
+    style EP fill:#1a2236,stroke:#8b5cf6,color:#e6edf7
+    style CP fill:#1a2236,stroke:#8b5cf6,color:#e6edf7
+    style RA fill:#3a2e5c,stroke:#a78bfa,color:#e6edf7,stroke-width:2px
+    style WR fill:#3a2e5c,stroke:#a78bfa,color:#e6edf7,stroke-width:2px
+    style APC fill:#3a2e10,stroke:#f59e0b,color:#e6edf7,stroke-dasharray:5 3
+    style REPLAN fill:#0a1020,stroke:#243049,color:#97a3bd,stroke-dasharray:3 3
+      </div>
+      <p class="muted" style="font-size:13px;">
+        图 2：节点拓扑。实线为无条件边，虚线为条件边（<code>add_conditional_edges</code>）。子图节点是 <code>research_agent_graph</code> 与 <code>writer_agent_graph</code> 的整体挂载点。
+      </p>
+
+      <h3>2.2 两条关键路径</h3>
+      <ul>
+        <li>
+          <strong>正常路径</strong>：<code>generate_plan → confirm_plan → research → write → END</code>。
+          每条边都是无条件边，状态沿着 channel 累积。
+        </li>
+        <li>
+          <strong>暂停路径</strong>：<code>evaluate_plan → awaiting_plan_confirmation</code>。
+          命中时图停止向外 yield 事件，直到用户提交新的 <code>HumanMessage</code> 重新调用 <code>astream</code>
+          （同一 <code>thread_id</code>），图会从 checkpointer 加载上次的 state 继续走。
+        </li>
+      </ul>
+
+      <h3>2.3 子图嵌套示意</h3>
+      <div class="mermaid">
+flowchart TB
+    subgraph Main["Main Graph"]
+      M_START(["START"]) --> M_GP["generate_plan"]
+      M_GP --> M_CP["confirm_plan"]
+      M_CP --> M_R["research (整图节点)"]
+      M_R --> M_W["write (整图节点)"]
+      M_W --> M_END(["END"])
+    end
+
+    subgraph ResearchSub["research_agent_graph"]
+      R_START(["START"]) --> R_GQ["generate_queries"]
+      R_GQ -->|"Send × N"| R_WS["web_search"]
+      R_WS --> R_CR["critique"]
+      R_CR -->|"is_sufficient?"| R_ENDsub(["END"])
+      R_CR -. "follow_up" .-> R_WS
+    end
+
+    subgraph WriterSub["writer_agent_graph"]
+      W_START(["START"]) --> W_OL["outline"]
+      W_OL --> W_DR["draft"]
+      W_DR --> W_CRI["critic"]
+      W_CRI -->|"pass"| W_ENDsub(["END"])
+      W_CRI -. "revise" .-> W_DR
+    end
+
+    M_R -. "挂载" .-> ResearchSub
+    M_W -. "挂载" .-> WriterSub
+
+    style ResearchSub fill:#3a2e5c22,stroke:#a78bfa,color:#e6edf7,stroke-width:2px
+    style WriterSub fill:#3a2e5c22,stroke:#a78bfa,color:#e6edf7,stroke-width:2px
+    style Main fill:#1a223633,stroke:#8b5cf6,color:#e6edf7,stroke-width:2px
+      </div>
+      <p class="muted" style="font-size:13px;">
+        图 3：主图把子图作为整体节点挂载。子图内部的 <code>generate_queries / web_search / critique</code> 不会自动上报 —— 这就是 <code>subgraphs=True</code> 存在的意义。
+      </p>
+    </section>
+
+    <!-- ========== 三、persistent_graph ========== -->
+    <section id="persistent-graph">
+      <h2>三、参数 1：persistent_graph —— 带 Redis 持久化的可执行图</h2>
+
+      <h3>3.1 初始化代码</h3>
+      <pre><code>checkpointer = AsyncRedisSaver(
+    REDIS_URL,
+    ttl={"default_ttl": 60 * 24 * 7, "refresh_on_read": True},
+)
+await checkpointer.asetup()        # 建表（一次性）
+_persistent_graph = build_graph(checkpointer=checkpointer)</code></pre>
+
+      <h3>3.2 能力清单</h3>
+      <ul class="steps">
+        <li>用 <code>task_id</code> 当 <code>thread_id</code>，所有 channel state 落 Redis，TTL = 7 天</li>
+        <li><strong>断点续传</strong>：用户在 plan 确认时回复"开始研究"再 resume，LangGraph 自动从 Redis 加载上次停在 <code>awaiting_plan_confirmation</code> 那一刻的 state</li>
+        <li><strong>多任务隔离</strong>：每个 task 一个独立 checkpoint，互不污染</li>
+      </ul>
+
+      <div class="callout warn">
+        <strong>注意</strong>：<code>asetup()</code> 是异步的（创建 Redis 内部 hash 结构），生产环境通常放进 FastAPI <code>lifespan</code> 钩子，避免每个 worker 第一次任务都阻塞一次。
+      </div>
+
+      <h3>3.3 Checkpointer 与 Graph 的关系</h3>
+      <div class="mermaid">
+flowchart LR
+    A["build_graph(checkpointer)"] --> B["StateGraph<br/>OverallState schema"]
+    A --> C["AsyncRedisSaver<br/>checkpointer"]
+    B --> D["compiled graph<br/>persistent_graph"]
+    C --> D
+    D --> E["astream/ainvoke<br/>使用 checkpointer"]
+    E -->|"每次节点后"| F["Redis hash<br/>thread:{task_id}"]
+    F -->|"下次 astream 加载"| E
+
+    style A fill:#1a2236,stroke:#8b5cf6,color:#e6edf7
+    style D fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+    style F fill:#0a1020,stroke:#243049,color:#e6edf7
+      </div>
+    </section>
+
+    <!-- ========== 四、initial_state ========== -->
+    <section id="initial-state">
+      <h2>四、参数 2：initial_state —— 图的"启动输入"</h2>
+
+      <h3>4.1 构造代码</h3>
+      <pre><code>initial_state: dict = {
+    "messages": messages,
+    "plan_status": task.get("plan_status", "unconfirmed"),
+    "plan": task.get("plan", ""),
+}</code></pre>
+
+      <h3>4.2 关键点</h3>
+      <ul class="substeps">
+        <li><strong>只塞了 3 个字段</strong>，其余字段（<code>plan_messages</code>、<code>fresh_level</code>、研究结果、最终报告）由节点运行中由 reducer 累积。</li>
+        <li><strong><code>messages</code></strong> 使用 LangGraph 内置的 <code>add_messages</code> reducer，新消息与历史拼接（按 id 去重）。</li>
+        <li><strong>Resume 场景</strong>：用户在 plan 确认后又点"开始研究"，前端在 <code>messages</code> 里追加用户确认消息 + <code>plan_status="confirmed"</code>，初始 state 不再是空 plan，下游 <code>evaluate_plan</code> 走 <code>confirm_plan</code> 分支。</li>
+        <li>这就是 LangGraph 的"<strong>input 是 patch，不是完整 state</strong>"思想。</li>
+      </ul>
+
+      <div class="callout">
+        <strong>提示</strong>：<code>initial_state</code> 的字段会与 checkpointer 中持久化的 state 合并（取 patch 语义），不需要把上次的所有字段都补全。
+      </div>
+
+      <h3>4.3 initial_state 与 state 演化的关系</h3>
+      <div class="mermaid">
+flowchart LR
+    S0["initial_state<br/>patch"] --> M["merge"]
+    CP["Redis checkpoint<br/>上次的 full state"] --> M
+    M --> C0["完整 state<br/>(step 0)"]
+    C0 -->|node run| C1["patch"]
+    C1 -->|merge| C2["完整 state<br/>(step 1)"]
+    C2 -->|write| CP2["Redis checkpoint<br/>(最新)"]
+
+    style S0 fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+    style CP fill:#0a1020,stroke:#243049,color:#e6edf7
+    style C0 fill:#1a2236,stroke:#8b5cf6,color:#e6edf7
+    style C2 fill:#1a2236,stroke:#8b5cf6,color:#e6edf7
+    style CP2 fill:#0a1020,stroke:#243049,color:#e6edf7
+      </div>
+    </section>
+
+    <!-- ========== 五、config ========== -->
+    <section id="config">
+      <h2>五、参数 3：config —— 运行时配置</h2>
+
+      <h3>5.1 构造代码</h3>
+      <pre><code>config = {
+    "configurable": {
+        "thread_id": task_id,
+        "initial_search_query_count": task["..."],
+        "max_research_loops": task["..."],
+        "reasoning_model": task["..."],
+        "_emit_token": emit_token,
+    }
+}</code></pre>
+
+      <h3>5.2 配置项说明</h3>
+      <table>
+        <thead>
+          <tr><th>键</th><th>消费者</th><th>作用</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>thread_id</code></td>
+            <td>checkpointer</td>
+            <td>决定从哪个 Redis hash 加载/保存 state</td>
+          </tr>
+          <tr>
+            <td><code>initial_search_query_count</code></td>
+            <td>Configuration.from_runnable_config()</td>
+            <td>通过 config_schema 注入到节点</td>
+          </tr>
+          <tr>
+            <td><code>max_research_loops</code></td>
+            <td>同上</td>
+            <td>控制 research 子图最大循环次数</td>
+          </tr>
+          <tr>
+            <td><code>reasoning_model</code></td>
+            <td>同上</td>
+            <td>覆盖默认 reasoning 模型</td>
+          </tr>
+          <tr>
+            <td><code>_emit_token</code></td>
+            <td>generate_plan / writer_agent</td>
+            <td>自定义 callable，绕过 LangGraph 框架层做流式 token 推送</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout">
+        <strong>说明</strong>：<code>_emit_token</code> 不是 LangGraph 标准字段 —— 用下划线前缀约定为<strong>私有 callable</strong>，让特定节点拿到推送函数。每次节点调用时由你注入，用于把 LLM token 实时推给 Redis 事件流。详见 <code>graph.py:53</code>。
+      </div>
+
+      <h3>5.3 config 的两类消费者</h3>
+      <div class="mermaid">
+flowchart TB
+    C["config<br/>{'configurable': {...}}"]
+    C -->|"thread_id"| CK["AsyncRedisSaver<br/>决定 checkpoint 路径"]
+    C -->|"其他键"| CFG["Configuration<br/>from_runnable_config()"]
+    CFG -->|".query_generator_model"| N1["generate_plan"]
+    CFG -->|".max_research_loops"| N2["research 子图"]
+    CFG -->|".reasoning_model"| N3["confirm_plan"]
+    C -.->|"_emit_token"| TOK["节点闭包<br/>直接推送 token"]
+
+    style C fill:#1a2236,stroke:#8b5cf6,color:#e6edf7
+    style CK fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+    style CFG fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+    style TOK fill:#3a2e10,stroke:#f59e0b,color:#e6edf7,stroke-dasharray:4 3
+      </div>
+    </section>
+
+    <!-- ========== 六、subgraphs=True ========== -->
+    <section id="subgraphs">
+      <h2>六、参数 4：subgraphs=True —— 穿透子图边界</h2>
+      <p>这是代码的精髓所在。用 <code>add_node("research", research_agent_graph)</code> 把子图挂进来后，LangGraph 的子图是<strong>独立的 Pregel 实例</strong>，有自己的 channels 和事件流。</p>
+
+      <h3>6.1 为什么必须开启？</h3>
+      <ul>
+        <li>
+          <strong>默认 <code>subgraphs=False</code></strong>：只 yield 顶层节点的事件 —— 前端只能看到 <code>"research"</code> 这个<strong>黑盒整体</strong>的事件，
+          看不到里面跑了 <code>generate_queries → web_search → critique</code>。
+        </li>
+        <li>
+          <strong>开 <code>subgraphs=True</code></strong>：事件从子图"穿透"上来，但格式变成<strong>带命名空间的二元组</strong>。
+        </li>
+      </ul>
+
+      <h3>6.2 行为对比</h3>
+      <table>
+        <thead>
+          <tr><th>stream_mode</th><th>subgraphs</th><th>事件形态</th><th>可见节点</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>"updates"</code> (默认)</td>
+            <td><code>False</code></td>
+            <td><code>{node_name: patch}</code></td>
+            <td>仅主图顶层节点</td>
+          </tr>
+          <tr>
+            <td><code>"updates"</code></td>
+            <td><code>True</code></td>
+            <td><code>(namespace, {node_name: patch})</code></td>
+            <td>主图 + 所有子图内部节点</td>
+          </tr>
+          <tr>
+            <td><code>"values"</code></td>
+            <td><code>True</code></td>
+            <td><code>(namespace, state_dict)</code></td>
+            <td>每步完整 state 快照</td>
+          </tr>
+          <tr>
+            <td><code>["updates", "messages"]</code></td>
+            <td><code>True</code></td>
+            <td><code>(mode, event)</code></td>
+            <td>节点更新 + LLM token 流</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout warn">
+        <strong>注意</strong>：若改成 <code>stream_mode="values"</code>，<code>data</code> 会是完整 state 快照，下游 <code>list(data.keys())[0]</code> 就会崩 —— 务必保持 <code>"updates"</code>。
+      </div>
+    </section>
+
+    <!-- ========== 七、事件格式与解析 ========== -->
+    <section id="event-format">
+      <h2>七、事件格式与解析</h2>
+      <p>事件结构从单值字典变成元组：</p>
+
+      <h3>7.1 事件结构图</h3>
+      <div class="mermaid">
+flowchart LR
+    E["event<br/>(tuple)"] --> NS["namespace<br/>(tuple)"]
+    E --> DT["data<br/>(dict)"]
+    NS --> NS1["() = 主图"]:::main
+    NS --> NS2["('research:abc',)<br/>= 子图内部"]:::sub
+    DT --> DT1["{'node_name': patch}<br/>单 key 字典"]:::data
+
+    classDef main fill:#1a2236,stroke:#8b5cf6,color:#e6edf7;
+    classDef sub fill:#3a2e5c,stroke:#a78bfa,color:#e6edf7;
+    classDef data fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7;
+      </div>
+
+      <h3>7.2 父图 vs 子图事件对比</h3>
+      <table>
+        <thead>
+          <tr><th>来源</th><th>namespace</th><th>data 示例</th><th>含义</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>主图节点</td>
+            <td><code>()</code></td>
+            <td><code>{"generate_plan": {"plan": "...", "plan_status": "unconfirmed"}}</code></td>
+            <td>顶层节点产出</td>
+          </tr>
+          <tr>
+            <td>research 子图</td>
+            <td><code>("research:abc123",)</code></td>
+            <td><code>{"generate_queries": {"search_query": [...]}}</code></td>
+            <td>子图内部节点产出</td>
+          </tr>
+          <tr>
+            <td>writer 子图</td>
+            <td><code>("write:xyz789",)</code></td>
+            <td><code>{"draft": {"draft": "..."}}</code></td>
+            <td>子图内部节点产出</td>
+          </tr>
+          <tr>
+            <td>边界事件</td>
+            <td>—</td>
+            <td>—</td>
+            <td>被代码跳过（<code>tuple_len != 2</code>）</td>
+          </tr>
+          <tr>
+            <td>内部节点</td>
+            <td>任意</td>
+            <td><code>{"__start__": ...}</code></td>
+            <td>被代码跳过（<code>__</code> 前缀）</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>7.3 解析代码</h3>
+      <pre><code># 跳过非节点事件（边界事件 / 内部生命周期）
+if not isinstance(event, tuple) or len(event) != 2:
+    continue
+
+namespace: tuple = event[0]
+data: dict = event[1]
+
+node_name = list(data.keys())[0]
+node_output = data[node_name]
+
+# 跳过 LangGraph 内部节点（__前缀）
+if not node_name or str(node_name).startswith("__"):
+    continue</code></pre>
+
+      <h3>7.4 namespace 形态说明</h3>
+      <div class="data-grid">
+        <dt><code>()</code></dt>
+        <dd>主图直接执行（顶层节点）</dd>
+        <dt><code>("research:",)</code></dt>
+        <dd>来自 <code>research</code> 子图内部</dd>
+        <dt><code>("research:abc",)</code></dt>
+        <dd>子图并行实例带运行时 id（同一父节点触发多个实例时）</dd>
+        <dt><code>("research:", "deep_dive:")</code></dt>
+        <dd>深层嵌套（当前项目未使用，但 LangGraph 支持）</dd>
+      </div>
+    </section>
+
+    <!-- ========== 八、事件流管道 ========== -->
+    <section id="pipeline">
+      <h2>八、事件流管道</h2>
+      <p class="lead">每个 yield 出来的事件，都要经过"解析 → 翻译 → 持久化 → SSE"四步管道才能送达浏览器。</p>
+
+      <h3>8.1 主链路</h3>
+      <div class="mermaid">
+flowchart LR
+    S1["1. astream yield<br/><span class='pill primary'>(ns, {node:patch})</span>"]:::step
+    S2["2. 解析过滤<br/><span class='pill primary'>tuple_len==2 / __</span>"]:::step
+    S3["3. 子图翻译<br/><span class='pill primary'>_SUBGRAPH_EVENT_MAP</span>"]:::step
+    S4["4. Redis XADD<br/><span class='pill primary'>research:events:{id}</span>"]:::step
+    S5["5. SSE 推送<br/><span class='pill primary'>read_task_events()</span>"]:::step
+
+    S1 --> S2 --> S3 --> S4 --> S5
+
+    style S1 fill:#1a2236,stroke:#8b5cf6,color:#e6edf7
+    style S2 fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+    style S3 fill:#3a2e5c,stroke:#a78bfa,color:#e6edf7
+    style S4 fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+    style S5 fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+      </div>
+
+      <h3>8.2 旁路与终止事件</h3>
+      <div class="mermaid">
+flowchart TB
+    S1["astream yield"]:::step
+    S1 --> S2["tuple 解析"]
+    S2 --> S3["子图翻译"]
+    S3 --> S4["XADD"]
+
+    Token["<b>0. LLM token</b><br/>_emit_token()<br/>绕过 astream"]:::token --> S4
+    S1 --> TokenEnd["<b>终止事件</b><br/>finalize_answer / task_paused"]:::term --> S4
+
+    style S1 fill:#1a2236,stroke:#8b5cf6,color:#e6edf7
+    style S2 fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+    style S3 fill:#3a2e5c,stroke:#a78bfa,color:#e6edf7
+    style S4 fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+    style Token fill:#3a2e10,stroke:#f59e0b,color:#e6edf7,stroke-dasharray:4 3
+    style TokenEnd fill:#3a2e10,stroke:#f59e0b,color:#e6edf7
+      </div>
+      <p class="muted" style="font-size:13px;">
+        图 4：5 步主链路 + 1 条 token 旁路 + 1 条终止事件旁路。token 通过 <code>_emit_token</code> 旁路直接写 Redis，不走 astream，是为了保证字符级实时性。
+      </p>
+    </section>
+
+    <!-- ========== 九、时序图 ========== -->
+    <section id="timeline">
+      <h2>九、时序图</h2>
+      <p>从用户提交请求到拿到最终报告，时间轴上发的事件序列如下。前端 EventSource 会逐条渲染这些事件。</p>
+
+      <h3>9.1 完整任务时序</h3>
+      <div class="mermaid">
+sequenceDiagram
+    autonumber
+    participant U as User
+    participant API as FastAPI
+    participant LG as LangGraph
+    participant RS as Redis Stream
+    participant FE as Frontend
+
+    U->>API: POST /api/research
+    API->>LG: enqueue + astream(initial, config)
+    LG->>LG: generate_plan
+    LG-->>RS: XADD {generate_plan: {...}}
+    RS-->>FE: SSE → 渲染 plan 气泡
+
+    Note over LG: LLM token 流（旁路）
+    LG-->>RS: XADD token × N（_emit_token）
+    RS-->>FE: SSE → 打字机效果
+
+    Note over LG: 图停在 awaiting_plan_confirmation
+    LG-->>RS: XADD task_paused
+    RS-->>FE: SSE → 暂停连接
+
+    Note over U,LG: — 用户浏览 plan，可修改后再确认 —
+
+    U->>API: "开始研究" / "需求确认"
+    API->>LG: astream(resume, thread_id)
+    LG->>LG: confirm_plan
+    LG->>LG: research 子图<br/>generate_query → web_research → reflection ×N
+    LG-->>RS: XADD 子图节点事件
+    RS-->>FE: SSE → 渲染研究进度
+    LG->>LG: writer 子图
+    LG-->>RS: XADD {write: {...}}
+    LG-->>RS: XADD finalize_answer（一次性补推）
+    RS-->>FE: SSE → 渲染最终报告，关闭连接
+      </div>
+      <p class="muted" style="font-size:13px;">
+        图 5：t3→t4 之间图处于暂停状态（<code>awaiting_plan_confirmation</code>），Redis checkpoint 持续保留，直到用户 resume。这是 LangGraph HITL 模式的标准时序。
+      </p>
+
+      <h3>9.2 关键时间点</h3>
+      <table>
+        <thead>
+          <tr><th>阶段</th><th>namespace</th><th>节点</th><th>翻译后事件名</th><th>内容（patch 摘要）</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>主图</td><td><code>()</code></td><td><code>generate_plan</code></td><td><code>generate_plan</code></td><td><code>{plan, plan_messages, plan_status}</code></td></tr>
+          <tr><td>主图</td><td><code>()</code></td><td>(conditional)</td><td>—</td><td><code>awaiting_plan_confirmation</code> 时图停止</td></tr>
+          <tr><td>主图</td><td><code>()</code></td><td><code>confirm_plan</code></td><td><code>confirm_plan</code></td><td><code>{fresh_level}</code> 或 <code>{plan_status:"unconfirmed"}</code></td></tr>
+          <tr><td>research 子图</td><td><code>("research:",)</code></td><td><code>generate_queries</code></td><td><code>generate_query</code></td><td><code>{search_query: [...]}</code></td></tr>
+          <tr><td>research 子图</td><td><code>("research:",)</code></td><td><code>web_search</code></td><td><code>web_research</code></td><td><code>{web_research_result: [...]}</code></td></tr>
+          <tr><td>research 子图</td><td><code>("research:",)</code></td><td><code>critique</code></td><td><code>reflection</code></td><td><code>{is_sufficient, follow_up_queries}</code></td></tr>
+          <tr><td>writer 子图</td><td><code>("write:",)</code></td><td>(内部节点)</td><td><code>write</code>（整图作为节点）</td><td><code>{messages: [...]}</code></td></tr>
+          <tr><td>终止</td><td>—</td><td>—</td><td><code>finalize_answer</code> 或 <code>task_paused</code></td><td>一次性补推</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ========== 十、子图事件名映射 ========== -->
+    <section id="mapping">
+      <h2>十、子图事件名映射</h2>
+      <p>
+        前端已经在用扁平事件名渲染（<code>web_research</code> / <code>reflection</code> / <code>generate_query</code>），
+        而子图内部的 Python 节点名是 LLM 工程师写的（<code>web_search</code> / <code>critique</code> / <code>generate_queries</code>）。
+        在网关层翻译一次，避免前端耦合 LangGraph 内部命名。
+      </p>
+
+      <h3>10.1 翻译映射</h3>
+      <div class="mermaid">
+flowchart LR
+    subgraph Sub["子图节点 (Python)"]
+      N1["generate_queries"]
+      N2["web_search"]
+      N3["critique"]
+    end
+    subgraph Front["前端事件名 (Protocol)"]
+      E1["generate_query"]
+      E2["web_research"]
+      E3["reflection"]
+    end
+    N1 -->|"MAP"| E1
+    N2 -->|"MAP"| E2
+    N3 -->|"MAP"| E3
+
+    style Sub fill:#3a2e5c33,stroke:#a78bfa,color:#e6edf7
+    style Front fill:#1a3a5c33,stroke:#22d3ee,color:#e6edf7
+    style N1 fill:#1a2236,stroke:#a78bfa,color:#e6edf7
+    style N2 fill:#1a2236,stroke:#a78bfa,color:#e6edf7
+    style N3 fill:#1a2236,stroke:#a78bfa,color:#e6edf7
+    style E1 fill:#1a2236,stroke:#22d3ee,color:#e6edf7
+    style E2 fill:#1a2236,stroke:#22d3ee,color:#e6edf7
+    style E3 fill:#1a2236,stroke:#22d3ee,color:#e6edf7
+      </div>
+
+      <h3>10.2 翻译代码</h3>
+      <pre><code>_SUBGRAPH_EVENT_MAP = {
+    "generate_queries": "generate_query",
+    "web_search": "web_research",
+    "critique": "reflection",
+}
+
+is_subgraph = len(namespace) > 0
+frontend_event_name = (
+    _SUBGRAPH_EVENT_MAP.get(node_name, node_name)
+    if is_subgraph
+    else node_name
+)</code></pre>
+
+      <div class="callout">
+        <strong>规则</strong>：翻译只在<strong>子图节点</strong>上发生（<code>namespace != ()</code>）。主图节点名（如 <code>generate_plan</code>、<code>write</code>）已经和前端约定一致，原样透传。
+      </div>
+
+      <h3>10.3 为什么用 finalize_answer 而非透传 write？</h3>
+      <p>
+        writer 子图结束时会通过 <code>add_messages</code> reducer 返回一个<strong>包含全部历史</strong>的 <code>messages</code> 列表
+        （含 HumanMessage + 早期 plan AI message）。前端只关心<strong>最后一条 AI 输出</strong>（即最终报告），
+        所以从列表里筛最后一条 ai 类型消息，包装成前端约定的 <code>{"finalize_answer": {"messages": [...]}}</code> 事件再推一遍：
+      </p>
+      <pre><code>if frontend_event_name == "write" and isinstance(node_output, dict):
+    if "messages" in node_output:
+        msgs = node_output["messages"]
+        ai_msgs = [m for m in msgs if getattr(m, "type", None) == "ai"]
+        final_msg = ai_msgs[-1] if ai_msgs else (msgs[-1] if msgs else None)
+        if final_msg:
+            final_answer_event = {
+                "finalize_answer": {
+                    "messages": [{"content": final_msg.content, "type": "ai"}]
+                }
+            }</code></pre>
+    </section>
+
+    <!-- ========== 十一、易踩的坑 ========== -->
+    <section id="gotchas">
+      <h2>十一、易踩的坑</h2>
+
+      <table>
+        <thead>
+          <tr><th>#</th><th>陷阱</th><th>规避方法</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>1</td>
+            <td><strong><code>initial_state</code> 是 patch 不是 full state</strong>。resume 时只补必要字段，别把 plan 也带上覆盖，否则用户上一次的 plan 草稿会丢。</td>
+            <td>把 plan 写入走 reducer 而非 state 全量替换。</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td><strong><code>_emit_token</code> 需在每个节点里手动 if-else 读取</strong>（<code>graph.py:53</code>），因为 LangGraph 不支持"自定义 token 回调注册"。</td>
+            <td>未来可以提到 <code>Configuration</code> 里做规范化。</td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td><strong>子图节点名冲突</strong>：主图与子图同名时，光看 <code>node_name</code> 无法区分来源。</td>
+            <td>必须结合 <code>namespace</code> 联合判断。</td>
+          </tr>
+          <tr>
+            <td>4</td>
+            <td><strong><code>asetup()</code> 异步</strong>：必须在使用前调用。</td>
+            <td>放进 FastAPI lifespan 钩子，每个进程仅跑一次。</td>
+          </tr>
+          <tr>
+            <td>5</td>
+            <td><strong>TTL 设计</strong>：<code>60*24*7</code>=7 天，若 <code>task_paused</code> 后 7 天才确认，会拿不到 checkpoint。</td>
+            <td>延长 TTL，或在 Redis 流里单独缓存 task 状态。</td>
+          </tr>
+          <tr>
+            <td>6</td>
+            <td><strong><code>finalize_answer</code> 用 <code>frontend_event_name=="write"</code> 判断</strong>，假设主图没有同名节点。</td>
+            <td>若以后主图有 <code>write</code> 节点，改成 <code>(namespace, node_name)</code> 联合判断。</td>
+          </tr>
+          <tr>
+            <td>7</td>
+            <td><strong><code>stream_mode</code> 默认 <code>"updates"</code></strong>，<code>data</code> 是 <code>{node: patch}</code> 单 key 字典。</td>
+            <td>若改 <code>"values"</code>，<code>list(data.keys())[0]</code> 会崩。</td>
+          </tr>
+          <tr>
+            <td>8</td>
+            <td><strong>必须 <code>async for</code></strong>，不能用 <code>for</code>，否则会报 <code>TypeError: 'async_generator' object is not iterable</code>。</td>
+            <td>在异步上下文消费；同步场景用 <code>.stream()</code>。</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout tip">
+        <strong>下一步建议</strong>：读 <code>src/agent/sub_agents/research_agent.py</code> 与 <code>writer_agent.py</code>，看两个子图内部的 <code>astream</code> 是怎么被调用、并通过 <code>_emit_token</code> 上抛 token 事件的。
+      </div>
+
+      <h3>11.1 常见错误的快速对照</h3>
+      <table>
+        <thead>
+          <tr><th>错误现象</th><th>根因</th><th>修复</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>TypeError: 'async_generator' object is not iterable</code></td>
+            <td>用 <code>for</code> 而不是 <code>async for</code></td>
+            <td>改为 <code>async for event in ...</code></td>
+          </tr>
+          <tr>
+            <td><code>IndexError</code> at <code>list(data.keys())[0]</code></td>
+            <td><code>stream_mode="values"</code> 让 data 变成 state 快照而非单 key dict</td>
+            <td>保持 <code>stream_mode="updates"</code></td>
+          </tr>
+          <tr>
+            <td>前端只看到 <code>research</code> / <code>write</code>，看不到子图内部</td>
+            <td>忘了开 <code>subgraphs=True</code></td>
+            <td>加上 <code>subgraphs=True</code> 参数</td>
+          </tr>
+          <tr>
+            <td>用户 7 天后回来 plan 确认，checkpoint 找不到</td>
+            <td>Redis TTL=7 天</td>
+            <td>延长 TTL 或单独缓存 task 状态</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+  </main>
+</div>
+
+<footer>
+  Deep Research Backend · astream() 详解 · 基于 src/agent/task_queue.py:220
+</footer>
+
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'dark',
+    themeVariables: {
+      primaryColor: '#1a2236',
+      primaryTextColor: '#e6edf7',
+      primaryBorderColor: '#8b5cf6',
+      lineColor: '#22d3ee',
+      secondaryColor: '#111827',
+      tertiaryColor: '#0a1020',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif',
+    },
+    flowchart: { curve: 'basis', padding: 12 },
+    sequence: { actorMargin: 60, messageMargin: 40 },
+  });
+</script>
+
+</body>
+</html>
