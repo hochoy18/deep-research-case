@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>_generate_queries 详解 · Deep Research</title>
+<!-- Mermaid -->
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<style>
+  :root {
+    --bg-0: #0b0f1a;
+    --bg-1: #111827;
+    --bg-2: #1a2236;
+    --line: #243049;
+    --text: #e6edf7;
+    --muted: #97a3bd;
+    --primary: #8b5cf6;
+    --primary-2: #6366f1;
+    --accent: #22d3ee;
+    --accent-2: #06b6d4;
+    --warn: #f59e0b;
+    --ok: #10b981;
+    --danger: #ef4444;
+    --code-bg: #0a1020;
+    --shadow: 0 10px 30px rgba(0,0,0,.35);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+                 "Microsoft YaHei", Roboto, Helvetica, Arial, sans-serif;
+    background:
+      radial-gradient(1200px 600px at 10% -10%, rgba(139,92,246,.18), transparent 60%),
+      radial-gradient(1000px 500px at 110% 10%, rgba(34,211,238,.15), transparent 60%),
+      var(--bg-0);
+    color: var(--text);
+    line-height: 1.7;
+    min-height: 100vh;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* Hero */
+  .hero {
+    padding: 56px 16px 32px;
+    text-align: center;
+    border-bottom: 1px solid var(--line);
+    background: linear-gradient(180deg, rgba(139,92,246,.10), transparent 60%);
+  }
+  .hero .badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 999px;
+    background: rgba(139,92,246,.18);
+    color: #c4b5fd;
+    border: 1px solid rgba(139,92,.35);
+    font-size: 12px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+  .hero h1 {
+    margin: 0 0 8px;
+    font-size: clamp(28px, 4vw, 42px);
+    letter-spacing: -0.5px;
+    background: linear-gradient(90deg, #c4b5fd, #67e8f9);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .hero p.lead { color: var(--muted); margin: 0 auto; max-width: 820px; }
+  .hero .src {
+    display: inline-block;
+    margin-top: 12px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--line);
+    background: var(--code-bg);
+    font-family: "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+    font-size: 12px;
+    color: var(--accent);
+  }
+
+  /* Layout */
+  .layout {
+    display: grid;
+    grid-template-columns: 260px minmax(0, 1fr);
+    gap: 24px;
+    max-width: 1320px;
+    margin: 0 auto;
+    padding: 32px 16px;
+  }
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; }
+    .toc { position: static !important; }
+  }
+
+  /* TOC */
+  .toc {
+    position: sticky;
+    top: 24px;
+    align-self: start;
+    background: linear-gradient(180deg, var(--bg-1), var(--bg-2));
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 16px 18px;
+    box-shadow: var(--shadow);
+    max-height: calc(100vh - 48px);
+    overflow: auto;
+  }
+  .toc h3 {
+    margin: 0 0 10px;
+    font-size: 13px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+  }
+  .toc ol { margin: 0; padding-left: 20px; }
+  .toc li { margin: 6px 0; }
+  .toc a { color: var(--text); font-size: 14px; }
+  .toc a:hover { color: var(--accent); }
+  .toc .sub { padding-left: 16px; }
+  .toc .sub a { color: var(--muted); font-size: 13px; }
+
+  /* Content */
+  .content { min-width: 0; }
+  section {
+    background: linear-gradient(180deg, var(--bg-1), var(--bg-2));
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 24px 26px;
+    box-shadow: var(--shadow);
+    margin-bottom: 22px;
+  }
+  section h2 {
+    margin-top: 0;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--line);
+    font-size: 22px;
+    letter-spacing: -0.2px;
+  }
+  section h3 { margin-top: 22px; font-size: 17px; color: #c7d2fe; }
+  section h4 { margin-top: 16px; font-size: 15px; color: #a5b4fc; }
+  section p { color: var(--text); }
+  .muted { color: var(--muted); }
+
+  /* Code */
+  code {
+    font-family: "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+    background: var(--code-bg);
+    border: 1px solid var(--line);
+    padding: 1px 6px;
+    border-radius: 6px;
+    font-size: 13px;
+  }
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 14px 16px;
+    overflow: auto;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  pre code { background: none; border: none; padding: 0; }
+
+  /* Tables */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 14px 0;
+    font-size: 14px;
+  }
+  th, td {
+    border: 1px solid var(--line);
+    padding: 8px 12px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th { background: rgba(139,92,246,.10); color: #c4b5fd; }
+  tbody tr:nth-child(even) { background: rgba(255,255,255,.02); }
+
+  /* Pills */
+  .pill {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    margin-right: 6px;
+    border: 1px solid var(--line);
+    background: rgba(255,255,255,.04);
+    color: var(--muted);
+  }
+  .pill.ok    { color: var(--ok);    border-color: rgba(16,185,129,.35); background: rgba(16,185,129,.10); }
+  .pill.warn  { color: var(--warn);  border-color: rgba(245,158,11,.35); background: rgba(245,158,11,.10); }
+  .pill.danger{ color: var(--danger);border-color: rgba(239,68,68,.35);  background: rgba(239,68,68,.10); }
+  .pill.info  { color: var(--accent);border-color: rgba(34,211,238,.35); background: rgba(34,211,238,.10); }
+  .pill.primary{ color:#c4b5fd;      border-color: rgba(139,92,246,.35); background: rgba(139,92,246,.10); }
+
+  /* Mermaid */
+  .mermaid {
+    background: rgba(255,255,255,.02);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 16px;
+    margin: 14px 0;
+    text-align: center;
+    overflow: auto;
+  }
+
+  /* Callout */
+  .callout {
+    border-left: 3px solid var(--accent);
+    background: rgba(34,211,238,.06);
+    padding: 12px 16px;
+    border-radius: 0 8px 8px 0;
+    margin: 14px 0;
+  }
+  .callout.warn { border-color: var(--warn); background: rgba(245,158,11,.06); }
+  .callout.tip  { border-color: var(--ok);   background: rgba(16,185,129,.06); }
+  .callout.danger { border-color: var(--danger); background: rgba(239,68,68,.06); }
+  .callout strong { color: #fff; }
+
+  /* Step list (numbered) */
+  .step-list { list-style: none; padding: 0; counter-reset: step; margin: 12px 0; }
+  .step-list > li {
+    counter-increment: step;
+    position: relative;
+    padding: 14px 16px 14px 56px;
+    background: rgba(139,92,246,.06);
+    border: 1px solid rgba(139,92,246,.20);
+    border-radius: 10px;
+    margin-bottom: 10px;
+  }
+  .step-list > li::before {
+    content: counter(step);
+    position: absolute;
+    left: 14px; top: 14px;
+    width: 28px; height: 28px;
+    background: var(--primary);
+    color: #fff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 13px;
+    box-shadow: 0 0 0 3px rgba(139,92,246,.25);
+  }
+  .step-list h4 { margin: 0 0 8px; color: #c7d2fe; }
+
+  /* Placeholder chip (在 prompt 占位符里) */
+  .ph {
+    display: inline-block;
+    padding: 1px 8px;
+    border-radius: 6px;
+    background: rgba(139,92,246,.18);
+    color: #c4b5fd;
+    border: 1px solid rgba(139,92,246,.35);
+    font-family: "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.85em;
+    font-weight: 600;
+  }
+
+  /* Formula highlight in summary */
+  .formula {
+    background: linear-gradient(90deg, rgba(139,92,246,.10), rgba(34,211,238,.10));
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin: 14px 0;
+    font-size: 15px;
+    text-align: center;
+  }
+  .formula .seg { font-weight: 700; }
+
+  footer {
+    text-align: center;
+    color: var(--muted);
+    font-size: 13px;
+    padding: 24px 16px 40px;
+  }
+
+  section[id] { scroll-margin-top: 16px; }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="badge">Deep Research · Sub-Agent Node</div>
+  <h1>_generate_queries 详解</h1>
+  <p class="lead">ResearchAgent 子图的入口节点：把研究主题拆解为 N 条独立、可并行、已被 KB 去重的搜索查询</p>
+  <div class="src">src/agent/sub_agents/research_agent.py:89-167</div>
+</div>
+
+<div class="layout">
+
+  <!-- ========== 目录 ========== -->
+  <aside class="toc">
+    <h3>目录</h3>
+    <ol>
+      <li><a href="#overview">一、节点定位与职责</a></li>
+      <li><a href="#position">二、子图位置与流程图</a></li>
+      <li><a href="#signature">三、函数签名与输入输出</a></li>
+      <li><a href="#steps">四、内部 6 步执行流程</a>
+        <div class="sub">
+          <a href="#step1">4.1 配置初始化</a><br/>
+          <a href="#step2">4.2 KB 检索</a><br/>
+          <a href="#step3">4.3 拼装 known_facts</a><br/>
+          <a href="#step4">4.4 LLM 生成查询</a><br/>
+          <a href="#step5">4.5 失败降级</a><br/>
+          <a href="#step6">4.6 返回状态</a>
+        </div>
+      </li>
+      <li><a href="#prompt">五、prompt 结构拆解</a></li>
+      <li><a href="#placeholders">六、占位符映射表</a></li>
+      <li><a href="#sequence">七、端到端时序图</a></li>
+      <li><a href="#design">八、关键设计要点</a></li>
+      <li><a href="#summary">九、一句话总结</a></li>
+    </ol>
+  </aside>
+
+  <main class="content">
+
+    <!-- ========== 一、节点定位 ========== -->
+    <section id="overview">
+      <h2>一、节点定位与职责</h2>
+      <p>
+        <code>_generate_queries</code> 是 ResearchAgent 子图的<strong>入口节点</strong>，对应 LangGraph 节点 ID
+        <code>_GENERATE_QUERIES = "generate_queries"</code>。它的<strong>唯一职责</strong>是：把一个自然语言研究主题
+        转化为 N 条<strong>独立、可并行、并被 KB 去重</strong>的搜索查询，写回 state 后由 fan-out 节点并行执行。
+      </p>
+
+      <h3>核心职责</h3>
+      <table>
+        <thead><tr><th>职责</th><th>实现方式</th></tr></thead>
+        <tbody>
+          <tr><td>读配置</td><td><code>Configuration.from_runnable_config(config)</code></td></tr>
+          <tr><td>KB 去重</td><td><code>FactStore.query(topic, ...)</code> 取出已有相关事实，避免重复搜索</td></tr>
+          <tr><td>主题拆解</td><td><code>JsonAgent + SearchQueryList</code> Pydantic schema 强约束结构化输出</td></tr>
+          <tr><td>失败兜底</td><td>LLM 失败 → 用原主题作为单条 fallback，保证下游 fan-out 不空指针</td></tr>
+        </tbody>
+      </table>
+
+      <div class="callout">
+        <strong>调用次数</strong>：<code>_generate_queries</code> 仅在<strong>每个研究循环的第 1 轮</strong>执行一次；
+        后续轮次（critique 判定信息不足）由 <code>_route_after_critique</code> 直接 fan-out
+        <code>follow_up_queries</code>，<strong>不再回到本节点</strong>。
+      </div>
+    </section>
+
+    <!-- ========== 二、子图位置 ========== -->
+    <section id="position">
+      <h2>二、子图位置与流程图</h2>
+      <p>下面这张图展示了 <code>_generate_queries</code> 在 ResearchAgent 子图中的位置及与其他节点的连接关系。</p>
+
+      <div class="mermaid">
+flowchart LR
+    Start([START]) --> GQ["generate_queries<br/>入口节点"]
+    GQ -->|fan-out<br/>每条 q 一个 Send| WS["web_search<br/>并行 N 次"]
+    WS --> Critique[critique<br/>评估信息是否充分]
+    Critique --> CritRoute{is_sufficient?<br/>loop &lt; max?}
+    CritRoute -->|Yes| End1([END<br/>退出子图])
+    CritRoute -->|No| FU["follow_up_queries<br/>再 fan-out"]
+    FU --> WS
+
+    style GQ fill:#1a2236,stroke:#8b5cf6,stroke-width:3px,color:#e6edf7
+    style WS fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+    style Critique fill:#1a2236,stroke:#a5b4fc,color:#e6edf7
+    style CritRoute fill:#3a2f14,stroke:#f59e0b,color:#e6edf7
+    style End1 fill:#0a4f3a,stroke:#10b981,color:#e6edf7
+    style FU fill:#1a2236,stroke:#22d3ee,color:#e6edf7
+      </div>
+
+      <p>对应的图构建代码（src/agent/sub_agents/research_agent.py:326-337）：</p>
+      <pre><code>_builder.add_node(_GENERATE_QUERIES, _generate_queries)
+_builder.add_node(_WEB_SEARCH,        _web_search)
+_builder.add_node(_CRITIQUE,          _critique)
+
+_builder.add_edge(START, _GENERATE_QUERIES)
+_builder.add_conditional_edges(_GENERATE_QUERIES, _fan_out_to_web_search, [_WEB_SEARCH])
+_builder.add_edge(_WEB_SEARCH, _CRITIQUE)
+_builder.add_conditional_edges(_CRITIQUE, _route_after_critique, [_WEB_SEARCH, END])
+
+research_agent_graph = _builder.compile(name="ResearchAgent")</code></pre>
+
+      <h3>节点间数据流</h3>
+      <div class="mermaid">
+flowchart LR
+    A["OverallState<br/>(in)"] --> B["_generate_queries"]
+    B -->|"search_query: List[str]<br/>initial_search_query_count"| C["_web_search ×N"]
+    C -->|"sources_gathered<br/>web_search_result<br/>(operator.add)"| D["_critique"]
+    D -->|"is_sufficient<br/>knowledge_gap<br/>follow_up_queries"| E{"_route_after_critique"}
+    E -->|"充分/达上限"| F([END])
+    E -->|"不充分"| C
+
+    style B fill:#1a2236,stroke:#8b5cf6,stroke-width:3px,color:#e6edf7
+    style F fill:#0a4f3a,stroke:#10b981,color:#e6edf7
+      </div>
+    </section>
+
+    <!-- ========== 三、函数签名 ========== -->
+    <section id="signature">
+      <h2>三、函数签名与输入输出</h2>
+
+      <h3>签名</h3>
+      <pre><code>def _generate_queries(state: OverallState, config: RunnableConfig) -> dict:</code></pre>
+
+      <h3>输入（state 关键字段）</h3>
+      <table>
+        <thead><tr><th>字段</th><th>类型</th><th>来源</th><th>用途</th></tr></thead>
+        <tbody>
+          <tr><td><code>messages</code></td><td><code>List[AnyMessage]</code></td><td>父图传入</td><td>用 <code>get_research_topic()</code> 抽取研究主题</td></tr>
+          <tr><td><code>plan</code></td><td><code>str</code></td><td>上游 PlanAgent</td><td>作为 <code>research_proposal</code> 注入 prompt</td></tr>
+          <tr><td><code>initial_search_query_count</code></td><td><code>int</code></td><td>可能为 None</td><td>若空，用 <code>configurable.number_of_initial_queries</code> 兜底</td></tr>
+          <tr><td><code>fresh_level</code></td><td><code>"high"|"medium"|"low"</code></td><td>PlanAgent 写入</td><td>控制 KB 检索的 max_age_days</td></tr>
+        </tbody>
+      </table>
+
+      <h3>输出（返回 dict 写入 state 的字段）</h3>
+      <table>
+        <thead><tr><th>字段</th><th>类型</th><th>含义</th></tr></thead>
+        <tbody>
+          <tr><td><code>search_query</code></td><td><code>List[str]</code></td><td>N 条独立搜索查询（reducer <code>operator.add</code>）</td></tr>
+          <tr><td><code>initial_search_query_count</code></td><td><code>int</code></td><td>回传给 state，供 critique 路由参考</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ========== 四、内部 6 步流程 ========== -->
+    <section id="steps">
+      <h2>四、内部 6 步执行流程</h2>
+      <p>下面是 <code>_generate_queries</code> 的内部执行步骤，按调用顺序展开。</p>
+
+      <div class="mermaid">
+flowchart TD
+    A["进入 _generate_queries"] --> B["读 config 获取模型 + query 数"]
+    B --> C{"state.initial_search_query_count<br/>为空?"}
+    C -->|"是"| C1["用 configurable 默认值兜底"]
+    C -->|"否"| D
+    C1 --> D{"KB 可用?"}
+    D -->|"否"| G
+    D -->|"是"| E["store.query 检索 topic"]
+    E --> F["格式化 hits → known_facts_text"]
+    F --> G["JsonAgent.step 生成 SearchQueryList"]
+    G --> H{"是 SearchQueryList?"}
+    H -->|"否"| I["降级:<br/>原主题作为单条查询"]
+    H -->|"是"| J["返回 search_query"]
+    I --> J
+
+    style J fill:#0a4f3a,stroke:#10b981,color:#e6edf7
+    style I fill:#3a2f14,stroke:#f59e0b,color:#fde68a
+      </div>
+
+      <ol class="step-list">
+        <li id="step1">
+          <h4>4.1 配置初始化</h4>
+          <pre><code>configurable = Configuration.from_runnable_config(config)
+if state.get("initial_search_query_count") is None:
+    state["initial_search_query_count"] = configurable.number_of_initial_queries</code></pre>
+          <p>从 LangGraph 的 <code>config["configurable"]</code> 拿运行时配置；只有当上游没显式传值时才用默认值。</p>
+        </li>
+
+        <li id="step2">
+          <h4>4.2 KB 知识库检索（避免重复搜索）</h4>
+          <pre><code>store = _get_kb_store()      # 懒加载单例，失败置 False sentinel
+if store:
+    mode   = get_mode()        # off / inform / freshness / lifecycle
+    topic  = get_research_topic(state["messages"])
+    freshness = state.get("fresh_level", "medium")
+    max_age   = FRESHNESS_MAX_AGE.get(freshness, 30) if should_filter(mode) else None
+    hits = store.query(topic, top_k=20, min_confidence=0.6,
+                       max_age_days=max_age, decay=decay,
+                       lifecycle_mode=use_lifecycle)</code></pre>
+
+          <h4>KB 生命周期模式</h4>
+          <table>
+            <thead><tr><th>模式</th><th>行为</th></tr></thead>
+            <tbody>
+              <tr><td><span class="pill">off</span></td><td>不过滤 / 不衰减 / 不打年龄标签</td></tr>
+              <tr><td><span class="pill info">inform</span></td><td>只打年龄标签（措辞变化）</td></tr>
+              <tr><td><span class="pill primary">freshness</span></td><td>按 <code>fresh_level</code> 统一过滤 + 衰减</td></tr>
+              <tr><td><span class="pill primary">lifecycle</span></td><td>按事实类别 TTL 过滤 + 衰减</td></tr>
+            </tbody>
+          </table>
+
+          <p><strong>时效性窗口</strong>：<code>high=7天 / medium=30天 / low=180天</code></p>
+
+          <div class="callout warn">
+            <strong>KB 不可用 → 静默降级</strong>：<code>FactStore()</code> 初始化失败 → 返回 sentinel <code>False</code>
+            → 整段 <code>if store</code> 跳过；外层 try/except 还兜住任意异常。
+            <strong>ResearchAgent 不会因 KB 挂掉而崩溃</strong>。
+          </div>
+
+          <h4>KB 异常分类处理</h4>
+          <pre><code>except (KBConnectionError, KBEmbeddingError)         as exc: logger.warning("瞬时错误，跳过")
+except (KBConfigError,   KBEmbeddingFatalError)     as exc: logger.error  ("永久错误，需人工修复")
+except Exception                                    as exc: logger.warning("未知错误，跳过")</code></pre>
+        </li>
+
+        <li id="step3">
+          <h4>4.3 组装 known_facts_text</h4>
+          <pre><code>for h in hits:
+    line = f"- [{h['confidence']:.0%}] {h['fact']}"
+    if should_tag(mode):
+        age = (now - h["created_at"]) / 86400
+        age_tag = "🕐 刚刚" if age < 1 else f"{age:.0f}天前" if age < 30 else f"{age/30:.0f}个月前"
+        line += f" ({age_tag}, 来源: {h['source_url'][:60]})"
+    facts_lines.append(line)
+
+known_facts_text = header + "\n".join(facts_lines) + footer</code></pre>
+
+          <p>最终注入到 prompt 的样子：</p>
+          <pre><code>## 知识库中已有的相关事实（请勿重复搜索这些内容）
+
+- [85%] 智泊停车 2025 Q3 用户数突破 200 万  (12天前, 来源: https://...)
+- [72%] 智慧停车行业 CR5 达 35%            (45天前, 来源: https://...)</code></pre>
+
+          <table>
+            <thead><tr><th>模式</th><th>header</th><th>footer</th></tr></thead>
+            <tbody>
+              <tr><td><code>off</code></td><td>不打 tag</td><td>—</td></tr>
+              <tr><td><code>inform</code> / <code>lifecycle</code></td><td><code>## 知识库中已有的相关事实（请勿重复搜索这些内容）</code></td><td>—</td></tr>
+              <tr><td><code>freshness</code></td><td><code>## 📚 知识库中已有的相关事实</code></td><td><code>⚠️ 标记较早的事实可能已过时，请优先搜索获取最新信息。</code></td></tr>
+            </tbody>
+          </table>
+        </li>
+
+        <li id="step4">
+          <h4>4.4 LLM 生成查询（核心步骤）</h4>
+          <pre><code>agent = JsonAgent(
+    model_id=configurable.query_generator_model,
+    keys=SearchQueryList,
+)
+agent.set_step_prompt(query_writer_instructions)
+
+result = agent.step(
+    current_date      = get_current_date(),
+    research_topic    = get_research_topic(state["messages"]),
+    number_queries    = state["initial_search_query_count"],
+    research_proposal = state.get("plan", ""),
+    known_facts       = known_facts_text,
+)</code></pre>
+
+          <h4>JsonAgent.step() 内部链路</h4>
+          <div class="mermaid">
+flowchart LR
+    A[step kwargs] --> B[prompt_format<br/>填充占位符]
+    B --> C[Agent call<br/>OpenAICompatibleLLM]
+    C --> D[post_process<br/>extract_pattern 'json']
+    D --> E[json.loads]
+    E --> F[SearchQueryList<br/>**result]
+    F --> G{校验通过?}
+    G -->|是| H[返回 Pydantic 实例]
+    G -->|否| I[_retry_with_classified_errors]
+    I --> C
+
+    style A fill:#1a2236,stroke:#8b5cf6,color:#e6edf7
+    style C fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+    style F fill:#1a2236,stroke:#a5b4fc,color:#e6edf7
+    style H fill:#0a4f3a,stroke:#10b981,color:#e6edf7
+    style I fill:#3a1414,stroke:#ef4444,color:#e6edf7
+          </div>
+
+          <h4>输出 Pydantic 模型</h4>
+          <pre><code>class SearchQueryList(BaseModel):
+    query:    List[str] = Field(description="用于web搜索的搜索查询列表.")
+    rationale: str      = Field(description="简要解释为什么这些问题与研究主题相关.")</code></pre>
+        </li>
+
+        <li id="step5">
+          <h4>4.5 失败降级（关键防护）</h4>
+          <pre><code>if not isinstance(result, SearchQueryList):
+    logger.warning("查询生成模型调用失败 … 使用研究主题作为默认查询")
+    return {
+        "search_query": [get_research_topic(state["messages"])],   # 兜底
+        "initial_search_query_count": state["initial_search_query_count"],
+    }</code></pre>
+
+          <div class="callout danger">
+            <strong>兜底策略</strong>：当 LLM 全部重试失败 / JSON 解析失败 / Pydantic 校验失败时，
+            <code>step()</code> 返回 <code>""</code> → 降级为 <strong>1 条原始主题</strong>。
+            <strong>保证子图不挂</strong>，下游 fan-out 不会拿到空列表。
+          </div>
+        </li>
+
+        <li id="step6">
+          <h4>4.6 正常返回</h4>
+          <pre><code>return {
+    "search_query": result.query,
+    "initial_search_query_count": state["initial_search_query_count"],
+}</code></pre>
+          <p>返回的 <code>search_query: List[str]</code> 会被 <code>_fan_out_to_web_search</code>
+            <strong>每个元素</strong>生成一个 <code>Send</code>，并行调用 N 次 <code>_web_search</code>。</p>
+        </li>
+      </ol>
+    </section>
+
+    <!-- ========== 五、prompt 结构 ========== -->
+    <section id="prompt">
+      <h2>五、prompt 结构拆解</h2>
+      <p>提示词 <code>query_writer_instructions</code> 来自 <code>src/agent/prompts.py:157-196</code>，整体由 5 段组成。</p>
+
+      <div class="mermaid">
+flowchart TB
+    P["query_writer_instructions"]
+    P --> P1["# 任务说明<br/>角色：把研究主题拆成搜索主题<br/>目的：搜集信息→整合研究报告"]
+    P --> P2["# Instruction<br/>5 条生成规则"]
+    P --> P3["# Output Format<br/>严格 JSON + 2 字段示例"]
+    P --> P4["# 背景信息<br/>动态注入"]
+    P --> P5["# Output<br/>触发 post_process 抽取"]
+    P4 --> P4a["## 研究课题<br/>{research_topic}"]
+    P4 --> P4b["## 研究计划<br/>{research_proposal}"]
+    P4 --> P4c["{known_facts}<br/>KB 检索结果"]
+
+    style P fill:#1a2236,stroke:#8b5cf6,stroke-width:2px,color:#e6edf7
+    style P2 fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+    style P3 fill:#1a2236,stroke:#a5b4fc,color:#e6edf7
+    style P4 fill:#3a2f14,stroke:#f59e0b,color:#e6edf7
+    style P5 fill:#0a4f3a,stroke:#10b981,color:#e6edf7
+      </div>
+
+      <h3>5.1 Instruction · 5 条生成规则</h3>
+      <table>
+        <thead><tr><th>#</th><th>规则</th></tr></thead>
+        <tbody>
+          <tr><td>①</td><td>把主题拆成多个搜索主题（覆盖不同维度）</td></tr>
+          <tr><td>②</td><td>数量 ≤ <span class="ph">{number_queries}</span></td></tr>
+          <tr><td>③</td><td>搜索主题要"广"（主题本身宽泛则产出 ≥1 条）</td></tr>
+          <tr><td>④</td><td>每条主题必须<strong>独立</strong>，避免相似 / 耦合</td></tr>
+          <tr><td>⑤</td><td>时间敏感：默认搜近期；当前时间 = <span class="ph">{current_date}</span></td></tr>
+        </tbody>
+      </table>
+
+      <h3>5.2 Output Format · 严格 JSON</h3>
+      <pre><code>{
+  "rationale": "将主题'智泊停车商业模式'拆为：行业格局 / 用户群体 / 盈利模型 / 竞品对比 四个维度",
+  "query": [
+    "智泊停车 用户画像 2025",
+    "智慧停车 盈利模式 行业分析",
+    "ETCP 停简单 商业模式 对比",
+    "智泊 停车 融资 估值"
+  ]
+}</code></pre>
+
+      <h3>5.3 完整 prompt 渲染示意</h3>
+      <pre><code># 任务说明
+你的任务是根据当前的研究主题决定多个用于网络搜索的标题 ...
+
+# Instruction
+- 拆成多个独立维度
+- 最多不产生 4 条搜索主题     ← {number_queries} → 4
+- 尽量广泛
+- 独立性
+- 时效性：当前时间为 2026-09-10   ← {current_date}
+
+# Output Format
+你生成的内容应该是一个标准的json格式 ...
+
+# 背景信息
+## 研究课题
+智泊停车 2026 商业模式分析      ← {research_topic}
+
+## 研究计划
+一、背景 ... 二、维度 ...       ← {research_proposal}
+## 知识库中已有的相关事实 ...
+- [85%] 智泊停车 ...            ← {known_facts}
+- [72%] 智慧停车 ...
+
+# Output</code></pre>
+    </section>
+
+    <!-- ========== 六、占位符映射 ========== -->
+    <section id="placeholders">
+      <h2>六、占位符映射表</h2>
+      <p>把 prompt 中 5 个动态占位符的来源、用途一次列清楚。</p>
+      <table>
+        <thead>
+          <tr><th>占位符</th><th>来源</th><th>说明</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="ph">{current_date}</span></td>
+            <td><code>get_current_date()</code></td>
+            <td>prompts.py 工具函数，注入当前日期让 LLM 理解时效</td>
+          </tr>
+          <tr>
+            <td><span class="ph">{number_queries}</span></td>
+            <td><code>state["initial_search_query_count"]</code></td>
+            <td>控制生成上限，初始化时由 configurable 默认值兜底</td>
+          </tr>
+          <tr>
+            <td><span class="ph">{research_topic}</span></td>
+            <td><code>get_research_topic(state["messages"])</code></td>
+            <td>从消息历史中抽取的原始研究主题</td>
+          </tr>
+          <tr>
+            <td><span class="ph">{research_proposal}</span></td>
+            <td><code>state.get("plan", "")</code></td>
+            <td>上游 PlanAgent 输出的研究计划（可能为空）</td>
+          </tr>
+          <tr>
+            <td><span class="ph">{known_facts}</span></td>
+            <td>Step 4.3 组装的字符串</td>
+            <td>KB 检索结果，KB 不可用时为空字符串</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ========== 七、端到端时序 ========== -->
+    <section id="sequence">
+      <h2>七、端到端时序图</h2>
+      <p>下图覆盖了<strong>成功 / 失败 / KB 不可用</strong>三种分支的完整时序。</p>
+
+      <div class="mermaid">
+sequenceDiagram
+    autonumber
+    participant LG as LangGraph 调度
+    participant GQ as _generate_queries
+    participant Cfg as Configuration
+    participant KB as FactStore
+    participant JA as JsonAgent
+    participant LLM as LLM API
+
+    LG->>GQ: state, config
+    GQ->>Cfg: from_runnable_config(config)
+    Cfg-->>GQ: number_of_initial_queries, model ...
+
+    alt KB 可用
+        GQ->>KB: store.query(topic, top_k=20, ...)
+        KB-->>GQ: List[Fact] (含 confidence, age)
+        GQ->>GQ: 组装 known_facts_text
+    else KB 不可用
+        Note over GQ: 静默降级，跳过 KB
+    end
+
+    GQ->>JA: JsonAgent(model, keys=SearchQueryList)
+    GQ->>JA: set_step_prompt(query_writer_instructions)
+    GQ->>JA: step(current_date, topic, n, plan, known_facts)
+    JA->>LLM: format(step_prompt) → call
+    LLM-->>JA: raw text (含 ```json ... ```)
+    JA->>JA: extract_pattern("json") + json.loads
+    JA->>JA: SearchQueryList(**result)
+    JA-->>GQ: SearchQueryList(query=[...], rationale=...)
+
+    alt 成功
+        GQ-->>LG: {search_query: result.query, ...}
+    else 失败
+        GQ->>GQ: fallback = [research_topic]
+        GQ-->>LG: {search_query: [fallback], ...}
+    end
+
+    LG->>LG: _fan_out_to_web_search → Send × N
+      </div>
+    </section>
+
+    <!-- ========== 八、设计要点 ========== -->
+    <section id="design">
+      <h2>八、关键设计要点</h2>
+
+      <table>
+        <thead><tr><th>设计点</th><th>含义</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><code>keys=SearchQueryList</code></td>
+            <td>用 Pydantic 强约束输出为 <code>query</code> + <code>rationale</code> 结构</td>
+          </tr>
+          <tr>
+            <td><code>Post.extract_pattern("json")</code></td>
+            <td>自动从 LLM 输出抠 <code>```json ... ```</code> 块</td>
+          </tr>
+          <tr>
+            <td><code>_retry_with_classified_errors</code></td>
+            <td>瞬时 / 永久错误分类重试（见 base_agent.py）</td>
+          </tr>
+          <tr>
+            <td><strong>KB 异常静默降级</strong></td>
+            <td>Milvus 挂了不会让 ResearchAgent 整体挂掉</td>
+          </tr>
+          <tr>
+            <td><code>initial_search_query_count</code> 持久化</td>
+            <td>让 critique 节点能据此判断"是否要继续生成"</td>
+          </tr>
+          <tr>
+            <td><strong>失败时用原始主题兜底</strong></td>
+            <td>子图对外永远给出 <code>search_query</code>，避免下游 fan-out 空指针</td>
+          </tr>
+          <tr>
+            <td><strong>4 种 KB 模式可插拔</strong></td>
+            <td>off / inform / freshness / lifecycle 由环境变量切换，不改代码</td>
+          </tr>
+          <tr>
+            <td><strong>fan-out 用 LangGraph Send</strong></td>
+            <td>每条 query 独立子状态机副本，真正并行执行而非顺序遍历</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout tip">
+        <strong>潜在改进点</strong>：
+        <ul>
+          <li>KB 检索是同步阻塞调用，多轮研究叠加时延较明显</li>
+          <li>失败兜底仅回退到"原主题"作为单条 query，未触发重试</li>
+          <li>未对 LLM 输出做 JSON schema 之外的语义校验（如 query 之间相似度检测）</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ========== 九、总结 ========== -->
+    <section id="summary">
+      <h2>九、一句话总结</h2>
+
+      <div class="formula">
+        <code><strong>_generate_queries</strong></code>
+        =
+        <span class="seg" style="color:#22d3ee">配置初始化</span>
+        +
+        <span class="seg" style="color:#c4b5fd">KB 去重检索</span>
+        +
+        <span class="seg" style="color:#67e8f9">LLM 结构化拆解</span>
+        +
+        <span class="seg" style="color:#f59e0b">失败兜底</span>
+      </div>
+
+      <p>
+        它把一个自然语言研究主题，转化成 N 条<strong>相互独立、覆盖不同维度、并已被 KB 去重</strong>的搜索查询，
+        交给后续 <code>_web_search</code> 并行执行。
+      </p>
+
+      <p class="muted">
+        <strong>关联文档</strong>：<a href="../research-agent.html">ResearchAgent 子图详解</a> ·
+        <a href="../base-agent.html">base_agent.py 详解</a> ·
+        <a href="../extractor-explained.html">FactExtractor 详解</a> ·
+        <a href="../fact-store.html">FactStore 详解</a>
+      </p>
+    </section>
+
+  </main>
+</div>
+
+<footer>
+  Deep Research Backend · _generate_queries 详解 · 基于 src/agent/sub_agents/research_agent.py:89-167
+</footer>
+
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'dark',
+    themeVariables: {
+      primaryColor: '#1a2236',
+      primaryTextColor: '#e6edf7',
+      primaryBorderColor: '#8b5cf6',
+      lineColor: '#22d3ee',
+      secondaryColor: '#111827',
+      tertiaryColor: '#0a1020',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif',
+    },
+    flowchart: { curve: 'basis', padding: 12 },
+    sequence: { actorMargin: 60, messageMargin: 40 },
+  });
+</script>
+
+</body>
+</html>

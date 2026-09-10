@@ -1,0 +1,1217 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>base_agent.py 详解 · Deep Research</title>
+<!-- Mermaid -->
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<style>
+  :root {
+    --bg-0: #f7f8fc;
+    --bg-1: #ffffff;
+    --bg-2: #f0f2f8;
+    --line: #d0d6e2;
+    --text: #1a2236;
+    --muted: #5a6478;
+    --primary: #6366f1;
+    --primary-2: #8b5cf6;
+    --accent: #06b6d4;
+    --accent-2: #22d3ee;
+    --warn: #f59e0b;
+    --ok: #10b981;
+    --danger: #ef4444;
+    --code-bg: #f0f2f8;
+    --shadow: 0 4px 20px rgba(0,0,0,.08);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+                 "Microsoft YaHei", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg-0);
+    color: var(--text);
+    line-height: 1.7;
+    min-height: 100vh;
+    font-size: 15px;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* Hero */
+  .hero {
+    padding: 48px 16px 28px;
+    text-align: center;
+    border-bottom: 2px solid var(--line);
+    background: linear-gradient(180deg, #ede9fe, transparent);
+  }
+  .hero .badge {
+    display: inline-block;
+    padding: 4px 14px;
+    border-radius: 999px;
+    background: var(--primary);
+    color: #fff;
+    font-size: 12px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+    font-weight: 600;
+  }
+  .hero h1 {
+    margin: 0 0 8px;
+    font-size: clamp(26px, 4vw, 38px);
+    letter-spacing: -0.5px;
+    background: linear-gradient(90deg, var(--primary), var(--accent));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    font-weight: 700;
+  }
+  .hero p.lead { color: var(--muted); margin: 0 auto; max-width: 760px; font-size: 16px; }
+
+  /* Layout */
+  .layout {
+    display: grid;
+    grid-template-columns: 260px minmax(0, 1fr);
+    gap: 24px;
+    max-width: 1320px;
+    margin: 0 auto;
+    padding: 32px 16px;
+  }
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; }
+    .toc { position: static !important; }
+  }
+
+  /* TOC */
+  .toc {
+    position: sticky;
+    top: 24px;
+    align-self: start;
+    background: var(--bg-1);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 16px 18px;
+    box-shadow: var(--shadow);
+    max-height: calc(100vh - 48px);
+    overflow: auto;
+  }
+  .toc h3 {
+    margin: 0 0 10px;
+    font-size: 13px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    font-weight: 700;
+  }
+  .toc ol { margin: 0; padding-left: 20px; }
+  .toc li { margin: 6px 0; }
+  .toc a { color: var(--text); font-size: 14px; font-weight: 500; }
+  .toc a:hover { color: var(--accent); }
+
+  /* Content */
+  .content { min-width: 0; }
+  section {
+    background: var(--bg-1);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 24px 28px;
+    box-shadow: var(--shadow);
+    margin-bottom: 22px;
+  }
+  section h2 {
+    margin-top: 0;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--line);
+    font-size: 22px;
+    letter-spacing: -0.2px;
+    color: var(--text);
+    font-weight: 700;
+  }
+  section h3 {
+    margin-top: 24px;
+    font-size: 17px;
+    color: var(--primary-2);
+    font-weight: 700;
+  }
+  section h4 {
+    margin-top: 18px;
+    font-size: 15px;
+    color: var(--primary);
+    font-weight: 700;
+  }
+  section p { color: var(--text); }
+
+  /* Code */
+  code {
+    font-family: "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+    background: var(--code-bg);
+    border: 1px solid var(--line);
+    padding: 1px 6px;
+    border-radius: 6px;
+    font-size: 13px;
+    color: var(--danger);
+  }
+  pre {
+    background: #1a2236;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 14px 16px;
+    overflow: auto;
+    font-size: 13px;
+    line-height: 1.65;
+  }
+  pre code {
+    background: none;
+    border: none;
+    padding: 0;
+    color: #e6edf7;
+  }
+
+  /* Tables */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 14px 0;
+    font-size: 14px;
+    background: var(--bg-1);
+  }
+  th, td {
+    border: 1px solid var(--line);
+    padding: 8px 12px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th {
+    background: var(--primary);
+    color: #fff;
+    font-weight: 700;
+  }
+  tbody tr:nth-child(even) { background: var(--bg-2); }
+
+  /* Pills */
+  .pill {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    margin-right: 6px;
+    border: 1px solid var(--line);
+    background: var(--bg-2);
+    color: var(--muted);
+    font-weight: 600;
+  }
+  .pill.ok    { color: var(--ok);    border-color: var(--ok);    background: #d1fae5; }
+  .pill.warn  { color: var(--warn);  border-color: var(--warn);  background: #fef3c7; }
+  .pill.danger{ color: var(--danger);border-color: var(--danger);background: #fee2e2; }
+  .pill.info  { color: var(--accent);border-color: var(--accent);background: #cffafe; }
+
+  /* Mermaid: 高对比度主题 */
+  .mermaid {
+    background: var(--bg-1);
+    border: 2px solid var(--line);
+    border-radius: 12px;
+    padding: 24px 18px;
+    margin: 18px 0;
+    text-align: center;
+    overflow: auto;
+    box-shadow: 0 2px 8px rgba(0,0,0,.04);
+  }
+  .mermaid svg {
+    max-width: 100%;
+    height: auto;
+  }
+  /* 加深 mermaid 内部的字体 */
+  .mermaid .nodeLabel,
+  .mermaid .edgeLabel,
+  .mermaid .label,
+  .mermaid text {
+    font-weight: 600 !important;
+    fill: #1a2236 !important;
+    color: #1a2236 !important;
+  }
+  .mermaid .edgeLabel {
+    background: #ffffff !important;
+    padding: 2px 6px !important;
+    border-radius: 4px !important;
+  }
+  .mermaid .edgeLabel rect {
+    fill: #ffffff !important;
+  }
+
+  /* Callout */
+  .callout {
+    border-left: 4px solid var(--accent);
+    background: #ecfeff;
+    padding: 12px 16px;
+    border-radius: 0 8px 8px 0;
+    margin: 14px 0;
+    color: var(--text);
+  }
+  .callout.warn { border-color: var(--warn); background: #fffbeb; }
+  .callout.tip  { border-color: var(--ok); background: #ecfdf5; }
+
+  footer {
+    text-align: center;
+    color: var(--muted);
+    font-size: 13px;
+    padding: 24px 16px 40px;
+  }
+
+  section[id] { scroll-margin-top: 16px; }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="badge">Deep Research · Agent Framework</div>
+  <h1>base_agent.py 详解</h1>
+  <p class="lead">Agent 基类体系：RateLimiter + 重试辅助 + Agent / JsonAgent / MCPAgent / WebSearchAgent 四层继承</p>
+</div>
+
+<div class="layout">
+
+  <!-- ========== 目录 ========== -->
+  <aside class="toc">
+    <h3>目录</h3>
+    <ol>
+      <li><a href="#overview">一、文件结构</a></li>
+      <li><a href="#rate-limiter">二、RateLimiter</a></li>
+      <li><a href="#retry">三、_retry_with_classified_errors</a></li>
+      <li><a href="#agent">四、Agent 基类</a></li>
+      <li><a href="#astream">五、astream_step 流式链路</a></li>
+      <li><a href="#json-agent">六、JsonAgent</a></li>
+      <li><a href="#mcp-agent">七、MCPAgent</a></li>
+      <li><a href="#web-search">八、WebSearchAgent</a></li>
+      <li><a href="#response-parse">九、post_process 3 层 JSON 解析</a></li>
+      <li><a href="#retry-table">十、重试策略对比表</a></li>
+      <li><a href="#call-graph">十一、调用关系</a></li>
+      <li><a href="#design">十二、关键设计要点</a></li>
+    </ol>
+  </aside>
+
+  <main class="content">
+
+    <!-- ========== 一、文件结构 ========== -->
+    <section id="overview">
+      <h2>一、文件结构</h2>
+      <p>文件 <code>src/agent/base_agent.py</code> 共 629 行，定义了 LLM / MCP / Web 搜索的统一 Agent 体系。</p>
+
+      <div class="mermaid">
+flowchart LR
+    A["base_agent.py<br/>(629 行)"] --> B["RateLimiter<br/>:26-80"]
+    A --> C["_retry_with_classified_errors<br/>:109-164"]
+    A --> D["Agent<br/>:167-305"]
+    A --> E["JsonAgent<br/>:308-317"]
+    A --> F["MCPAgent<br/>:320-404"]
+    A --> G["WebSearchAgent<br/>:407-622"]
+    style A fill:#ede9fe,stroke:#6366f1,stroke-width:2px,color:#1a2236
+    style B fill:#fef3c7,stroke:#f59e0b,stroke-width:2px,color:#1a2236
+    style C fill:#fef3c7,stroke:#f59e0b,stroke-width:2px,color:#1a2236
+    style D fill:#cffafe,stroke:#06b6d4,stroke-width:2px,color:#1a2236
+    style E fill:#cffafe,stroke:#06b6d4,stroke-width:2px,color:#1a2236
+    style F fill:#d1fae5,stroke:#10b981,stroke-width:2px,color:#1a2236
+    style G fill:#d1fae5,stroke:#10b981,stroke-width:2px,color:#1a2236
+      </div>
+
+      <h3>类继承层次</h3>
+      <div class="mermaid">
+flowchart TD
+    A["Agent (基类)<br/>LLM 调用 + step/astep/astream_step"] --> JA["JsonAgent<br/>+ 强制 JSON 输出"]
+    A --> MCP["MCPAgent<br/>+ dashscope MCP 调用"]
+    MCP --> WS["WebSearchAgent<br/>+ 缓存 + 速率限制 + 复杂响应解析"]
+    style A fill:#cffafe,stroke:#06b6d4,stroke-width:2px,color:#1a2236
+    style JA fill:#cffafe,stroke:#06b6d4,stroke-width:2px,color:#1a2236
+    style MCP fill:#d1fae5,stroke:#10b981,stroke-width:2px,color:#1a2236
+    style WS fill:#d1fae5,stroke:#10b981,stroke-width:3px,color:#1a2236
+      </div>
+
+      <h3>核心类与方法速览</h3>
+      <table>
+        <thead><tr><th>类 / 函数</th><th>行号</th><th>角色</th><th>调用方</th></tr></thead>
+        <tbody>
+          <tr><td><code>RateLimiter</code></td><td>26-80</td><td>令牌桶速率限制器</td><td>WebSearchAgent</td></tr>
+          <tr><td><code>_retry_with_classified_errors</code></td><td>109-164</td><td>同步重试辅助</td><td>Agent.step, MCPAgent.step, WebSearchAgent.step</td></tr>
+          <tr><td><code>Agent</code></td><td>167-305</td><td>基础 LLM Agent（同步 + 异步 + 流式）</td><td>ResearchAgent / WriterAgent</td></tr>
+          <tr><td><code>JsonAgent</code></td><td>308-317</td><td>Agent 子类，强制 JSON 输出</td><td>ResearchAgent / WriterAgent</td></tr>
+          <tr><td><code>MCPAgent</code></td><td>320-404</td><td>Agent 子类，封装 dashscope MCP 调用</td><td>WebSearchAgent</td></tr>
+          <tr><td><code>WebSearchAgent</code></td><td>407-622</td><td>MCPAgent 子类，网页搜索 + 缓存</td><td>ResearchAgent._web_search</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ========== 二、RateLimiter ========== -->
+    <section id="rate-limiter">
+      <h2>二、RateLimiter 速率限制器（:26-80）</h2>
+      <p>令牌桶速率限制器，避免触发 API 429 错误。</p>
+
+      <h3>核心参数</h3>
+      <pre><code>def __init__(self, max_qps: float = 15.0):
+    self.max_qps = max_qps                    # 默认 15 QPS
+    self.min_interval = 1.0 / max_qps        # 最小请求间隔
+    self.last_request_time = 0               # 上次请求时间
+    self.lock = threading.Lock()              # 同步锁
+    self._alock = asyncio.Lock()              # 异步锁</code></pre>
+
+      <h3>双接口</h3>
+      <pre><code>def acquire(self):                  # 同步版（threading.Lock + time.sleep）
+    ...
+
+async def aacquire(self):            # 异步版（asyncio.Lock + asyncio.sleep）
+    ...</code></pre>
+
+      <h3>令牌桶原理</h3>
+      <div class="mermaid">
+flowchart LR
+    A["acquire 调用"] --> B{"距离上次请求<br/>< min_interval?"}
+    B -->|"否"| F["更新 last_request_time<br/>wait_time=0<br/>直接放行"]
+    B -->|"是"| C["wait_time = min_interval - elapsed"]
+    C --> D["time.sleep / asyncio.sleep"]
+    D --> E["更新 last_request_time<br/>返回 wait_time"]
+    style A fill:#cffafe,stroke:#06b6d4,stroke-width:2px,color:#1a2236
+    style E fill:#d1fae5,stroke:#10b981,stroke-width:2px,color:#1a2236
+    style F fill:#d1fae5,stroke:#10b981,stroke-width:2px,color:#1a2236
+      </div>
+
+      <h3>全局单例 + 环境变量</h3>
+      <pre><code>_web_search_rate_limiter = None
+
+def get_web_search_rate_limiter(max_qps=None) -> RateLimiter:
+    global _web_search_rate_limiter
+    if _web_search_rate_limiter is None:
+        max_qps = max_qps or float(os.getenv("WEB_SEARCH_MAX_QPS", "12"))
+        _web_search_rate_limiter = RateLimiter(max_qps=max_qps)
+    return _web_search_rate_limiter</code></pre>
+      <p><strong>默认 12 QPS</strong>（留有余量，比构造函数默认的 15 小）。</p>
+    </section>
+
+    <!-- ========== 三、retry ========== -->
+    <section id="retry">
+      <h2>三、_retry_with_classified_errors 重试（:109-164）</h2>
+      <p>通用<strong>同步</strong>重试辅助，对 Permanent / Transient 错误分类处理。</p>
+
+      <h3>异常分类决策</h3>
+      <div class="mermaid">
+flowchart TD
+    A["_retry_with_classified_errors()"] --> B["调用 callable_fn()"]
+    B --> C{"异常类型?"}
+    C -->|"PermanentError"| D["raise<br/>(不重试)"]
+    C -->|"TransientError"| E{"attempt < 2?"}
+    C -->|"其他 Exception"| F{"attempt < 2?"}
+    E -->|"是"| E1["sleep 1.5*(n+1)<br/>继续重试"]
+    E -->|"否"| E2["return None"]
+    F -->|"是"| F1["sleep + log traceback<br/>继续重试"]
+    F -->|"否"| F2["return None"]
+    style D fill:#fee2e2,stroke:#ef4444,stroke-width:2px,color:#1a2236
+    style E2 fill:#fee2e2,stroke:#ef4444,stroke-width:2px,color:#1a2236
+    style F2 fill:#fee2e2,stroke:#ef4444,stroke-width:2px,color:#1a2236
+    style E1 fill:#d1fae5,stroke:#10b981,stroke-width:2px,color:#1a2236
+    style F1 fill:#d1fae5,stroke:#10b981,stroke-width:2px,color:#1a2236
+      </div>
+
+      <h3>关键设计点</h3>
+      <table>
+        <thead><tr><th>设计</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td><strong>三路异常处理</strong></td><td>Permanent 直接抛 / Transient 重试 / 其他 重试</td></tr>
+          <tr><td><strong>重试耗尽返回 None</strong></td><td>而非抛异常，<strong>保持向后兼容</strong></td></tr>
+          <tr><td><strong>未知异常保守重试</strong></td><td>不假设是否可恢复</td></tr>
+          <tr><td><strong>线性增长延迟</strong></td><td><code>base_delay * (attempt + 1)</code> = 1.5 / 3.0 / 4.5 秒</td></tr>
+          <tr><td><strong>完整 traceback</strong></td><td>未知异常时记录 <code>traceback.format_exc()</code></td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ========== 四、Agent 基类 ========== -->
+    <section id="agent">
+      <h2>四、Agent 基类（:167-305）</h2>
+
+      <h3>类结构图</h3>
+      <div class="mermaid">
+flowchart LR
+    A["Agent 基类<br/>(持有 OpenAICompatibleLLM)"] --> A1["__call__<br/>同步入口"]
+    A --> A2["acall<br/>异步入口"]
+    A --> A3["step<br/>同步 3 次重试"]
+    A --> A4["astep<br/>异步 3 次重试"]
+    A --> A5["astream_step<br/>异步流式 3 次重试+降级"]
+    A --> A6["post_process<br/>默认透传"]
+    A --> A7["prompt_format<br/>字符串模板"]
+    style A fill:#cffafe,stroke:#06b6d4,stroke-width:3px,color:#1a2236
+    style A1 fill:#ffffff,stroke:#06b6d4,stroke-width:1px,color:#1a2236
+    style A2 fill:#ffffff,stroke:#06b6d4,stroke-width:1px,color:#1a2236
+    style A3 fill:#ffffff,stroke:#06b6d4,stroke-width:1px,color:#1a2236
+    style A4 fill:#ffffff,stroke:#06b6d4,stroke-width:1px,color:#1a2236
+    style A5 fill:#d1fae5,stroke:#10b981,stroke-width:2px,color:#1a2236
+    style A6 fill:#ffffff,stroke:#06b6d4,stroke-width:1px,color:#1a2236
+    style A7 fill:#ffffff,stroke:#06b6d4,stroke-width:1px,color:#1a2236
+      </div>
+
+      <h3>4.1 同步 step（:183-193）</h3>
+      <pre><code>def step(self, **kwargs):
+    step_prompt = self.prompt_format(self.step_prompt, **kwargs)
+
+    def _attempt():
+        response = self(step_prompt)              # 同步 LLM 调用
+        return self.post_process(response)
+
+    return _retry_with_classified_errors(_attempt, error_prefix="大模型调用") or ""</code></pre>
+
+      <h3>4.2 异步 astep（:195-236）</h3>
+      <pre><code>async def astep(self, **kwargs):
+    step_prompt = self.prompt_format(self.step_prompt, **kwargs)
+    for attempt in range(3):
+        try:
+            response = await self.acall(step_prompt)
+            response = self.post_process(response)
+            return response
+        except PermanentError:
+            raise
+        except TransientError as e:
+            if attempt < 2:
+                delay = 1.5 * (attempt + 1)
+                await asyncio.sleep(delay)
+            else:
+                logger.error(...)
+        except Exception as e:
+            if attempt < 2:
+                delay = 1.5 * (attempt + 1)
+                await asyncio.sleep(delay)
+    return ""       # 重试耗尽返回空字符串</code></pre>
+
+      <h3>4.3 prompt_format（:300-305）</h3>
+      <pre><code>def prompt_format(self, prompt, **kwargs):
+    prompt_ = copy.deepcopy(prompt)        # ★ 深拷贝避免污染原 prompt
+    for k in kwargs.keys():
+        rep = "{"+k+"}"
+        prompt_ = prompt_.replace(rep, str(kwargs[k]))
+    return prompt_</code></pre>
+
+      <div class="callout tip">
+        <strong>用 <code>replace</code> 而非 <code>format</code></strong>：支持相同 key 在 prompt 中<strong>多次出现</strong>。
+      </div>
+    </section>
+
+    <!-- ========== 五、astream_step ========== -->
+    <section id="astream">
+      <h2>五、astream_step 流式链路（:238-295）</h2>
+      <p>逐 token 回调 + 失败降级到非流式。<strong>最重要的方法之一</strong>。</p>
+
+      <h3>核心代码</h3>
+      <pre><code>async def astream_step(self, on_token, **kwargs):
+    step_prompt = self.prompt_format(self.step_prompt, **kwargs)
+
+    # ── 阶段 1: 流式重试（3 次） ──
+    for attempt in range(3):
+        try:
+            full_response = ""
+            async for token in self.llm.astream_response(step_prompt):
+                full_response += token
+                try:
+                    await on_token(token)          # ★ 每次回调
+                except Exception:
+                    pass                          # 回调失败不能中断流式
+            response = self.post_process(full_response)
+            return response
+        except PermanentError:
+            raise
+        except TransientError as e:
+            ...重试逻辑...
+        except Exception as e:
+            ...重试逻辑...
+
+    # ── 阶段 2: 回退到非流式 ──
+    logger.warning("流式大模型调用全部失败，回退到非流式调用")
+    response = await self.astep(**kwargs)
+    try:
+        await on_token(response)              # 把完整结果作为单次回调
+    except Exception:
+        pass
+    return response</code></pre>
+
+      <h3>流式链路（精确 6 层）</h3>
+      <div class="mermaid">
+sequenceDiagram
+    autonumber
+    participant LLM as LLM API
+    participant AS as astream_step
+    participant OT as on_token
+    participant ET as emit_token
+    participant R as Redis
+    participant SSE as SSE 端点
+    participant B as 浏览器
+
+    loop 每个 token chunk (最多 3 次重试)
+        LLM-->>AS: chunk (delta.content)
+        AS->>AS: full_response += token
+        AS->>OT: await on_token(token)
+        Note over AS,OT: try/except 包裹<br/>回调失败不中断流式
+        OT->>ET: await emit_token(token, node)
+        ET->>R: XADD research:events:{id}
+        R-->>SSE: XREAD 返回
+        SSE-->>B: data: {"token":...}\n\n
+    end
+
+    alt 流式失败 3 次
+        AS->>AS: 降级到 astep (非流式)
+        AS->>OT: on_token(response) 一次性回调
+    end
+      </div>
+
+      <h3>流式降级机制</h3>
+      <div class="mermaid">
+flowchart TD
+    A["astream_step 入口"] --> B["尝试流式调用<br/>(最多 3 次)"]
+    B -->|"成功"| C["逐 token 回调<br/>前端打字效果"]
+    B -->|"失败"| D["降级到 astep (非流式)"]
+    D --> E["一次性回调 on_token<br/>前端直接显示完整内容"]
+    style A fill:#cffafe,stroke:#06b6d4,stroke-width:2px,color:#1a2236
+    style C fill:#d1fae5,stroke:#10b981,stroke-width:2px,color:#1a2236
+    style D fill:#fffbeb,stroke:#f59e0b,stroke-width:2px,color:#1a2236
+    style E fill:#d1fae5,stroke:#10b981,stroke-width:2px,color:#1a2236
+      </div>
+    </section>
+
+    <!-- ========== 六、JsonAgent ========== -->
+    <section id="json-agent">
+      <h2>六、JsonAgent（:308-317）</h2>
+      <p>Agent 子类，<strong>强制 JSON 结构化输出</strong>。</p>
+
+      <h3>核心代码</h3>
+      <pre><code>class JsonAgent(Agent):
+    def __init__(self, model_id="deepseek-v4-flash", keys=None):
+        super().__init__(model_id)
+        self.keys = keys                    # TypedDict 类
+
+    def post_process(self, response):
+        result = json.loads(Post.extract_pattern(response, pattern="json"))
+        if not self.keys:
+            return result
+        return self.keys(**result)         # ★ 校验并构造 TypedDict</code></pre>
+
+      <h3>JSON 输出流水线</h3>
+      <div class="mermaid">
+flowchart LR
+    A["LLM 原始输出<br/>(含 ```json 围栏)"] --> B["Post.extract_pattern<br/>(pattern='json')"]
+    B --> C["提取 JSON 字符串"]
+    C --> D["json.loads → dict"]
+    D --> E{"self.keys 存在?"}
+    E -->|"否"| F["return dict"]
+    E -->|"是"| G["TypedDict(**dict)<br/>构造并校验"]
+    G --> H["return TypedDict 实例"]
+    style A fill:#ffffff,stroke:#06b6d4,stroke-width:1px,color:#1a2236
+    style H fill:#d1fae5,stroke:#10b981,stroke-width:2px,color:#1a2236
+      </div>
+
+      <h3>典型用法</h3>
+      <pre><code>agent = JsonAgent(model_id=..., keys=Reflection)   # Reflection 是 TypedDict 类
+result = agent.step(...)                            # → Reflection 实例
+result.is_sufficient                                # 可直接访问字段</code></pre>
+    </section>
+
+    <!-- ========== 七、MCPAgent ========== -->
+    <section id="mcp-agent">
+      <h2>七、MCPAgent（:320-404）</h2>
+      <p>Agent 子类，封装 <strong>dashscope MCP 调用</strong>。</p>
+
+      <h3>同步 step（:322-345）</h3>
+      <pre><code>def step(self, **kwargs):
+    try:
+        step_prompt = self.step_prompt.format(**kwargs)
+    except (KeyError, ValueError) as e:
+        logger.warning(f"MCP prompt格式化失败（缺少参数 {e}），使用原始prompt")
+        step_prompt = self.step_prompt
+
+    def _attempt():
+        response = Application.call(                 # dashscope MCP 同步 API
+            api_key=os.getenv("DASHSCOPE_API_KEY") or os.getenv("APP_TOKEN"),
+            app_id=os.getenv("MCP_APP_ID"),
+            prompt=step_prompt,
+            biz_params=kwargs,
+        )
+        result = self.post_process(response)
+        if result is None:
+            raise MCPEmptyResultError("MCP返回结果不正确（None）")
+        return result
+
+    return _retry_with_classified_errors(_attempt, base_delay=2.0, error_prefix="MCP调用")</code></pre>
+
+      <h3>异步 astep（:347-396）</h3>
+      <pre><code>async def astep(self, **kwargs):
+    ...
+    for attempt in range(3):
+        try:
+            response = await asyncio.to_thread(    # ★ 同步 MCP API 包装到线程池
+                Application.call,
+                api_key=os.getenv("APP_TOKEN"),
+                app_id=os.getenv("MCP_APP_ID"),
+                prompt=step_prompt,
+                biz_params=kwargs,
+            )
+            response = self.post_process(response)
+            if response is None:
+                raise MCPEmptyResultError(...)
+            return response
+        except PermanentError:
+            raise
+        except TransientError as e:
+            if attempt < 2:
+                delay = 2.0 * (attempt + 1)
+                await asyncio.sleep(delay)
+        except Exception as e:
+            ...
+    return None</code></pre>
+
+      <h3>post_process（:398-404）</h3>
+      <pre><code>def post_process(self, response):
+    if response.status_code == 200:
+        response = json.loads(response.output.text)
+        return response
+    else:
+        logger.error(f"MCP调用失败，HTTP状态码: {response.status_code}")
+        return None                                  # 返回 None → 被 _attempt 检测抛 MCPEmptyResultError</code></pre>
+
+      <div class="callout warn">
+        <strong>post_process 返回 None 后被 _attempt 检测抛 MCPEmptyResultError</strong>：链路长，可考虑直接抛。
+      </div>
+    </section>
+
+    <!-- ========== 八、WebSearchAgent ========== -->
+    <section id="web-search">
+      <h2>八、WebSearchAgent（:407-622）— 最复杂的子类</h2>
+      <p>职责：<strong>网页搜索 + 缓存 + 速率限制 + 响应解析</strong>。</p>
+
+      <h3>8.1 同步 step（:408-452）— 4 步流程</h3>
+      <pre><code>def step(self, prompt, **kwargs):
+    try:
+        step_prompt = self.step_prompt.format(prompt=prompt)
+    except (KeyError, ValueError) as e:
+        ...step_prompt = self.step_prompt
+
+    count = kwargs.get("count", 10)
+
+    # ── 步骤 1: 缓存查找 ──
+    cached = get_cached(prompt)
+    if cached is not None:
+        return cached
+
+    api_key = os.getenv("MCP_APP_TOKEN") or os.getenv("MCP_APP_TOKEN")  # 注意：有 typo
+    app_id = os.getenv("MCP_APP_ID")
+    rate_limiter = get_web_search_rate_limiter()
+
+    def _attempt():
+        # ── 步骤 2: 速率限制 ──
+        wait_time = rate_limiter.acquire()
+        if wait_time > 0:
+            logger.debug(...)
+
+        # ── 步骤 3: MCP 调用 ──
+        response = Application.call(api_key=api_key, app_id=app_id, prompt=step_prompt, biz_params=kwargs)
+        result = self.post_process(response)
+
+        # ── 步骤 4: 缓存写入 ──
+        if result:
+            set_cached(prompt, result=result)
+
+        return result
+
+    return _retry_with_classified_errors(_attempt, base_delay=2.0, error_prefix="Web搜索")</code></pre>
+
+      <h3>同步 step 4 步流程图</h3>
+      <div class="mermaid">
+flowchart TD
+    A["step 入口<br/>prompt + count"] --> B{"步骤1: 缓存命中?"}
+    B -->|"是"| Z["直接返回 cached"]
+    B -->|"否"| C["步骤2: rate_limiter.acquire()<br/>速率限制"]
+    C --> D["步骤3: Application.call<br/>MCP 搜索"]
+    D --> E["post_process<br/>3 层 JSON 解析"]
+    E --> F["步骤4: set_cached<br/>写入缓存"]
+    F --> G["return result"]
+    style A fill:#cffafe,stroke:#06b6d4,stroke-width:2px,color:#1a2236
+    style Z fill:#d1fae5,stroke:#10b981,stroke-width:2px,color:#1a2236
+    style G fill:#d1fae5,stroke:#10b981,stroke-width:2px,color:#1a2236
+      </div>
+
+      <h3>8.2 异步 astep（:454-530）</h3>
+      <pre><code>async def astep(self, prompt, **kwargs):
+    try:
+        step_prompt = self.step_prompt.format(prompt=prompt)
+    except (KeyError, ValueError) as e:
+        ...
+
+    count = kwargs.get("count", 10)
+
+    # ── 缓存查找 ──
+    cached = get_cached(prompt)
+    if cached is not None:
+        return cached
+
+    api_key = os.getenv("APP_TOKEN")     # 注意：与 step 不同
+    app_id = os.getenv("MCP_APP_ID")
+    rate_limiter = get_web_search_rate_limiter()
+
+    for attempt in range(3):
+        try:
+            wait_time = await rate_limiter.aacquire()
+            response = await asyncio.to_thread(
+                Application.call,
+                api_key=api_key, app_id=app_id, prompt=step_prompt, biz_params=kwargs,
+            )
+            response = self.post_process(response)
+            if response:
+                set_cached(prompt, result=response)
+            return response
+        except PermanentError as e:
+            logger.error(...)
+            raise
+        except TransientError as e:
+            is_429 = "429" in str(e).lower() or isinstance(e, MCPRateLimitError)
+            delay = 5 * (attempt + 1) if is_429 else 2.0 * (attempt + 1)
+            if attempt < 2:
+                await asyncio.sleep(delay)
+            else:
+                logger.error(...)
+        except Exception as e:
+            ...
+    return None</code></pre>
+
+      <h3>4 类 MCP 异常分类</h3>
+      <div class="mermaid">
+flowchart TD
+    A["API 返回 status"] --> B{"status code?"}
+    B -->|"429"| C1["MCPRateLimitError<br/>(Transient, 重试)"]
+    B -->|"401"| C2["MCPAuthError<br/>(Permanent, 不重试)"]
+    B -->|"403"| C3["MCPAccessDeniedError<br/>(Permanent, 不重试)"]
+    B -->|"其他"| C4["MCPServerError<br/>(视情况)"]
+    B -->|"无法解析"| C5["MCPParseError<br/>(Permanent, 不重试)"]
+    C1 --> D["is_429=True<br/>delay=5*(n+1)"]
+    C2 --> E["raise 不重试"]
+    C3 --> E
+    C4 --> F["delay=2*(n+1)"]
+    C5 --> E
+    style C1 fill:#fffbeb,stroke:#f59e0b,stroke-width:2px,color:#1a2236
+    style C2 fill:#fee2e2,stroke:#ef4444,stroke-width:2px,color:#1a2236
+    style C3 fill:#fee2e2,stroke:#ef4444,stroke-width:2px,color:#1a2236
+    style C5 fill:#fee2e2,stroke:#ef4444,stroke-width:2px,color:#1a2236
+    style D fill:#d1fae5,stroke:#10b981,stroke-width:2px,color:#1a2236
+    style F fill:#d1fae5,stroke:#10b981,stroke-width:2px,color:#1a2236
+      </div>
+
+      <h3>异常分类表</h3>
+      <table>
+        <thead><tr><th>异常</th><th>性质</th><th>HTTP</th><th>重试?</th><th>等待时间</th></tr></thead>
+        <tbody>
+          <tr><td><code>MCPRateLimitError</code></td><td>Transient</td><td>429</td><td>✅</td><td><code>5 * (n+1)</code> 秒</td></tr>
+          <tr><td><code>MCPAuthError</code></td><td>Permanent</td><td>401</td><td>❌</td><td>—</td></tr>
+          <tr><td><code>MCPAccessDeniedError</code></td><td>Permanent</td><td>403</td><td>❌</td><td>—</td></tr>
+          <tr><td><code>MCPServerError</code></td><td>视情况</td><td>其他</td><td>✅</td><td><code>2 * (n+1)</code> 秒</td></tr>
+          <tr><td><code>MCPParseError</code></td><td>Permanent</td><td>—</td><td>❌</td><td>—</td></tr>
+          <tr><td><code>MCPEmptyResultError</code></td><td>Transient</td><td>—</td><td>✅</td><td>—</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ========== 九、post_process 解析 ========== -->
+    <section id="response-parse">
+      <h2>九、post_process 3 层 JSON 解析（:532-622）</h2>
+      <p>WebSearchAgent 的 <code>post_process</code> 是<strong>最复杂的部分</strong>，解析 3 层 JSON 嵌套的 MCP 响应。</p>
+
+      <h3>核心代码</h3>
+      <pre><code>def post_process(self, response):
+    if response is None:
+        raise MCPEmptyResultError("Web搜索结果不正确（response为None）")
+    if response.status_code == 200:
+        try:
+            # ① 解析第一层 JSON
+            first_level = json.loads(response.output.text)
+
+            # ② 检查 API 是否返回错误（status_code=200 但 result.isError=True）
+            if "result" in first_level and first_level["result"].get("isError"):
+                error_content = first_level["result"]["content"][0]["text"]
+                error_detail = json.loads(error_content)
+                status = error_detail.get("status")
+                request_id = error_detail.get("request_id")
+
+                if status == 429:
+                    raise MCPRateLimitError(...)
+                elif status == 401:
+                    raise MCPAuthError(...)
+                elif status == 403:
+                    raise MCPAccessDeniedError(...)
+                else:
+                    raise MCPServerError(...)
+
+            # ③ 提取 pages 数据（3 种路径）
+            pages = None
+            if "result" in first_level and "content" in first_level["result"]:
+                content_text = first_level["result"]["content"][0]["text"]
+                second_level = json.loads(content_text)
+                if "pages" in second_level:
+                    pages = second_level["pages"]
+            elif "pages" in first_level:
+                pages = first_level["pages"]
+            elif "data" in first_level and "pages" in first_level["data"]:
+                pages = first_level["data"]["pages"]
+
+            if pages is None:
+                raise MCPParseError("无法从Web搜索结果中提取页面数据")
+
+            # ④ 提取需要的字段
+            processed_pages = []
+            for page in pages:
+                if isinstance(page, dict):
+                    processed_pages.append({
+                        "snippet": page.get("snippet", ""),
+                        "title": page.get("title", ""),
+                        "url": page.get("url", "")
+                    })
+
+            return processed_pages
+        except json.JSONDecodeError as e:
+            raise MCPParseError(...) from e
+        except (KeyError, IndexError, TypeError) as e:
+            raise MCPParseError(...) from e
+    else:
+        raise MCPServerError(f"Web搜索API调用失败(HTTP {response.status_code})")</code></pre>
+
+      <h3>3 层 JSON 解析路径</h3>
+      <div class="mermaid">
+flowchart TD
+    A["MCP 响应<br/>response.status_code=200"] --> B["第 1 层 JSON<br/>response.output.text"]
+    B --> C["json.loads → first_level"]
+
+    C --> D{"first_level.result.isError?"}
+    D -->|"True"| E["解析 error_content<br/>→ 抛 MCP*Error"]
+    D -->|"False"| F["提取 pages 数据"]
+
+    F --> G{"路径选择"}
+    G -->|"路径 1"| H1["first_level.result.content[0].text<br/>→ json.loads → second_level.pages"]
+    G -->|"路径 2"| H2["first_level.pages"]
+    G -->|"路径 3"| H3["first_level.data.pages"]
+
+    H1 --> I["processed_pages"]
+    H2 --> I
+    H3 --> I
+    H1 -.->|"找不到 pages"| J["raise MCPParseError"]
+    H2 -.->|"找不到"| J
+    H3 -.->|"找不到"| J
+
+    I --> K["return [{snippet, title, url}, ...]"]
+    style A fill:#cffafe,stroke:#06b6d4,stroke-width:2px,color:#1a2236
+    style E fill:#fee2e2,stroke:#ef4444,stroke-width:2px,color:#1a2236
+    style K fill:#d1fae5,stroke:#10b981,stroke-width:2px,color:#1a2236
+    style J fill:#fee2e2,stroke:#ef4444,stroke-width:2px,color:#1a2236
+      </div>
+
+      <h3>页面数据提取逻辑</h3>
+      <div class="mermaid">
+flowchart LR
+    A["pages (list of dict)"] --> B["遍历每个 page"]
+    B --> C{"page 是 dict?"}
+    C -->|"否"| D["跳过"]
+    C -->|"是"| E["提取 snippet / title / url"]
+    E --> F["append 到 processed_pages"]
+    style F fill:#d1fae5,stroke:#10b981,stroke-width:2px,color:#1a2236
+      </div>
+    </section>
+
+    <!-- ========== 十、重试策略对比表 ========== -->
+    <section id="retry-table">
+      <h2>十、重试策略对比表</h2>
+      <table>
+        <thead><tr><th>方法</th><th>同步/异步</th><th>重试次数</th><th>基础延迟</th><th>耗尽返回</th><th>备注</th></tr></thead>
+        <tbody>
+          <tr><td><code>Agent.step</code></td><td>同步</td><td>3</td><td>1.5</td><td><code>""</code></td><td>用 <code>_retry_with_classified_errors</code></td></tr>
+          <tr><td><code>Agent.astep</code></td><td>异步</td><td>3</td><td>1.5</td><td><code>""</code></td><td>内联重试逻辑</td></tr>
+          <tr><td><code>Agent.astream_step</code></td><td>异步流式</td><td>3</td><td>1.5</td><td>降级到 <code>astep</code></td><td>流式失败 → 非流式</td></tr>
+          <tr><td><code>MCPAgent.step</code></td><td>同步</td><td>3</td><td>2.0</td><td><code>None</code></td><td>用辅助函数</td></tr>
+          <tr><td><code>MCPAgent.astep</code></td><td>异步</td><td>3</td><td>2.0</td><td><code>None</code></td><td>内联重试</td></tr>
+          <tr><td><code>WebSearchAgent.step</code></td><td>同步</td><td>3</td><td>2.0</td><td><code>None</code></td><td>包含缓存 + 速率限制</td></tr>
+          <tr><td><code>WebSearchAgent.astep</code></td><td>异步</td><td>3</td><td>2.0 (429 时 5.0)</td><td><code>None</code></td><td>429 用更长延迟</td></tr>
+        </tbody>
+      </table>
+
+      <div class="callout warn">
+        <strong>实现方式不统一</strong>：同步 step 用 <code>_retry_with_classified_errors</code>，异步 astep 用内联重试逻辑，代码重复。
+      </div>
+    </section>
+
+    <!-- ========== 十一、调用关系 ========== -->
+    <section id="call-graph">
+      <h2>十一、调用关系</h2>
+
+      <h3>完整调用图</h3>
+      <div class="mermaid">
+flowchart TD
+    subgraph Caller["上层调用方"]
+        RA["ResearchAgent._web_search"]
+        RAGen["ResearchAgent._generate_queries"]
+        WACrit["ResearchAgent._critique"]
+        WA["WriterAgent 节点"]
+        Main["graph.generate_plan / confirm_plan"]
+    end
+
+    subgraph Agents["Agent 体系"]
+        A["Agent (基类)"]
+        JA["JsonAgent"]
+        MCP["MCPAgent"]
+        WS["WebSearchAgent"]
+    end
+
+    subgraph LLM["LLM 层"]
+        LLM1["OpenAICompatibleLLM"]
+    end
+
+    subgraph Tools["辅助"]
+        Cache["search_cache"]
+        RL["RateLimiter"]
+        Retry["_retry"]
+        DS["dashscope Application"]
+    end
+
+    RA -->|"astep(prompt, count=10)"| WS
+    RAGen -->|"step 或 astep"| A
+    RAGen -->|"step 或 astep"| JA
+    WACrit -->|"step 或 astep"| JA
+    WA -->|"astream_step"| A
+    Main -->|"astream_step / astep"| A
+    Main -->|"astep"| JA
+
+    JA -->|"extends"| A
+    WS -->|"extends"| MCP
+    MCP -->|"extends"| A
+
+    A -->|"acall / astream"| LLM1
+    JA -->|"acall / astream"| LLM1
+    MCP -->|"Application.call"| DS
+    WS -->|"get_cached/set_cached"| Cache
+    WS -->|"acquire/aacquire"| RL
+    WS -->|"_retry"| Retry
+
+    style A fill:#cffafe,stroke:#06b6d4,stroke-width:3px,color:#1a2236
+    style JA fill:#cffafe,stroke:#06b6d4,stroke-width:2px,color:#1a2236
+    style MCP fill:#d1fae5,stroke:#10b981,stroke-width:2px,color:#1a2236
+    style WS fill:#d1fae5,stroke:#10b981,stroke-width:3px,color:#1a2236
+      </div>
+
+      <h3>Web 搜索完整链路（同步）</h3>
+      <div class="mermaid">
+sequenceDiagram
+    autonumber
+    participant Caller as 调用方
+    participant WS as WebSearchAgent
+    participant Cache as search_cache
+    participant RL as RateLimiter
+    participant MCP as dashscope Application
+    participant API as MCP API
+
+    Caller->>WS: step(prompt, count=10)
+    WS->>Cache: get_cached(prompt)
+
+    alt 缓存命中
+        Cache-->>WS: cached result
+        WS-->>Caller: return cached
+    else 缓存未命中
+        WS->>RL: acquire() (节流)
+        RL-->>WS: wait_time
+        WS->>MCP: Application.call (同步)
+        MCP->>API: HTTP POST
+        API-->>MCP: response
+        MCP-->>WS: response
+        WS->>WS: post_process (3 层 JSON 解析)
+        WS->>Cache: set_cached(prompt, result)
+        WS-->>Caller: [{snippet, title, url}, ...]
+    end
+      </div>
+
+      <h3>Web 搜索完整链路（异步）</h3>
+      <div class="mermaid">
+sequenceDiagram
+    autonumber
+    participant Caller as 调用方
+    participant WS as WebSearchAgent
+    participant Cache as search_cache
+    participant RL as RateLimiter
+    participant MCP as dashscope Application
+    participant API as MCP API
+
+    Caller->>WS: astep(prompt, count=10)
+    WS->>Cache: get_cached(prompt)
+
+    alt 缓存命中
+        Cache-->>WS: cached result
+        WS-->>Caller: return cached
+    else 缓存未命中
+        WS->>RL: aacquire() (async)
+        RL-->>WS: wait_time
+        WS->>MCP: asyncio.to_thread(Application.call)
+        MCP->>API: HTTP POST
+        API-->>MCP: response
+        MCP-->>WS: response
+        WS->>WS: post_process (3 层 JSON 解析)
+        WS->>Cache: set_cached(prompt, result)
+        WS-->>Caller: [{snippet, title, url}, ...]
+    end
+      </div>
+
+      <h3>缓存策略</h3>
+      <div class="mermaid">
+flowchart LR
+    A["WebSearchAgent.step(prompt)"] --> B{"缓存命中?"}
+    B -->|"是"| C["直接返回缓存<br/>(跳过 MCP 调用)"]
+    B -->|"否"| D["调用 MCP"]
+    D --> E["结果写入缓存"]
+    E --> F["返回结果"]
+    style C fill:#d1fae5,stroke:#10b981,stroke-width:2px,color:#1a2236
+    style F fill:#d1fae5,stroke:#10b981,stroke-width:2px,color:#1a2236
+      </div>
+
+      <p><strong>关键</strong>：缓存查找在 MCP 调用之前 → 相同 prompt 多次搜索只调用 1 次 MCP。</p>
+
+      <h3>速率限制接入点</h3>
+      <div class="mermaid">
+flowchart TD
+    A["WebSearchAgent.step"] --> B{"缓存命中?"}
+    B -->|"是"| C["return cached"]
+    B -->|"否"| D["rate_limiter.acquire()"]
+    D --> E{"wait_time > 0?"}
+    E -->|"是"| F["time.sleep(wait_time)<br/>(log debug)"]
+    E -->|"否"| G["继续"]
+    F --> H["Application.call"]
+    G --> H
+    style D fill:#cffafe,stroke:#06b6d4,stroke-width:2px,color:#1a2236
+    style H fill:#d1fae5,stroke:#10b981,stroke-width:2px,color:#1a2236
+      </div>
+
+      <p><strong>位置</strong>：速率限制在<strong>每次 MCP 调用前</strong>触发，而非整个 step 函数前。</p>
+    </section>
+
+    <!-- ========== 十二、设计要点 ========== -->
+    <section id="design">
+      <h2>十二、关键设计要点</h2>
+
+      <h3>12.1 类继承层次</h3>
+      <div class="mermaid">
+flowchart TD
+    A["Agent (基类)<br/>LLM 调用 + step/astep/astream_step"] --> JA["JsonAgent<br/>+ 强制 JSON 输出"]
+    A --> MCP["MCPAgent<br/>+ dashscope MCP 调用"]
+    MCP --> WS["WebSearchAgent<br/>+ 缓存 + 速率限制 + 复杂响应解析"]
+    style A fill:#cffafe,stroke:#06b6d4,stroke-width:3px,color:#1a2236
+    style JA fill:#cffafe,stroke:#06b6d4,stroke-width:2px,color:#1a2236
+    style MCP fill:#d1fae5,stroke:#10b981,stroke-width:2px,color:#1a2236
+    style WS fill:#d1fae5,stroke:#10b981,stroke-width:3px,color:#1a2236
+      </div>
+
+      <h3>12.2 三层异常处理</h3>
+      <div class="mermaid">
+flowchart LR
+    A["底层 OpenAI / dashscope 异常"] --> B["_translate_openai_error<br/>(llm.py)"]
+    B --> C["LLM*Error<br/>(Transient/Permanent)"]
+    C --> D["Agent.astep 重试逻辑"]
+    D --> E{"重试耗尽?"}
+    E -->|"是"| F["return '' (空字符串)"]
+    E -->|"否"| G["返回结果"]
+    style F fill:#fffbeb,stroke:#f59e0b,stroke-width:2px,color:#1a2236
+    style G fill:#d1fae5,stroke:#10b981,stroke-width:2px,color:#1a2236
+      </div>
+
+      <h3>12.3 重试耗尽返回空值</h3>
+      <p>所有 step / astep 重试耗尽都<strong>返回空值</strong>（不抛异常）：</p>
+      <table>
+        <thead><tr><th>方法</th><th>耗尽返回</th><th>原因</th></tr></thead>
+        <tbody>
+          <tr><td><code>Agent.step</code> / <code>astep</code></td><td><code>""</code></td><td>保持向后兼容（LLM 调用失败不应崩溃流程）</td></tr>
+          <tr><td><code>Agent.astream_step</code></td><td>降级到 <code>astep</code></td><td>流式失败 → 非流式再试</td></tr>
+          <tr><td><code>MCPAgent.step</code> / <code>astep</code></td><td><code>None</code></td><td>MCP 调用失败不应崩溃流程</td></tr>
+          <tr><td><code>WebSearchAgent.step</code> / <code>astep</code></td><td><code>None</code></td><td>同上</td></tr>
+        </tbody>
+      </table>
+
+      <h3>12.4 同步 vs 异步 API Key 不一致</h3>
+      <table>
+        <thead><tr><th>方法</th><th>api_key 来源</th></tr></thead>
+        <tbody>
+          <tr><td><code>WebSearchAgent.step</code>（同步）</td><td><code>MCP_APP_TOKEN or MCP_APP_TOKEN</code>（typo！）</td></tr>
+          <tr><td><code>WebSearchAgent.astep</code>（异步）</td><td><code>APP_TOKEN</code></td></tr>
+        </tbody>
+      </table>
+
+      <div class="callout warn">
+        <strong>潜在 bug</strong>：同步 <code>step</code> 用 <code>os.getenv("MCP_APP_TOKEN") or os.getenv("MCP_APP_TOKEN")</code>，
+        两个变量名相同，第二个永远不生效 —— 实际只读 <code>MCP_APP_TOKEN</code>。建议统一为 <code>APP_TOKEN</code> 或 <code>DASHSCOPE_API_KEY</code>。
+      </div>
+
+      <h3>12.5 潜在改进点</h3>
+      <ol>
+        <li>
+          <strong><code>step</code> 与 <code>astep</code> 重复实现</strong>：同样的重试逻辑写了两遍，可统一为 <code>_async_retry_with_classified_errors</code>
+        </li>
+        <li>
+          <strong><code>MCPAgent.step</code> 与 <code>WebSearchAgent.step</code> 部分重复</strong>：MCP 调用 + 速率限制 + 缓存可抽象为基类
+        </li>
+        <li>
+          <strong><code>WebSearchAgent.step</code> 与 <code>astep</code> 重复</strong>：缓存 + 速率限制逻辑在两处
+        </li>
+        <li>
+          <strong>API key 变量名不一致</strong>：见上表
+        </li>
+        <li>
+          <strong><code>MCPAgent.post_process</code> 返回 <code>None</code> 后被检测抛 <code>MCPEmptyResultError</code></strong>：链路长，可考虑直接抛
+        </li>
+        <li>
+          <strong><code>prompt_format</code> 用 <code>replace</code></strong>：效率低于 <code>format</code>，但支持相同 key 多次出现
+        </li>
+        <li>
+          <strong>同步 step 用辅助函数，异步 astep 用内联重试</strong>：实现方式不统一
+        </li>
+      </ol>
+
+      <h3>12.6 <code>__main__</code> 测试入口</h3>
+      <pre><code>if __name__ == '__main__':
+    agent = WebSearchAgent()
+    response = agent.step(prompt="稳定币", count=10)
+    logger.info(response)</code></pre>
+      <p><strong>仅用于手动测试</strong>：直接运行此文件可触发一次 web 搜索。</p>
+    </section>
+
+  </main>
+</div>
+
+<footer>
+  Deep Research Backend · base_agent.py 详解 · 基于 src/agent/base_agent.py:1-629
+</footer>
+
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'base',
+    themeVariables: {
+      primaryColor: '#cffafe',
+      primaryTextColor: '#1a2236',
+      primaryBorderColor: '#06b6d4',
+      lineColor: '#475569',
+      secondaryColor: '#ede9fe',
+      tertiaryColor: '#fef3c7',
+      background: '#ffffff',
+      mainBkg: '#ffffff',
+      secondBkg: '#f0f2f8',
+      tertiaryBkg: '#fffbeb',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif',
+      fontSize: '15px',
+      fontWeight: '600',
+      textColor: '#1a2236',
+      edgeLabelBackground: '#ffffff',
+      clusterBkg: '#f0f2f8',
+      clusterBorder: '#06b6d4',
+    },
+    flowchart: { curve: 'basis', padding: 18, htmlLabels: true },
+    sequence: {
+      actorMargin: 70,
+      messageMargin: 50,
+      diagramMarginX: 20,
+      diagramMarginY: 20,
+    },
+  });
+</script>
+
+</body>
+</html>
