@@ -1,0 +1,1042 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>FactExtractor 详解 · Deep Research</title>
+<!-- Mermaid -->
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<style>
+  :root {
+    --bg-0: #0b0f1a;
+    --bg-1: #111827;
+    --bg-2: #1a2236;
+    --line: #243049;
+    --text: #e6edf7;
+    --muted: #97a3bd;
+    --primary: #8b5cf6;
+    --primary-2: #6366f1;
+    --accent: #22d3ee;
+    --accent-2: #06b6d4;
+    --warn: #f59e0b;
+    --ok: #10b981;
+    --danger: #ef4444;
+    --code-bg: #0a1020;
+    --shadow: 0 10px 30px rgba(0,0,0,.35);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+                 "Microsoft YaHei", Roboto, Helvetica, Arial, sans-serif;
+    background:
+      radial-gradient(1200px 600px at 10% -10%, rgba(139,92,246,.18), transparent 60%),
+      radial-gradient(1000px 500px at 110% 10%, rgba(34,211,238,.15), transparent 60%),
+      var(--bg-0);
+    color: var(--text);
+    line-height: 1.7;
+    min-height: 100vh;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* Hero */
+  .hero {
+    padding: 56px 16px 32px;
+    text-align: center;
+    border-bottom: 1px solid var(--line);
+    background: linear-gradient(180deg, rgba(139,92,246,.10), transparent 60%);
+  }
+  .hero .badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 999px;
+    background: rgba(139,92,246,.18);
+    color: #c4b5fd;
+    border: 1px solid rgba(139,92,.35);
+    font-size: 12px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+  .hero h1 {
+    margin: 0 0 8px;
+    font-size: clamp(28px, 4vw, 42px);
+    letter-spacing: -0.5px;
+    background: linear-gradient(90deg, #c4b5fd, #67e8f9);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .hero p.lead { color: var(--muted); margin: 0 auto; max-width: 820px; }
+  .hero .src {
+    display: inline-block;
+    margin-top: 12px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--line);
+    background: var(--code-bg);
+    font-family: "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+    font-size: 12px;
+    color: var(--accent);
+  }
+
+  /* Layout */
+  .layout {
+    display: grid;
+    grid-template-columns: 260px minmax(0, 1fr);
+    gap: 24px;
+    max-width: 1320px;
+    margin: 0 auto;
+    padding: 32px 16px;
+  }
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; }
+    .toc { position: static !important; }
+  }
+
+  /* TOC */
+  .toc {
+    position: sticky;
+    top: 24px;
+    align-self: start;
+    background: linear-gradient(180deg, var(--bg-1), var(--bg-2));
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 16px 18px;
+    box-shadow: var(--shadow);
+    max-height: calc(100vh - 48px);
+    overflow: auto;
+  }
+  .toc h3 {
+    margin: 0 0 10px;
+    font-size: 13px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+  }
+  .toc ol { margin: 0; padding-left: 20px; }
+  .toc li { margin: 6px 0; }
+  .toc a { color: var(--text); font-size: 14px; }
+  .toc a:hover { color: var(--accent); }
+  .toc .sub { padding-left: 16px; }
+  .toc .sub a { color: var(--muted); font-size: 13px; }
+
+  /* Content */
+  .content { min-width: 0; }
+  section {
+    background: linear-gradient(180deg, var(--bg-1), var(--bg-2));
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 24px 26px;
+    box-shadow: var(--shadow);
+    margin-bottom: 22px;
+  }
+  section h2 {
+    margin-top: 0;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--line);
+    font-size: 22px;
+    letter-spacing: -0.2px;
+  }
+  section h3 { margin-top: 22px; font-size: 17px; color: #c7d2fe; }
+  section h4 { margin-top: 16px; font-size: 15px; color: #a5b4fc; }
+  section p { color: var(--text); }
+  .muted { color: var(--muted); }
+
+  /* Code */
+  code {
+    font-family: "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+    background: var(--code-bg);
+    border: 1px solid var(--line);
+    padding: 1px 6px;
+    border-radius: 6px;
+    font-size: 13px;
+  }
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 14px 16px;
+    overflow: auto;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  pre code { background: none; border: none; padding: 0; }
+
+  /* Tables */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 14px 0;
+    font-size: 14px;
+  }
+  th, td {
+    border: 1px solid var(--line);
+    padding: 8px 12px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th { background: rgba(139,92,246,.10); color: #c4b5fd; }
+  tbody tr:nth-child(even) { background: rgba(255,255,255,.02); }
+
+  /* Pills */
+  .pill {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    margin-right: 6px;
+    border: 1px solid var(--line);
+    background: rgba(255,255,255,.04);
+    color: var(--muted);
+  }
+  .pill.ok    { color: var(--ok);    border-color: rgba(16,185,129,.35); background: rgba(16,185,129,.10); }
+  .pill.warn  { color: var(--warn);  border-color: rgba(245,158,11,.35); background: rgba(245,158,11,.10); }
+  .pill.danger{ color: var(--danger);border-color: rgba(239,68,68,.35);  background: rgba(239,68,68,.10); }
+  .pill.info  { color: var(--accent);border-color: rgba(34,211,238,.35); background: rgba(34,211,238,.10); }
+  .pill.primary{ color:#c4b5fd;      border-color: rgba(139,92,246,.35); background: rgba(139,92,246,.10); }
+  .pill.cat   { color: #67e8f9;      border-color: rgba(34,211,238,.45); background: rgba(34,211,238,.08); }
+
+  /* Mermaid */
+  .mermaid {
+    background: rgba(255,255,255,.02);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 16px;
+    margin: 14px 0;
+    text-align: center;
+    overflow: auto;
+  }
+
+  /* Callout */
+  .callout {
+    border-left: 3px solid var(--accent);
+    background: rgba(34,211,238,.06);
+    padding: 12px 16px;
+    border-radius: 0 8px 8px 0;
+    margin: 14px 0;
+  }
+  .callout.warn { border-color: var(--warn); background: rgba(245,158,11,.06); }
+  .callout.tip  { border-color: var(--ok);   background: rgba(16,185,129,.06); }
+  .callout.danger { border-color: var(--danger); background: rgba(239,68,68,.06); }
+  .callout strong { color: #fff; }
+
+  /* Step list (numbered) */
+  .step-list { list-style: none; padding: 0; counter-reset: step; margin: 12px 0; }
+  .step-list > li {
+    counter-increment: step;
+    position: relative;
+    padding: 14px 16px 14px 56px;
+    background: rgba(139,92,246,.06);
+    border: 1px solid rgba(139,92,246,.20);
+    border-radius: 10px;
+    margin-bottom: 10px;
+  }
+  .step-list > li::before {
+    content: counter(step);
+    position: absolute;
+    left: 14px; top: 14px;
+    width: 28px; height: 28px;
+    background: var(--primary);
+    color: #fff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 13px;
+    box-shadow: 0 0 0 3px rgba(139,92,246,.25);
+  }
+  .step-list h4 { margin: 0 0 8px; color: #c7d2fe; }
+
+  /* Placeholder chip */
+  .ph {
+    display: inline-block;
+    padding: 1px 8px;
+    border-radius: 6px;
+    background: rgba(139,92,246,.18);
+    color: #c4b5fd;
+    border: 1px solid rgba(139,92,246,.35);
+    font-family: "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.85em;
+    font-weight: 600;
+  }
+
+  /* Formula highlight in summary */
+  .formula {
+    background: linear-gradient(90deg, rgba(139,92,246,.10), rgba(34,211,238,.10));
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin: 14px 0;
+    font-size: 15px;
+    text-align: center;
+  }
+  .formula .seg { font-weight: 700; }
+
+  /* Example fact cards */
+  .fact-card {
+    background: rgba(34,211,238,.04);
+    border: 1px solid rgba(34,211,238,.25);
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin: 8px 0;
+    font-size: 14px;
+  }
+  .fact-card .fact-text { color: var(--text); margin-bottom: 6px; }
+  .fact-card .fact-meta {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    font-size: 12px;
+  }
+  .fact-card .fact-meta .src { color: var(--accent); font-family: "JetBrains Mono", monospace; }
+
+  footer {
+    text-align: center;
+    color: var(--muted);
+    font-size: 13px;
+    padding: 24px 16px 40px;
+  }
+
+  section[id] { scroll-margin-top: 16px; }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="badge">Deep Research · KB Module</div>
+  <h1>FactExtractor 详解</h1>
+  <p class="lead">用 LLM 把非结构化搜索摘要转化为结构化事实字典，KB 写链路的"提取器"</p>
+  <div class="src">src/agent/kb/extractor.py (143 行)</div>
+</div>
+
+<div class="layout">
+
+  <!-- ========== 目录 ========== -->
+  <aside class="toc">
+    <h3>目录</h3>
+    <ol>
+      <li><a href="#overview">一、模块定位与职责</a></li>
+      <li><a href="#architecture">二、KB 三件套与位置</a></li>
+      <li><a href="#call-graph">三、调用关系</a></li>
+      <li><a href="#signature">四、类与方法签名</a></li>
+      <li><a href="#steps">五、extract() 内部 7 步执行</a>
+        <div class="sub">
+          <a href="#step1">5.1 早返回保护</a><br/>
+          <a href="#step2">5.2 Agent 实例化</a><br/>
+          <a href="#step3">5.3 绑定 prompt</a><br/>
+          <a href="#step4">5.4 调用 LLM</a><br/>
+          <a href="#step5-6">5.5 JSON 抽取与解析</a><br/>
+          <a href="#step7">5.6 校验与返回</a>
+        </div>
+      </li>
+      <li><a href="#validate">六、_validate() 校验规则</a></li>
+      <li><a href="#exceptions">七、异常分支与降级</a></li>
+      <li><a href="#prompt">八、EXTRACTION_INSTRUCTIONS 拆解</a></li>
+      <li><a href="#categories">九、fact_category 与 lifecycle 关联</a></li>
+      <li><a href="#sequence">十、端到端时序图</a></li>
+      <li><a href="#design">十一、关键设计要点</a></li>
+      <li><a href="#issues">十二、潜在改进点</a></li>
+      <li><a href="#summary">十三、一句话总结</a></li>
+    </ol>
+  </aside>
+
+  <main class="content">
+
+    <!-- ========== 一、模块定位 ========== -->
+    <section id="overview">
+      <h2>一、模块定位与职责</h2>
+      <p>
+        <code>extractor.py</code>（143 行）定义了 <code>FactExtractor</code> 类，<strong>唯一职责</strong>：
+        把 <code>_web_search</code> 产出的非结构化搜索摘要，通过 LLM 抽取为 0~N 条
+        <strong>结构化事实字典</strong>，供 <code>FactStore.add_facts</code> 写入 Milvus。
+      </p>
+
+      <h3>3 件事</h3>
+      <table>
+        <thead><tr><th>职责</th><th>实现</th></tr></thead>
+        <tbody>
+          <tr><td>摘要长度保护</td><td><code>len(summary) &lt; 50</code> 早返回 <code>[]</code>，节省 LLM 调用</td></tr>
+          <tr><td>LLM 结构化抽取</td><td><code>Agent + EXTRACTION_INSTRUCTIONS</code> 提示词约束输出为 JSON 数组</td></tr>
+          <tr><td>规整与限流</td><td><code>_validate()</code> 过滤、confidence 钳位、限 ≤ 10 条</td></tr>
+        </tbody>
+      </table>
+
+      <div class="callout">
+        <strong>核心约束</strong>：<strong>任何路径失败都返回 <code>list</code></strong>（可能为空），
+        <strong>绝不抛异常</strong>。这是为了保证 KB 写链路失败不会阻塞 ResearchAgent 主流程。
+      </div>
+    </section>
+
+    <!-- ========== 二、架构位置 ========== -->
+    <section id="architecture">
+      <h2>二、KB 三件套与位置</h2>
+      <p>KB 模块由 3 个文件组成，<code>FactExtractor</code> 是其中负责"写前抽取"的环节。</p>
+
+      <div class="mermaid">
+flowchart LR
+    subgraph KB[knowledge_base / kb/]
+        FS["fact_store.py<br/>FactStore<br/>Milvus 增/查"]
+        FX["extractor.py<br/>FactExtractor<br/>LLM 抽 facts"]
+        LC["lifecycle.py<br/>4 种模式<br/>off/inform/freshness/lifecycle"]
+    end
+
+    FX -.uses category.-> LC
+    FS -.filters by.-> LC
+
+    style FX fill:#1a2236,stroke:#8b5cf6,stroke-width:3px,color:#e6edf7
+    style FS fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+    style LC fill:#3a2f14,stroke:#f59e0b,color:#e6edf7
+      </div>
+
+      <h3>3 个文件职责对照</h3>
+      <table>
+        <thead><tr><th>文件</th><th>角色</th><th>输入</th><th>输出</th></tr></thead>
+        <tbody>
+          <tr><td><code>extractor.py</code></td><td><span class="pill primary">抽取器</span></td><td>summary + topic</td><td><code>List[{fact, source_url, confidence, fact_category}]</code></td></tr>
+          <tr><td><code>fact_store.py</code></td><td><span class="pill info">存储器</span></td><td>facts list</td><td>Milvus 写入 / 向量检索</td></tr>
+          <tr><td><code>lifecycle.py</code></td><td><span class="pill warn">策略器</span></td><td>环境变量 <code>KB_LIFECYCLE_MODE</code></td><td>4 种模式开关 + TTL 配置</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ========== 三、调用关系 ========== -->
+    <section id="call-graph">
+      <h2>三、调用关系</h2>
+      <p><code>FactExtractor</code> 在 ResearchAgent 子图的 <code>_web_search</code> 节点中被调用，是 KB 写链路的核心环节。</p>
+
+      <div class="mermaid">
+flowchart TB
+    subgraph Caller["调用方"]
+        WS["_web_search 节点<br/>research_agent.py :237-249"]
+    end
+
+    subgraph Self["FactExtractor.extract()"]
+        direction TB
+        S1["① 摘要 < 50?<br/>→ return []"]
+        S2["② 构造 Agent"]
+        S3["③ set_step_prompt"]
+        S4["④ agent.step → LLM"]
+        S5["⑤ Post.extract_pattern"]
+        S6["⑥ json.loads"]
+        S7["⑦ _validate 规整"]
+        S1 --> S2 --> S3 --> S4 --> S5 --> S6 --> S7
+    end
+
+    subgraph External["外部依赖"]
+        Agent[Agent<br/>base_agent.py]
+        LLM[LLM API]
+        Post[Post.extract_pattern]
+        Val[_validate 静态方法]
+    end
+
+    subgraph Downstream["下游"]
+        FS[FactStore.add_facts]
+        Milvus[(Milvus)]
+    end
+
+    WS -->|summary, topic| S1
+    S2 -.uses.-> Agent
+    S4 -.calls.-> LLM
+    S5 -.uses.-> Post
+    S7 -.calls.-> Val
+    S7 -->|List[fact dict]| WS
+    WS -->|add_facts| FS
+    FS --> Milvus
+
+    style Self fill:rgba(139,92,246,.04),stroke:#8b5cf6,stroke-width:2px
+    style Caller fill:rgba(34,211,238,.04),stroke:#22d3ee
+    style External fill:rgba(255,255,255,.02),stroke:#6b7280,stroke-dasharray:5 5
+    style Downstream fill:rgba(16,185,129,.04),stroke:#10b981
+      </div>
+    </section>
+
+    <!-- ========== 四、签名 ========== -->
+    <section id="signature">
+      <h2>四、类与方法签名</h2>
+
+      <h3>4.1 文件结构（143 行）</h3>
+      <table>
+        <thead><tr><th>区块</th><th>行号</th><th>内容</th></tr></thead>
+        <tbody>
+          <tr><td>文档 + import</td><td>1-19</td><td>模块说明、<code>Agent / Post / logger</code></td></tr>
+          <tr><td><code>EXTRACTION_INSTRUCTIONS</code></td><td>22-66</td><td>提示词模板（核心）</td></tr>
+          <tr><td><code>class FactExtractor</code></td><td>71-142</td><td>唯一类</td></tr>
+          <tr><td>↳ <code>__init__</code></td><td>74-75</td><td>存 <code>model_id</code>，默认 <code>"deepseek-v4-pro"</code></td></tr>
+          <tr><td>↳ <code>extract()</code></td><td>77-122</td><td>主方法</td></tr>
+          <tr><td>↳ <code>_validate()</code></td><td>124-142</td><td>静态方法，过滤规整</td></tr>
+        </tbody>
+      </table>
+
+      <h3>4.2 主方法签名</h3>
+      <pre><code>class FactExtractor:
+    def __init__(self, model_id="deepseek-v4-pro"):
+        self.model_id = model_id
+
+    def extract(self, summary: str, research_topic: str = "") -> list[dict]:
+        ...
+
+    @staticmethod
+    def _validate(facts: list) -> list[dict]:
+        ...</code></pre>
+
+      <h3>4.3 输入输出</h3>
+      <table>
+        <thead><tr><th></th><th>字段</th><th>类型</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td rowspan="2"><strong>输入</strong></td><td><code>summary</code></td><td><code>str</code></td><td>网页搜索结果文本（已由 LLM 摘要）</td></tr>
+          <tr><td><code>research_topic</code></td><td><code>str</code></td><td>整体研究主题，用于上下文理解</td></tr>
+          <tr><td><strong>输出</strong></td><td><code>list[dict]</code></td><td><code>List[Fact]</code></td><td>每个 dict 含 <code>fact / source_url / confidence / fact_category</code> 4 字段，最多 10 条</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ========== 五、内部 7 步 ========== -->
+    <section id="steps">
+      <h2>五、extract() 内部 7 步执行</h2>
+
+      <div class="mermaid">
+flowchart TD
+    A[进入 extract] --> B{summary 长度 < 50?}
+    B -->|是| C[logger.debug + return empty list]
+    B -->|否| D[构造 Agent 实例<br/>model_id 默认 deepseek-v4-pro]
+    D --> E[set_step_prompt<br/>EXTRACTION_INSTRUCTIONS]
+    E --> F[agent.step<br/>research_topic, summary 8000]
+    F --> G[Post.extract_pattern raw, 'json']
+    G --> H[json.loads → list]
+    H --> I{是 list?}
+    I -->|否| Z[try/except → return empty list]
+    I -->|是| J[_validate facts<br/>过滤/规整/限 10]
+    J --> K[logger.info 记录提取数量]
+    K --> L[return valid facts]
+    Z --> L
+
+    style L fill:#0a4f3a,stroke:#10b981,color:#e6edf7
+    style C fill:#3a2f14,stroke:#f59e0b,color:#e6edf7
+    style Z fill:#3a1414,stroke:#ef4444,color:#e6edf7
+      </div>
+
+      <ol class="step-list">
+        <li id="step1">
+          <h4>5.1 早返回保护</h4>
+          <pre><code>if not summary or len(summary) &lt; 50:
+    logger.debug("[KB-extractor] 摘要过短，省略提取")
+    return []</code></pre>
+          <p>避免无意义 LLM 调用（空串 / 过短文本），节省 token 与延迟。</p>
+        </li>
+
+        <li id="step2">
+          <h4>5.2 Agent 实例化</h4>
+          <pre><code>agent = Agent(model_id=self.model_id) if self.model_id else Agent()</code></pre>
+          <div class="callout warn">
+            <strong>⚠️ 小坑：死代码</strong>
+            条件表达式恒真（默认 <code>"deepseek-v4-pro"</code> 非空），<code>else Agent()</code> 分支永远走不到。
+            可简化为 <code>Agent(self.model_id)</code>。
+          </div>
+        </li>
+
+        <li id="step3">
+          <h4>5.3 绑定 prompt 模板</h4>
+          <pre><code>agent.set_step_prompt(EXTRACTION_INSTRUCTIONS)</code></pre>
+          <p>模板有 2 个占位符：<span class="ph">{research_topic}</span> 和 <span class="ph">{summary}</span>。</p>
+        </li>
+
+        <li id="step4">
+          <h4>5.4 调用 LLM</h4>
+          <pre><code>raw = agent.step(
+    research_topic=research_topic or "(extracting facts)",
+    summary=summary[:8000],       # truncate for safety
+)</code></pre>
+          <ul>
+            <li><code>[:8000]</code> 截断防超 token 限制</li>
+            <li>空 <code>research_topic</code> 时塞占位字符串 <code>"(extracting facts)"</code></li>
+          </ul>
+        </li>
+
+        <li id="step5-6">
+          <h4>5.5 JSON 抽取与解析</h4>
+          <pre><code>json_str = Post.extract_pattern(raw, pattern="json")
+facts = json.loads(json_str)</code></pre>
+          <p><code>Post.extract_pattern</code> 用正则抠出 <code>```json ... ```</code> 代码块，然后 <code>json.loads</code> 解析为 Python 对象。</p>
+        </li>
+
+        <li id="step7">
+          <h4>5.6 校验与返回</h4>
+          <pre><code>if isinstance(facts, list):
+    facts = self._validate(facts)
+    logger.info(f"[KB-extractor] extracted {len(facts)} facts from summary ({len(summary)} chars)")
+    return facts</code></pre>
+          <p>校验后记录提取数量，返回规整后的 facts 列表。任何异常分支都返回 <code>[]</code>。</p>
+        </li>
+      </ol>
+    </section>
+
+    <!-- ========== 六、validate ========== -->
+    <section id="validate">
+      <h2>六、_validate() 校验规则</h2>
+      <p><code>_validate</code> 是 <strong>静态方法</strong>，对 LLM 返回的 facts 列表做 4 道规整。</p>
+
+      <pre><code>@staticmethod
+def _validate(facts: list) -> list[dict]:
+    valid = []
+    for f in facts:
+        if not isinstance(f, dict):
+            continue
+        fact_text = f.get("fact", "").strip()
+        if not fact_text or len(fact_text) &lt; 10:
+            continue
+        valid.append({
+            "fact":          fact_text,
+            "source_url":    f.get("source_url", ""),
+            "confidence":    min(1.0, max(0.0, float(f.get("confidence", 0.7)))),
+            "fact_category": f.get("fact_category", "strategy"),
+        })
+        if len(valid) >= 10:
+            break
+    return valid</code></pre>
+
+      <h3>4 条规整规则</h3>
+      <table>
+        <thead><tr><th>规则</th><th>行为</th><th>防御什么</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><code>isinstance(f, dict)</code></td>
+            <td>非 dict 直接丢弃</td>
+            <td>列表里混进非字典元素</td>
+          </tr>
+          <tr>
+            <td><code>len(fact_text) &lt; 10</code></td>
+            <td>太短的 fact 丢弃</td>
+            <td>LLM 偶尔返回空字符串</td>
+          </tr>
+          <tr>
+            <td><code>confidence</code> 钳位</td>
+            <td><code>min(1.0, max(0.0, x))</code></td>
+            <td>LLM 输出越界值（&gt;1.0 或 &lt;0.0）</td>
+          </tr>
+          <tr>
+            <td>截断到 ≤ 10 条</td>
+            <td><code>len(valid) >= 10 → break</code></td>
+            <td>防 LLM 输出 N+ 条</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>默认值兜底</h3>
+      <table>
+        <thead><tr><th>字段</th><th>默认值</th></tr></thead>
+        <tbody>
+          <tr><td><code>source_url</code></td><td><code>""</code></td></tr>
+          <tr><td><code>confidence</code></td><td><code>0.7</code>（中等）</td></tr>
+          <tr><td><code>fact_category</code></td><td><code>"strategy"</code></td></tr>
+        </tbody>
+      </table>
+
+      <h3>规整前后对比示例</h3>
+
+      <h4>LLM 原始返回</h4>
+      <pre><code>[
+  {"fact": "2025年Q1全球AI编程助手市场规模达到15亿美元",
+   "source_url": "https://xxxx.com/xxxx",
+   "confidence": 0.9,
+   "fact_category": "market_data"},
+  {"fact": "  短",                              // 长度 < 10 → 丢弃
+   "confidence": 1.5},                          // 越界 → 钳位 1.0
+  "not a dict",                                 // 非 dict → 丢弃
+  {"fact": "GitHub Copilot 占据AI编程助手市场约35%的份额",
+   "source_url": "https://xxxx.com/xxxx",
+   "confidence": 0.8,
+   "fact_category": "market_data"}
+]</code></pre>
+
+      <h4>_validate 后输出</h4>
+      <div class="fact-card">
+        <div class="fact-text"><strong>fact:</strong> 2025年Q1全球AI编程助手市场规模达到15亿美元</div>
+        <div class="fact-meta">
+          <span class="pill cat">market_data</span>
+          <span class="pill ok">confidence 0.9</span>
+          <span class="src">https://xxxx.com/xxxx</span>
+        </div>
+      </div>
+      <div class="fact-card">
+        <div class="fact-text"><strong>fact:</strong> GitHub Copilot 占据AI编程助手市场约35%的份额</div>
+        <div class="fact-meta">
+          <span class="pill cat">market_data</span>
+          <span class="pill ok">confidence 0.8</span>
+          <span class="src">https://xxxx.com/xxxx</span>
+        </div>
+      </div>
+      <p class="muted">↑ 丢弃了"短"和"not a dict"，剩余 2 条。</p>
+    </section>
+
+    <!-- ========== 七、异常分支 ========== -->
+    <section id="exceptions">
+      <h2>七、异常分支与降级</h2>
+      <p>5 层 try/except 把所有解析错误都收敛为 <code>return []</code>，保证 KB 写失败不阻塞主流程。</p>
+
+      <div class="mermaid">
+flowchart TD
+    A[Post.extract_pattern<br/>raw text] --> B[json.loads]
+    B --> C{抛 json.JSONDecodeError?}
+    C -->|是| X1[logger.warning<br/>'JSON parse failed'<br/>return empty list]
+    C -->|否| D{isinstance facts, list?}
+    D -->|否| X2[ValueError / TypeError<br/>'data validation failed'<br/>return empty list]
+    D -->|是| E[_validate facts]
+    E --> F{其他 Exception?}
+    F -->|是| X3[logger.warning<br/>'failed to parse facts'<br/>return empty list]
+    F -->|否| G[logger.info 记录<br/>return valid facts]
+
+    style X1 fill:#3a1414,stroke:#ef4444,color:#e6edf7
+    style X2 fill:#3a1414,stroke:#ef4444,color:#e6edf7
+    style X3 fill:#3a1414,stroke:#ef4444,color:#e6edf7
+    style G fill:#0a4f3a,stroke:#10b981,color:#e6edf7
+      </div>
+
+      <h3>3 个 catch 块</h3>
+      <pre><code>try:
+    json_str = Post.extract_pattern(raw, pattern="json")
+    facts = json.loads(json_str)
+    if isinstance(facts, list):
+        facts = self._validate(facts)
+        logger.info(f"... extracted {len(facts)} facts ...")
+        return facts
+except json.JSONDecodeError as exc:
+    logger.warning(f"JSON parse failed — LLM returned malformed JSON: {exc}")
+except (ValueError, TypeError) as exc:
+    logger.warning(f"data validation failed ({type(exc).__name__}): {exc}")
+except Exception as exc:
+    logger.warning(f"failed to parse facts ({type(exc).__name__}): {exc}")
+
+return []   # 任何失败路径</code></pre>
+
+      <div class="callout danger">
+        <strong>为什么"失败不抛异常"</strong>
+        <ul>
+          <li><code>_web_search</code> 是 ResearchAgent 子图的关键节点</li>
+          <li>KB 写失败不应该让整个研究流程挂掉</li>
+          <li>返回 <code>[]</code> 让 FactStore.add_facts 拿到空列表，跳过 Milvus 写入</li>
+          <li>日志保留了完整的失败原因供运维排查</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ========== 八、prompt 拆解 ========== -->
+    <section id="prompt">
+      <h2>八、EXTRACTION_INSTRUCTIONS 拆解</h2>
+      <p>提示词 <code>EXTRACTION_INSTRUCTIONS</code> 位于文件 <code>:22-66</code>，整体结构如下。</p>
+
+      <div class="mermaid">
+flowchart TB
+    P["EXTRACTION_INSTRUCTIONS"]
+    P --> P1["# 任务说明<br/>角色：知识提取专家<br/>输入：搜索摘要<br/>输出：离散、可验证事实"]
+    P --> P2["# Instruction<br/>7 条生成规则"]
+    P --> P3["# 输出格式<br/>JSON 数组 + 2 条示例"]
+    P --> P4["# 研究主题<br/>{research_topic}"]
+    P --> P5["# 搜索摘要<br/>{summary}"]
+    P --> P6["# 输出"]
+
+    style P fill:#1a2236,stroke:#8b5cf6,stroke-width:2px,color:#e6edf7
+    style P2 fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+    style P3 fill:#1a2236,stroke:#a5b4fc,color:#e6edf7
+    style P4 fill:#3a2f14,stroke:#f59e0b,color:#e6edf7
+    style P5 fill:#3a2f14,stroke:#f59e0b,color:#e6edf7
+    style P6 fill:#0a4f3a,stroke:#10b981,color:#e6edf7
+      </div>
+
+      <h3>8.1 Instruction · 7 条规则</h3>
+      <table>
+        <thead><tr><th>#</th><th>规则</th></tr></thead>
+        <tbody>
+          <tr><td>①</td><td>每条 fact 一句话，避免复合句</td></tr>
+          <tr><td>②</td><td>标注来源 URL（<code>[来源名](url)</code> 格式提取）</td></tr>
+          <tr><td>③</td><td>标注 confidence（0.0-1.0），3 档参考：
+            <ul>
+              <li><span class="pill ok">0.9-1.0</span> 摘要明确引用具体数据/事件</li>
+              <li><span class="pill info">0.7-0.8</span> 摘要中有较明确的表述</li>
+              <li><span class="pill warn">0.5-0.6</span> 摘要中隐含但未直接说明</li>
+            </ul>
+          </td></tr>
+          <tr><td>④</td><td>标注 fact_category（<strong>5 类时效性</strong>，详见下节）</td></tr>
+          <tr><td>⑤</td><td>不要过于泛泛的陈述</td></tr>
+          <tr><td>⑥</td><td>每条 fact ≤ 80 字</td></tr>
+          <tr><td>⑦</td><td>最多提取 10 条</td></tr>
+        </tbody>
+      </table>
+
+      <h3>8.2 输出格式 · JSON 数组</h3>
+      <pre><code>[
+  {
+    "fact": "2025年Q1全球AI编程助手市场规模达到15亿美元",
+    "source_url": "https://xxxx.com/xxxx",
+    "confidence": 0.9,
+    "fact_category": "market_data"
+  },
+  {
+    "fact": "GitHub Copilot 占据AI编程助手市场约35%的份额",
+    "source_url": "https://xxxx.com/xxxx",
+    "confidence": 0.8,
+    "fact_category": "market_data"
+  }
+]</code></pre>
+
+      <h3>8.3 占位符 → 来源映射</h3>
+      <table>
+        <thead><tr><th>占位符</th><th>来源</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><span class="ph">{research_topic}</span></td>
+            <td><code>agent.step(research_topic=...)</code></td>
+            <td>提供上下文让 LLM 理解摘要所属主题；空则用 <code>"(extracting facts)"</code></td>
+          </tr>
+          <tr>
+            <td><span class="ph">{summary}</span></td>
+            <td><code>agent.step(summary=summary[:8000])</code></td>
+            <td>已截断到 8000 字符的搜索摘要</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ========== 九、fact_category ========== -->
+    <section id="categories">
+      <h2>九、fact_category 与 lifecycle 关联</h2>
+      <p>5 类 fact_category 在 <code>lifecycle.py</code> 的 <code>CATEGORY_TTL</code> 字典里映射不同的 TTL，决定事实"何时过期"。</p>
+
+      <div class="mermaid">
+flowchart LR
+    F1["market_data<br/>市场份额/价格/排名/增长率/营收"]
+    F2["product_info<br/>产品功能/规格/版本/发布"]
+    F3["strategy<br/>公司战略/投资/合作/收购"]
+    F4["technology<br/>技术原理/架构/标准/协议"]
+    F5["historical<br/>历史事件/里程碑/已发生"]
+
+    F1 --> T1["TTL: 7 天<br/>高频变化"]
+    F2 --> T2["TTL: 30 天"]
+    F3 --> T3["TTL: 60 天"]
+    F4 --> T4["TTL: 180 天<br/>慢变"]
+    F5 --> T5["TTL: 365 天<br/>几乎不变"]
+
+    style F1 fill:#3a1414,stroke:#ef4444,color:#e6edf7
+    style F2 fill:#3a2f14,stroke:#f59e0b,color:#e6edf7
+    style F3 fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+    style F4 fill:#1a3a5c,stroke:#06b6d4,color:#e6edf7
+    style F5 fill:#1a2236,stroke:#a5b4fc,color:#e6edf7
+      </div>
+
+      <h3>category ↔ TTL 对照表</h3>
+      <table>
+        <thead>
+          <tr><th>类别</th><th>典型场景</th><th>TTL</th><th>变化频率</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><span class="pill cat">market_data</span></td><td>市场份额、价格、排名</td><td><strong>7 天</strong></td><td>极高（日级别）</td></tr>
+          <tr><td><span class="pill cat">product_info</span></td><td>产品功能、版本、发布</td><td><strong>30 天</strong></td><td>高</td></tr>
+          <tr><td><span class="pill cat">strategy</span></td><td>战略、投资、收购</td><td><strong>60 天</strong></td><td>中</td></tr>
+          <tr><td><span class="pill cat">technology</span></td><td>技术原理、架构、标准</td><td><strong>180 天</strong></td><td>低</td></tr>
+          <tr><td><span class="pill cat">historical</span></td><td>历史事件、里程碑</td><td><strong>365 天</strong></td><td>极低（几乎不变）</td></tr>
+        </tbody>
+      </table>
+
+      <div class="callout">
+        <strong>生效条件</strong>：只有当 <code>KB_LIFECYCLE_MODE=lifecycle</code> 时，<code>CATEGORY_TTL</code> 才会被用来过滤过期 fact。
+        其他模式（off / inform / freshness）使用统一规则。
+      </div>
+    </section>
+
+    <!-- ========== 十、时序图 ========== -->
+    <section id="sequence">
+      <h2>十、端到端时序图</h2>
+      <p>下图覆盖<strong>成功 / 摘要过短 / JSON 解析失败</strong>三种分支的完整时序。</p>
+
+      <div class="mermaid">
+sequenceDiagram
+    autonumber
+    participant WS as _web_search
+    participant FE as FactExtractor
+    participant A as Agent
+    participant LLM as LLM API
+    participant Post as Post.extract_pattern
+    participant FS as FactStore
+
+    WS->>FE: extract(summary, research_topic)
+
+    alt summary < 50 chars
+        FE-->>WS: []   (debug 日志)
+    else 正常
+        FE->>A: Agent(model_id="deepseek-v4-pro")
+        FE->>A: set_step_prompt(EXTRACTION_INSTRUCTIONS)
+        FE->>A: step(research_topic, summary[:8000])
+        A->>LLM: 格式化 prompt + call
+        LLM-->>A: raw text (含 ```json [...]```)
+        A-->>FE: raw
+
+        FE->>Post: extract_pattern(raw, "json")
+        Post-->>FE: json_str
+
+        alt JSON 解析失败
+            FE-->>WS: []  (warning 日志)
+        else 解析成功
+            FE->>FE: _validate(facts)
+            Note over FE: 过滤 dict / 长度≥10<br/>钳位 confidence<br/>限 10 条
+            FE-->>WS: List[fact dict]
+            WS->>FS: add_facts(facts)
+            FS->>FS: embedding + Milvus insert
+        end
+    end
+      </div>
+    </section>
+
+    <!-- ========== 十一、设计要点 ========== -->
+    <section id="design">
+      <h2>十一、关键设计要点</h2>
+
+      <table>
+        <thead><tr><th>设计点</th><th>含义</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong>用 <code>Agent</code> 而非 <code>JsonAgent</code></strong></td>
+            <td>故意不用 Pydantic schema 强约束，让 LLM 有自然语言灵活性；用 <code>Post.extract_pattern</code> 后置兜底</td>
+          </tr>
+          <tr>
+            <td><strong><code>[:8000]</code> 硬截断</strong></td>
+            <td>防御单条 summary 过长触发 LLM token 上限</td>
+          </tr>
+          <tr>
+            <td><strong>早返回 <code>&lt; 50</code> 字符</strong></td>
+            <td>节省 LLM 成本 + 避免低质抽取</td>
+          </tr>
+          <tr>
+            <td><strong><code>_validate</code> 钳位 confidence</strong></td>
+            <td>防御 LLM 输出越界值（&gt;1.0 或 &lt;0.0）</td>
+          </tr>
+          <tr>
+            <td><strong>统一 try/except → return []</strong></td>
+            <td><strong>KB 写失败绝不阻塞 ResearchAgent 主流程</strong></td>
+          </tr>
+          <tr>
+            <td><strong>默认 <code>fact_category="strategy"</code></strong></td>
+            <td>LLM 漏标时的安全 fallback</td>
+          </tr>
+          <tr>
+            <td><strong>最多 10 条（双层防护）</strong></td>
+            <td>prompt 提示 + 代码 <code>break</code>，双重约束</td>
+          </tr>
+          <tr>
+            <td><strong>单例 <code>_kb_extractor</code></strong></td>
+            <td>进程共享一个 LLM 客户端（见 <code>research_agent.py:78-82</code>）</td>
+          </tr>
+          <tr>
+            <td><strong>research_topic 兜底字符串</strong></td>
+            <td><code>"(extracting facts)"</code> 防止 prompt 渲染失败</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout tip">
+        <strong>为什么不用 <code>JsonAgent(keys=FactList)</code>？</strong>
+        <p>提示词里 fact_category 是枚举字符串，LLM 输出偶尔会有拼写错误（如 <code>"Market-Data"</code>），
+        Pydantic 强校验会导致整个抽取失败 → 返回 <code>[]</code>。当前实现更<strong>宽松</strong>：忽略拼写错误，
+        走默认值 <code>"strategy"</code>。</p>
+      </div>
+    </section>
+
+    <!-- ========== 十二、改进点 ========== -->
+    <section id="issues">
+      <h2>十二、潜在改进点</h2>
+
+      <table>
+        <thead><tr><th>#</th><th>问题</th><th>改进方向</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>1</td>
+            <td>不用 Pydantic schema 强约束</td>
+            <td>改用 <code>JsonAgent(keys=FactList)</code> 更稳健，可省掉 <code>json.loads</code> 异常分支</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td><code>Agent(self.model_id) if self.model_id else Agent()</code> 死代码</td>
+            <td>简化为 <code>Agent(self.model_id)</code></td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td>8KB 硬截断无 marker</td>
+            <td>建议按段落或句子边界截，避免切碎关键事实</td>
+          </tr>
+          <tr>
+            <td>4</td>
+            <td>category 默认 <code>"strategy"</code> 不一定合适</td>
+            <td>应根据上下文语义推断（如含"市场"→ <code>market_data</code>）</td>
+          </tr>
+          <tr>
+            <td>5</td>
+            <td>10 条限制"先到先得"</td>
+            <td>未按 confidence 排序，可能丢掉高分事实 → 建议 <code>sorted(facts, key=lambda x: -x["confidence"])</code></td>
+          </tr>
+          <tr>
+            <td>6</td>
+            <td>KB 抽 facts 是同步阻塞 LLM 调用</td>
+            <td>多个 web_search 并行时会触发多个 LLM 请求，可能限流</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ========== 十三、总结 ========== -->
+    <section id="summary">
+      <h2>十三、一句话总结</h2>
+
+      <div class="formula">
+        <code><strong>FactExtractor.extract()</strong></code>
+        =
+        <span class="seg" style="color:#22d3ee">LLM 结构化抽取</span>
+        +
+        <span class="seg" style="color:#c4b5fd">JSON 后置解析</span>
+        +
+        <span class="seg" style="color:#67e8f9">校验规整</span>
+        +
+        <span class="seg" style="color:#10b981">失败兜底 return []</span>
+      </div>
+
+      <p>
+        它把一段非结构化搜索摘要，转化为 0~10 条带 <code>confidence + source_url + fact_category</code> 的事实字典，
+        由 <code>FactStore.add_facts</code> 写入 Milvus；<strong>任何路径失败都返回 <code>[]</code></strong>，
+        <strong>绝不阻塞 KB 写链路</strong>。
+      </p>
+
+      <p class="muted">
+        <strong>关联文档</strong>：<a href="research-agent.html">ResearchAgent 子图详解</a> ·
+        <a href="fact-store.html">FactStore 详解</a> ·
+        <a href="base-agent.html">base_agent.py 详解</a> ·
+        <a href="subagent_researcher/generate-queries.html">_generate_queries 详解</a>
+      </p>
+    </section>
+
+  </main>
+</div>
+
+<footer>
+  Deep Research Backend · FactExtractor 详解 · 基于 src/agent/kb/extractor.py
+</footer>
+
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'dark',
+    themeVariables: {
+      primaryColor: '#1a2236',
+      primaryTextColor: '#e6edf7',
+      primaryBorderColor: '#8b5cf6',
+      lineColor: '#22d3ee',
+      secondaryColor: '#111827',
+      tertiaryColor: '#0a1020',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif',
+    },
+    flowchart: { curve: 'basis', padding: 12 },
+    sequence: { actorMargin: 60, messageMargin: 40 },
+  });
+</script>
+
+</body>
+</html>

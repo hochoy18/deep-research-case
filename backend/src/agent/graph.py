@@ -194,3 +194,8 @@ def build_graph(checkpointer=None):
 
 # langgraph dev 入口（不传 checkpointer，由平台自动注入）
 graph = build_graph()
+#
+# try:
+#     display(Image(graph.get_graph(xray=True).draw_mermaid_png(output_file_path="./graph_with_subgraph.png")))
+# except Exception:
+#     pass

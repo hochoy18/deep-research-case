@@ -1,0 +1,1090 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>confirm_plan 节点详解 · Deep Research MainGraph</title>
+<!-- Mermaid -->
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<style>
+  :root {
+    --bg-0: #0b0f1a;
+    --bg-1: #111827;
+    --bg-2: #1a2236;
+    --line: #243049;
+    --text: #e6edf7;
+    --muted: #97a3bd;
+    --primary: #8b5cf6;
+    --primary-2: #6366f1;
+    --accent: #22d3ee;
+    --accent-2: #06b6d4;
+    --warn: #f59e0b;
+    --ok: #10b981;
+    --danger: #ef4444;
+    --code-bg: #0a1020;
+    --shadow: 0 10px 30px rgba(0,0,0,.35);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+                 "Microsoft YaHei", Roboto, Helvetica, Arial, sans-serif;
+    background:
+      radial-gradient(1200px 600px at 10% -10%, rgba(139,92,246,.18), transparent 60%),
+      radial-gradient(1000px 500px at 110% 10%, rgba(34,211,238,.15), transparent 60%),
+      var(--bg-0);
+    color: var(--text);
+    line-height: 1.7;
+    min-height: 100vh;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* Hero */
+  .hero {
+    padding: 56px 16px 32px;
+    text-align: center;
+    border-bottom: 1px solid var(--line);
+    background: linear-gradient(180deg, rgba(139,92,246,.10), transparent 60%);
+  }
+  .hero .badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 999px;
+    background: rgba(139,92,246,.18);
+    color: #c4b5fd;
+    border: 1px solid rgba(139,92,.35);
+    font-size: 12px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+  .hero h1 {
+    margin: 0 0 8px;
+    font-size: clamp(28px, 4vw, 42px);
+    letter-spacing: -0.5px;
+    background: linear-gradient(90deg, #c4b5fd, #67e8f9);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .hero p.lead { color: var(--muted); margin: 0 auto; max-width: 760px; }
+
+  /* Layout */
+  .layout {
+    display: grid;
+    grid-template-columns: 260px minmax(0, 1fr);
+    gap: 24px;
+    max-width: 1320px;
+    margin: 0 auto;
+    padding: 32px 16px;
+  }
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; }
+    .toc { position: static !important; }
+  }
+
+  /* TOC */
+  .toc {
+    position: sticky;
+    top: 24px;
+    align-self: start;
+    background: linear-gradient(180deg, var(--bg-1), var(--bg-2));
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 16px 18px;
+    box-shadow: var(--shadow);
+    max-height: calc(100vh - 48px);
+    overflow: auto;
+  }
+  .toc h3 {
+    margin: 0 0 10px;
+    font-size: 13px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+  }
+  .toc ol { margin: 0; padding-left: 20px; }
+  .toc li { margin: 6px 0; }
+  .toc a { color: var(--text); font-size: 14px; }
+  .toc a:hover { color: var(--accent); }
+
+  /* Content */
+  .content { min-width: 0; }
+  section {
+    background: linear-gradient(180deg, var(--bg-1), var(--bg-2));
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 24px 26px;
+    box-shadow: var(--shadow);
+    margin-bottom: 22px;
+  }
+  section h2 {
+    margin-top: 0;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--line);
+    font-size: 22px;
+    letter-spacing: -0.2px;
+  }
+  section h3 { margin-top: 22px; font-size: 17px; color: #c7d2fe; }
+  section h4 { margin-top: 16px; font-size: 15px; color: #a5b4fc; }
+  section p { color: var(--text); }
+  .muted { color: var(--muted); }
+
+  /* Code */
+  code {
+    font-family: "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+    background: var(--code-bg);
+    border: 1px solid var(--line);
+    padding: 1px 6px;
+    border-radius: 6px;
+    font-size: 13px;
+  }
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 14px 16px;
+    overflow: auto;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  pre code { background: none; border: none; padding: 0; }
+
+  /* Tables */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 14px 0;
+    font-size: 14px;
+  }
+  th, td {
+    border: 1px solid var(--line);
+    padding: 8px 12px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th { background: rgba(139,92,246,.10); color: #c4b5fd; }
+  tbody tr:nth-child(even) { background: rgba(255,255,255,.02); }
+
+  /* Pills */
+  .pill {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    margin-right: 6px;
+    border: 1px solid var(--line);
+    background: rgba(255,255,255,.04);
+    color: var(--muted);
+  }
+  .pill.ok    { color: var(--ok);    border-color: rgba(16,185,129,.35); background: rgba(16,185,129,.10); }
+  .pill.warn  { color: var(--warn);  border-color: rgba(245,158,11,.35); background: rgba(245,158,11,.10); }
+  .pill.danger{ color: var(--danger);border-color: rgba(239,68,68,.35);  background: rgba(239,68,68,.10); }
+  .pill.info  { color: var(--accent);border-color: rgba(34,211,238,.35); background: rgba(34,211,238,.10); }
+  .pill.purple{ color: var(--primary);border-color: rgba(139,92,246,.35);background: rgba(139,92,246,.10); }
+
+  /* Mermaid */
+  .mermaid {
+    background: rgba(255,255,255,.02);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 16px;
+    margin: 14px 0;
+    text-align: center;
+    overflow: auto;
+  }
+
+  /* Callout */
+  .callout {
+    border-left: 3px solid var(--accent);
+    background: rgba(34,211,238,.06);
+    padding: 12px 16px;
+    border-radius: 0 8px 8px 0;
+    margin: 14px 0;
+  }
+  .callout.warn { border-color: var(--warn); background: rgba(245,158,11,.06); }
+  .callout.tip  { border-color: var(--ok); background: rgba(16,185,129,.06); }
+  .callout.purple { border-color: var(--primary); background: rgba(139,92,246,.06); }
+  .callout.danger { border-color: var(--danger); background: rgba(239,68,68,.06); }
+
+  /* Sequence diagram actor coloring by [name="X"] attribute */
+  rect.actor[name="U"]  { fill: #1f2020 !important; stroke: #81b1db !important; }
+  rect.actor[name="GP"] { fill: #1a2236 !important; stroke: #8b5cf6 !important; }
+  rect.actor[name="EP"] { fill: #1a2236 !important; stroke: #8b5cf6 !important; }
+  rect.actor[name="CP"] { fill: #1a2236 !important; stroke: #8b5cf6 !important; }
+  rect.actor[name="LLM"]{ fill: #1a3a5c !important; stroke: #22d3ee !important; }
+  rect.actor[name="RC"] { fill: #1a3a5c !important; stroke: #22d3ee !important; }
+  rect.actor[name="RP"] { fill: #5c1a1a !important; stroke: #ef4444 !important; }
+  rect.actor[name="RA"] { fill: #0a4f3a !important; stroke: #10b981 !important; }
+  /* 让 text 也跟着变亮（针对有自定义色的 actor） */
+  rect.actor[name="GP"] + text.actor,
+  rect.actor[name="EP"] + text.actor,
+  rect.actor[name="CP"] + text.actor,
+  rect.actor[name="LLM"] + text.actor,
+  rect.actor[name="RC"] + text.actor,
+  rect.actor[name="RP"] + text.actor,
+  rect.actor[name="RA"] + text.actor {
+    fill: #e6edf7 !important;
+  }
+
+  footer {
+    text-align: center;
+    color: var(--muted);
+    font-size: 13px;
+    padding: 24px 16px 40px;
+  }
+
+  section[id] { scroll-margin-top: 16px; }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="badge">Deep Research · MainGraph Node</div>
+  <h1>confirm_plan 节点详解</h1>
+  <p class="lead">计划评估的「门神」：识别用户意图、设置新鲜度等级、决定进入研究还是重新规划 —— 三路径短路 + LLM 兜底的双层设计</p>
+</div>
+
+<div class="layout">
+
+  <!-- ========== 目录 ========== -->
+  <aside class="toc">
+    <h3>目录</h3>
+    <ol>
+      <li><a href="#overview">一、节点总览</a></li>
+      <li><a href="#position">二、位置与上下文</a></li>
+      <li><a href="#signature">三、函数签名与参数</a></li>
+      <li><a href="#flow">四、核心流程</a></li>
+      <li><a href="#paths">五、三条出口路径</a></li>
+      <li><a href="#shortcut">六、关键词短路逻辑</a></li>
+      <li><a href="#llm">七、LLM 意图识别</a></li>
+      <li><a href="#schema">八、PlanReflection Schema</a></li>
+      <li><a href="#freshness">九、fresh_level 三档时效</a></li>
+      <li><a href="#sequence">十、完整调用时序</a></li>
+      <li><a href="#route">十一、下游路由 route_after_confirm</a></li>
+      <li><a href="#design">十二、核心设计要点</a></li>
+      <li><a href="#issues">十三、潜在改进点</a></li>
+    </ol>
+  </aside>
+
+  <main class="content">
+
+    <!-- ========== 一、节点总览 ========== -->
+    <section id="overview">
+      <h2>一、节点总览</h2>
+      <p>
+        <code>confirm_plan</code> 定义于 <code>src/agent/graph.py:111-141</code>，
+        是 Deep Research <strong>主图（MainGraph）</strong>中"计划阶段"的第二个核心节点，
+        紧跟在 <code>generate_plan</code> 之后，由 <code>evaluate_plan</code> 路由函数选中进入。
+      </p>
+
+      <h3>核心职责</h3>
+      <table>
+        <thead><tr><th>职责</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong>1️⃣ 意图识别</strong></td>
+            <td>判断用户对当前计划的回复是「确认」还是「要求修改」</td>
+          </tr>
+          <tr>
+            <td><strong>2️⃣ 时效性定级</strong></td>
+            <td>设置 <code>fresh_level</code>（high/medium/low）供下游研究子图过滤过期材料</td>
+          </tr>
+          <tr>
+            <td><strong>3️⃣ 路径分叉</strong></td>
+            <td>决定下一步：进入研究阶段 / 触发重新规划</td>
+          </tr>
+          <tr>
+            <td><strong>4️⃣ 兜底保护</strong></td>
+            <td>LLM 调用失败时默认进入研究，避免流程卡死</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout purple">
+        <strong>节点本质</strong>：<code>confirm_plan</code> 是一个<strong>带状态机的智能路由器</strong>——
+        它不仅执行 LLM 调用，还要根据调用结果决定整个流程的去向。
+      </div>
+
+      <h3>一句话总结</h3>
+      <p>
+        用户回复 → 关键词短路 OR LLM 意图识别 → 决定「继续研究」或「重新规划」，并把时效性需求固化为 <code>fresh_level</code>。
+      </p>
+    </section>
+
+    <!-- ========== 二、位置与上下文 ========== -->
+    <section id="position">
+      <h2>二、位置与上下文</h2>
+
+      <h3>在主图中的位置</h3>
+      <div class="mermaid">
+flowchart TD
+    START([START]) --> GP["generate_plan<br/>(生成计划草案)"]
+    GP --> EP{"evaluate_plan<br/>(状态路由)"}
+    EP -->|"plan_status=unconfirmed<br/>首次进入"| APC["awaiting_plan_confirmation<br/>(暂停等人输入)"]
+    EP -->|"plan is empty"| RP1["replan<br/>(标记 unconfirmed)"]
+    EP -->|"plan_status=confirmed"| CP["<strong>confirm_plan</strong><br/>(本节点)"]
+
+    APC -.->|"用户回复"| GP
+    RP1 --> GP
+
+    CP --> RC{"route_after_confirm"}
+    RC -->|"plan_status=unconfirmed"| RP2["replan"]
+    RC -->|"默认"| RA["research<br/>(研究子图)"]
+    RP2 --> GP
+    RA --> WA["write<br/>(写作子图)"]
+    WA --> END([END])
+
+    style CP fill:#1a2236,stroke:#8b5cf6,color:#e6edf7
+    style RC fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+    style RA fill:#0a4f3a,stroke:#10b981,color:#e6edf7
+      </div>
+
+      <h3>前置节点依赖</h3>
+      <table>
+        <thead><tr><th>依赖项</th><th>来源</th><th>作用</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><code>state["plan"]</code></td>
+            <td>generate_plan 写入</td>
+            <td>当前已生成的研究计划草案</td>
+          </tr>
+          <tr>
+            <td><code>state["messages"]</code></td>
+            <td>完整消息历史</td>
+            <td>从中提取最后一条用户回复</td>
+          </tr>
+          <tr>
+            <td><code>state["plan_status"]</code></td>
+            <td>由 evaluate_plan 流转</td>
+            <td>必须为 "confirmed" 才能进入此节点</td>
+          </tr>
+          <tr>
+            <td><code>configurable.query_generator_model</code></td>
+            <td>运行配置</td>
+            <td>用于 JsonAgent 调用的 LLM 模型 ID</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ========== 三、函数签名与参数 ========== -->
+    <section id="signature">
+      <h2>三、函数签名与参数</h2>
+
+      <h3>完整源码</h3>
+      <pre><code>async def confirm_plan(state: OverallState, config: RunnableConfig) -> dict:
+    """评估计划确认并设置新鲜度等级。
+
+    仅当 plan_status 为 "confirmed"（用户已提交确认）时进入此节点。
+    根据用户消息中的关键词或 LLM 评估结果，决定是进入研究阶段还是重新规划。
+    """
+    configurable = Configuration.from_runnable_config(config)
+    context = get_last_user_response(state["messages"])
+
+    if "开始研究" in context or "需求确认" in context:
+        logger.info("[MainGraph] plan explicitly confirmed → research")
+        return {"fresh_level": "medium"}
+
+    agent = JsonAgent(model_id=configurable.query_generator_model, keys=PlanReflection)
+    agent.set_step_prompt(plan_reflection_instructions)
+    result = await agent.astep(
+        research_proposal=state.get("plan", ""),
+        context=context,
+    )
+    if not isinstance(result, PlanReflection):
+        logger.warning(
+            f"[MainGraph] 计划评估模型调用失败（返回类型={type(result).__name__}），"
+            f"默认进入研究阶段"
+        )
+        return {"fresh_level": "medium"}
+    if result.satisfy:
+        logger.info("[MainGraph] plan implicitly confirmed → research")
+        return {"fresh_level": getattr(result, "fresh_level", "medium")}
+
+    logger.info("[MainGraph] 计划未确认 → 重新计划")
+    return {"plan_status": "unconfirmed"}</code></pre>
+
+      <h3>参数与返回值</h3>
+      <table>
+        <thead><tr><th>类型</th><th>名称</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><span class="pill info">输入</span></td>
+            <td><code>state: OverallState</code></td>
+            <td>LangGraph 全局状态（含 plan / messages / plan_status）</td>
+          </tr>
+          <tr>
+            <td><span class="pill info">输入</span></td>
+            <td><code>config: RunnableConfig</code></td>
+            <td>LangGraph 运行配置（含 configurable.query_generator_model）</td>
+          </tr>
+          <tr>
+            <td><span class="pill ok">输出</span></td>
+            <td><code>{"fresh_level": str}</code></td>
+            <td>进入研究阶段时设置时效性等级</td>
+          </tr>
+          <tr>
+            <td><span class="pill danger">输出</span></td>
+            <td><code>{"plan_status": "unconfirmed"}</code></td>
+            <td>用户不满意时重置状态，触发重新规划</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ========== 四、核心流程 ========== -->
+    <section id="flow">
+      <h2>四、核心流程</h2>
+      <p>节点内部遵循 <strong>「先短路，后 LLM」</strong> 的双层判定结构。</p>
+
+      <div class="mermaid">
+flowchart TD
+    S["进入 confirm_plan"] --> P["1️⃣ 读 Configuration + 提取最后用户消息"]
+    P --> Q{"2️⃣ 关键词短路<br/>'开始研究' 或 '需求确认'<br/>在 context 中?"}
+    Q -->|"是"| OK1["🔵 显式确认路径<br/>fresh_level=medium"]
+    Q -->|"否"| L["3️⃣ 构建 JsonAgent<br/>(PlanReflection schema)"]
+
+    L --> C["4️⃣ 调用 plan_reflection_instructions<br/>注入 research_proposal + context"]
+    C --> V{"5️⃣ 类型检查<br/>isinstance(result, PlanReflection)?"}
+    V -->|"否 (LLM 失败)"| OK2["🟡 兜底路径<br/>fresh_level=medium"]
+    V -->|"是"| S2{"6️⃣ result.satisfy?"}
+
+    S2 -->|"True"| OK3["🟢 隐式确认路径<br/>fresh_level=result.fresh_level"]
+    S2 -->|"False"| RP["🔴 不满意路径<br/>plan_status='unconfirmed'"]
+
+    OK1 --> ROUTE
+    OK2 --> ROUTE
+    OK3 --> ROUTE["route_after_confirm"]
+    RP --> ROUTE
+
+    style S fill:#1a2236,stroke:#8b5cf6,color:#e6edf7
+    style OK1 fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+    style OK2 fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+    style OK3 fill:#0a4f3a,stroke:#10b981,color:#e6edf7
+    style RP fill:#5c1a1a,stroke:#ef4444,color:#e6edf7
+      </div>
+
+      <h3>5 步关键动作拆解</h3>
+      <table>
+        <thead><tr><th>步骤</th><th>动作</th><th>代码行</th><th>目的</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>1️⃣</td>
+            <td><code>Configuration.from_runnable_config(config)</code> + <code>get_last_user_response(...)</code></td>
+            <td>117-118</td>
+            <td>提取配置和最后用户消息</td>
+          </tr>
+          <tr>
+            <td>2️⃣</td>
+            <td>关键词子串匹配：「开始研究」/「需求确认」</td>
+            <td>120-122</td>
+            <td><strong>快速通道</strong>：跳过 LLM 调用</td>
+          </tr>
+          <tr>
+            <td>3️⃣</td>
+            <td>构建 <code>JsonAgent</code>，绑定 <code>PlanReflection</code> schema</td>
+            <td>124-125</td>
+            <td>让 LLM 输出结构化 JSON</td>
+          </tr>
+          <tr>
+            <td>4️⃣</td>
+            <td><code>agent.astep(research_proposal, context)</code></td>
+            <td>126-129</td>
+            <td>LLM 评估意图 + 提取 fresh_level</td>
+          </tr>
+          <tr>
+            <td>5️⃣</td>
+            <td>三分支决策：satisfy → research; 不 satisfy → replan</td>
+            <td>130-141</td>
+            <td>输出 LangGraph state 增量</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ========== 五、三条出口路径 ========== -->
+    <section id="paths">
+      <h2>五、三条出口路径</h2>
+
+      <h3>路径总览</h3>
+      <table>
+        <thead><tr><th>路径</th><th>触发条件</th><th>返回值</th><th>下游路由</th><th>log</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><span class="pill info">🔵 显式确认</span></td>
+            <td>用户消息含「开始研究」或「需求确认」</td>
+            <td><code>{"fresh_level": "medium"}</code></td>
+            <td>route_after_confirm → research</td>
+            <td>"plan explicitly confirmed"</td>
+          </tr>
+          <tr>
+            <td><span class="pill warn">🟡 兜底确认</span></td>
+            <td>LLM 返回非 PlanReflection 对象</td>
+            <td><code>{"fresh_level": "medium"}</code></td>
+            <td>route_after_confirm → research</td>
+            <td>"计划评估模型调用失败…默认进入研究阶段"</td>
+          </tr>
+          <tr>
+            <td><span class="pill ok">🟢 隐式确认</span></td>
+            <td>LLM 返回 <code>satisfy=True</code></td>
+            <td><code>{"fresh_level": result.fresh_level}</code></td>
+            <td>route_after_confirm → research</td>
+            <td>"plan implicitly confirmed"</td>
+          </tr>
+          <tr>
+            <td><span class="pill danger">🔴 不满意</span></td>
+            <td>LLM 返回 <code>satisfy=False</code></td>
+            <td><code>{"plan_status": "unconfirmed"}</code></td>
+            <td>route_after_confirm → replan</td>
+            <td>"计划未确认 → 重新计划"</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>三种「确认」路径对比</h3>
+      <div class="mermaid">
+flowchart LR
+    A["🔵 显式<br/>关键词匹配"] --> R1["research<br/>fresh_level=medium"]
+    B["🟡 兜底<br/>LLM 失败"] --> R1
+    C["🟢 隐式<br/>satisfy=True"] --> R2["research<br/>fresh_level=LLM 决定"]
+    D["🔴 不满意<br/>satisfy=False"] --> R3["replan<br/>plan_status=unconfirmed"]
+
+    style A fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+    style B fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+    style C fill:#0a4f3a,stroke:#10b981,color:#e6edf7
+    style D fill:#5c1a1a,stroke:#ef4444,color:#e6edf7
+      </div>
+
+      <div class="callout tip">
+        <strong>设计哲学</strong>：三种「进入研究」的路径体现了<strong>「乐观偏向」</strong>——
+        显式确认、LLM 失败、LLM 同意都默认推进；只有 LLM 明确说"不满意"才回退到 replan。
+        这种"宁进不退"的设计降低了流程卡死的风险。
+      </div>
+    </section>
+
+    <!-- ========== 六、关键词短路逻辑 ========== -->
+    <section id="shortcut">
+      <h2>六、关键词短路逻辑</h2>
+
+      <h3>源代码</h3>
+      <pre><code>if "开始研究" in context or "需求确认" in context:
+    logger.info("[MainGraph] plan explicitly confirmed → research")
+    return {"fresh_level": "medium"}</code></pre>
+
+      <h3>设计意图</h3>
+      <table>
+        <thead><tr><th>维度</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong>目的</strong></td>
+            <td>对<strong>明确表达确认</strong>的用户意图跳过昂贵的 LLM 调用，节省成本</td>
+          </tr>
+          <tr>
+            <td><strong>关键词 1</strong></td>
+            <td>「开始研究」—— 用户用行动词表达推进意愿</td>
+          </tr>
+          <tr>
+            <td><strong>关键词 2</strong></td>
+            <td>「需求确认」—— 与 plan_instructions 第五步的「需求确认」话术闭环呼应</td>
+          </tr>
+          <tr>
+            <td><strong>匹配方式</strong></td>
+            <td>Python <code>in</code> 子串匹配（不区分大小写、不分词）</td>
+          </tr>
+          <tr>
+            <td><strong>副作用</strong></td>
+            <td><code>fresh_level</code> 被硬编码为 <code>"medium"</code>，不读取 LLM 评估</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout warn">
+        <strong>潜在问题</strong>：
+        <ul>
+          <li>关键词是<strong>中文硬编码</strong>，不利于多语言扩展</li>
+          <li><code>"开始研究"</code> 出现在任何用户消息中都会触发，包括用户在评论中提到这四个字</li>
+          <li><code>fresh_level</code> 永远写死为 <code>medium</code>，即使研究主题是"今天比特币价格"</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ========== 七、LLM 意图识别 ========== -->
+    <section id="llm">
+      <h2>七、LLM 意图识别</h2>
+      <p>当关键词未命中时，调用 <code>JsonAgent</code> + <code>plan_reflection_instructions</code> 提示词让 LLM 判断。</p>
+
+      <h3>JsonAgent 调用代码</h3>
+      <pre><code>agent = JsonAgent(model_id=configurable.query_generator_model, keys=PlanReflection)
+agent.set_step_prompt(plan_reflection_instructions)
+result = await agent.astep(
+    research_proposal=state.get("plan", ""),
+    context=context,
+)</code></pre>
+
+      <h3>关键参数</h3>
+      <table>
+        <thead><tr><th>参数</th><th>值</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><code>model_id</code></td>
+            <td><code>configurable.query_generator_model</code></td>
+            <td>与 query_writer 共享模型（意图识别任务轻量，无需专门模型）</td>
+          </tr>
+          <tr>
+            <td><code>keys</code></td>
+            <td><code>PlanReflection</code></td>
+            <td>声明输出 JSON 必须满足此 schema</td>
+          </tr>
+          <tr>
+            <td><code>research_proposal</code></td>
+            <td><code>state.get("plan", "")</code></td>
+            <td>当前研究计划作为上下文</td>
+          </tr>
+          <tr>
+            <td><code>context</code></td>
+            <td>最后一条用户消息</td>
+            <td>用户最新意图的信号</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>plan_reflection_instructions 提示词骨架</h3>
+      <pre><code># 任务目标
+你是一个意图识别大师…判断用户对当前需求计划的反馈是否满意
+
+# Instruction
+- '需求确认'、'可以开始了'、'继续研究' 等都表示满意
+- 用户的回复中明显表达确认或满意意图 → satisfy=true
+
+# 输出格式 (JSON)
+{
+  "satisfy": bool,
+  "fresh_level": "high" | "medium" | "low"
+}
+
+# 背景信息
+## 研究计划
+{research_proposal}
+
+## 用户的回复
+{context}</code></pre>
+
+      <h3>LLM 决策表</h3>
+      <table>
+        <thead><tr><th>输入场景</th><th>LLM 期望输出</th><th>节点行为</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>「确认，开始吧」</td>
+            <td><code>satisfy=true, fresh_level=medium</code></td>
+            <td>进入 research，时效中</td>
+          </tr>
+          <tr>
+            <td>「研究下今天的比特币价格」</td>
+            <td><code>satisfy=true, fresh_level=high</code></td>
+            <td>进入 research，时效高（7 天）</td>
+          </tr>
+          <tr>
+            <td>「研究下 TCP 协议原理」</td>
+            <td><code>satisfy=true, fresh_level=low</code></td>
+            <td>进入 research，时效低（可旧）</td>
+          </tr>
+          <tr>
+            <td>「换个角度，我想看国际市场」</td>
+            <td><code>satisfy=false</code></td>
+            <td>回到 replan，状态重置</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ========== 八、PlanReflection Schema ========== -->
+    <section id="schema">
+      <h2>八、PlanReflection Schema</h2>
+      <p>这是 <code>JsonAgent</code> 强约束的输出契约。</p>
+
+      <h3>定义（src/agent/tools_and_schemas.py:26-33）</h3>
+      <pre><code>class PlanReflection(BaseModel):
+    satisfy: bool = Field(
+        description="用户对生成的研究计划是否满意."
+    )
+    fresh_level: str = Field(
+        default="medium",
+        description=(
+            "时效性需求: 'high' (市场数据/排行/价格), "
+            "'medium' (产品/战略/趋势), 'low' (技术原理/历史)"
+        )
+    )</code></pre>
+
+      <h3>字段详解</h3>
+      <table>
+        <thead><tr><th>字段</th><th>类型</th><th>必填</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><code>satisfy</code></td>
+            <td><code>bool</code></td>
+            <td>✓</td>
+            <td>True = 进入研究；False = 触发 replan</td>
+          </tr>
+          <tr>
+            <td><code>fresh_level</code></td>
+            <td><code>str</code></td>
+            <td>默认 "medium"</td>
+            <td>三档时效性，影响下游 KB 检索的 <code>max_age_days</code></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Schema 验证失败的处理</h3>
+      <div class="mermaid">
+flowchart TD
+    L["JsonAgent.astep()"] --> V{"返回类型<br/>isinstance(result, PlanReflection)?"}
+    V -->|"是"| N["进入 satisfy 判断"]
+    V -->|"否<br/>(schema 不匹配)"| W["logger.warning<br/>记录实际类型"]
+    W --> F["返回 {fresh_level: medium}<br/>乐观兜底进入研究"]
+
+    style V fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+    style W fill:#5c1a1a,stroke:#ef4444,color:#e6edf7
+    style F fill:#0a4f3a,stroke:#10b981,color:#e6edf7
+      </div>
+
+      <div class="callout">
+        <strong>注意点</strong>：<code>getattr(result, "fresh_level", "medium")</code> 用了
+        <code>getattr</code> 兜底，即使 LLM 返回的 JSON 缺 <code>fresh_level</code> 字段也不会抛异常。
+      </div>
+    </section>
+
+    <!-- ========== 九、fresh_level 三档时效 ========== -->
+    <section id="freshness">
+      <h2>九、fresh_level 三档时效</h2>
+      <p><code>fresh_level</code> 是个看似不起眼、实际影响下游 KB 检索策略的关键参数。</p>
+
+      <h3>三档时效定义</h3>
+      <table>
+        <thead><tr><th>等级</th><th>适用场景</th><th>示例</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><span class="pill danger">high</span></td>
+            <td>市场数据 / 排行榜 / 价格</td>
+            <td>今天 BTC 价格、A 股龙头股排行</td>
+          </tr>
+          <tr>
+            <td><span class="pill warn">medium</span></td>
+            <td>产品 / 战略 / 趋势</td>
+            <td>竞品最新动态、行业趋势</td>
+          </tr>
+          <tr>
+            <td><span class="pill ok">low</span></td>
+            <td>技术原理 / 历史 / 经典理论</td>
+            <td>TCP 协议原理、相对论</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>对下游研究子图的影响</h3>
+      <p><code>fresh_level</code> 被写入 <code>OverallState</code>，由 <code>research_agent.py</code> 读取：</p>
+      <pre><code># research_agent.py
+freshness = state.get("fresh_level", "medium")
+max_age = FRESHNESS_MAX_AGE.get(freshness, 30)
+hits = store.query(topic, top_k=20, min_confidence=0.6, max_age_days=max_age, ...)</code></pre>
+
+      <h3>FRESHNESS_MAX_AGE 典型映射</h3>
+      <table>
+        <thead><tr><th>fresh_level</th><th>max_age_days</th><th>含义</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>high</td>
+            <td>~7</td>
+            <td>只采纳近 7 天内的事实</td>
+          </tr>
+          <tr>
+            <td>medium</td>
+            <td>~30</td>
+            <td>近 1 个月内的资料</td>
+          </tr>
+          <tr>
+            <td>low</td>
+            <td>不限 / 365+</td>
+            <td>历史资料均可</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout warn">
+        <strong>设计缺陷</strong>：关键词短路路径强制把 <code>fresh_level</code> 写成 <code>"medium"</code>，
+        即使用户说「开始研究今天股市」也会被降级为 medium，可能漏掉关键近期数据。
+      </div>
+    </section>
+
+    <!-- ========== 十、完整调用时序 ========== -->
+    <section id="sequence">
+      <h2>十、完整调用时序</h2>
+
+      <h3>场景：用户对计划回复「确认，开始吧」</h3>
+      <div class="mermaid">
+sequenceDiagram
+    autonumber
+    participant U as 用户
+    participant GP as generate_plan
+    participant EP as evaluate_plan
+    participant CP as confirm_plan
+    participant LLM as LLM (JsonAgent)
+    participant RC as route_after_confirm
+    participant RA as research 子图
+
+    U->>GP: 提供模糊需求
+    GP->>GP: 调用 plan_instructions
+    GP->>EP: 返回 {plan, plan_status=unconfirmed}
+    EP->>CP: 路由 confirm_plan<br/>(用户已回复 → plan_status=confirmed)
+    CP->>CP: 提取最后用户消息 context
+    CP->>CP: 关键词检查「开始研究」/「需求确认」
+    Note over CP: 命中 → 短路路径
+    CP->>RC: 返回 {fresh_level: medium}
+    RC->>RA: 路由 research (默认)
+    RA->>U: 启动研究循环
+      </div>
+
+      <h3>场景：用户回复「换个角度，研究国际市场」</h3>
+      <div class="mermaid">
+sequenceDiagram
+    autonumber
+    participant U as 用户
+    participant CP as confirm_plan
+    participant LLM as LLM (JsonAgent)
+    participant RC as route_after_confirm
+    participant RP as replan
+    participant GP as generate_plan
+
+    U->>CP: 「换个角度，研究国际市场」
+    CP->>CP: 关键词检查 - 跳过
+    CP->>LLM: astep(research_proposal, context)
+    LLM->>CP: {satisfy: false, fresh_level: medium}
+    CP->>RC: 返回 {plan_status: unconfirmed}
+    RC->>RP: 路由 replan
+    RP->>GP: 状态重置 → 重新生成计划
+    GP->>U: 展示新计划
+      </div>
+
+      <h3>场景：LLM 调用失败（网络异常）</h3>
+      <div class="mermaid">
+sequenceDiagram
+    autonumber
+    participant U as 用户
+    participant CP as confirm_plan
+    participant LLM as LLM (JsonAgent)
+    participant RC as route_after_confirm
+    participant RA as research 子图
+
+    U->>CP: 「好的，继续」
+    CP->>CP: 关键词检查 - 跳过
+    CP->>LLM: astep(...)
+    LLM-->>CP: 抛出异常 / 返回非 PlanReflection
+    Note over CP: isinstance 检查失败
+    CP->>CP: logger.warning<br/>记录失败类型
+    CP->>RC: 返回 {fresh_level: medium}<br/>兜底确认
+    RC->>RA: 路由 research
+    RA->>U: 启动研究循环
+      </div>
+    </section>
+
+    <!-- ========== 十一、下游路由 ========== -->
+    <section id="route">
+      <h2>十一、下游路由 route_after_confirm</h2>
+      <p><code>confirm_plan</code> 之后由 <code>route_after_confirm</code>（graph.py:144-148）决定下游。</p>
+
+      <h3>路由逻辑</h3>
+      <pre><code>def route_after_confirm(state: OverallState) -> str:
+    """计划确认后的路由：进入研究阶段或重新规划。"""
+    if state.get("plan_status", "confirmed") == "unconfirmed":
+        return "replan"
+    return RESEARCH_AGENT_NODE</code></pre>
+
+      <h3>路由决策表</h3>
+      <table>
+        <thead><tr><th>confirm_plan 输出</th><th>state.plan_status</th><th>下游节点</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><code>{"fresh_level": "medium"}</code>（显式）</td>
+            <td>confirmed（未改动）</td>
+            <td><span class="pill ok">research</span></td>
+          </tr>
+          <tr>
+            <td><code>{"fresh_level": "high/low"}</code>（隐式）</td>
+            <td>confirmed（未改动）</td>
+            <td><span class="pill ok">research</span></td>
+          </tr>
+          <tr>
+            <td><code>{"plan_status": "unconfirmed"}</code></td>
+            <td><strong>unconfirmed</strong>（已重置）</td>
+            <td><span class="pill danger">replan</span></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>为什么用「状态重置」而不是「直接路径」</h3>
+      <div class="callout purple">
+        <strong>解耦设计</strong>：<code>confirm_plan</code> 只输出<strong>状态增量</strong>（<code>plan_status</code> 的值），
+        把"去 replan 还是去 research"的判断交给下游 <code>route_after_confirm</code>。
+        这避免了 confirm_plan 既要决策又要路由的双重职责，符合 LangGraph「节点决策、路由函数分发」的最佳实践。
+      </div>
+    </section>
+
+    <!-- ========== 十二、核心设计要点 ========== -->
+    <section id="design">
+      <h2>十二、核心设计要点</h2>
+
+      <h3>设计哲学</h3>
+      <ul>
+        <li><strong>双层判定（关键词 + LLM）</strong>：先尝试快速路径，省 LLM 成本；失败/歧义时再调 LLM</li>
+        <li><strong>三路径乐观偏向</strong>：显式 / 兜底 / 隐式确认都默认推进，只在 LLM 明确否定时才回退</li>
+        <li><strong>结构化输出契约</strong>：用 Pydantic <code>PlanReflection</code> 约束 LLM 输出，避免脏 JSON</li>
+        <li><strong>类型校验 + getattr 兜底</strong>：即使 LLM 漏字段也不会崩溃</li>
+        <li><strong>状态重置而非直跳</strong>：保持 LangGraph 节点「只改状态，不直接跳路由」的契约</li>
+      </ul>
+
+      <h3>与其他节点的协作</h3>
+      <table>
+        <thead><tr><th>节点</th><th>协作点</th><th>数据流向</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><code>plan_instructions</code></td>
+            <td>「需求确认」话术闭环</td>
+            <td>用户在澄清阶段回复「需求确认」→ confirm_plan 关键词命中</td>
+          </tr>
+          <tr>
+            <td><code>plan_reflection_instructions</code></td>
+            <td>LLM 意图识别 prompt</td>
+            <td>本节点调用，作为 LLM 的 system prompt</td>
+          </tr>
+          <tr>
+            <td><code>PlanReflection</code> schema</td>
+            <td>JsonAgent 输出契约</td>
+            <td>约束 LLM 返回结构，决定下游 fresh_level</td>
+          </tr>
+          <tr>
+            <td><code>evaluate_plan</code></td>
+            <td>前置路由</td>
+            <td>当 plan_status=confirmed → 路由到 confirm_plan</td>
+          </tr>
+          <tr>
+            <td><code>route_after_confirm</code></td>
+            <td>后置路由</td>
+            <td>根据 confirm_plan 返回的 plan_status 决定下一步</td>
+          </tr>
+          <tr>
+            <td><code>research_agent</code></td>
+            <td>消费 fresh_level</td>
+            <td>把 fresh_level 映射到 KB 检索的 max_age_days</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>在主图整体工作流中的位置</h3>
+      <div class="mermaid">
+flowchart LR
+    U["用户输入<br/>模糊需求"] --> A["generate_plan<br/>(计划草案)"]
+    A --> EP{"evaluate_plan"}
+    EP -->|未确认| B["awaiting_plan_confirmation<br/>(暂停等人)"]
+    B -.->|用户回复| A
+    EP -->|确认| C["<strong>confirm_plan</strong><br/>本节点"]
+    C --> RC{"route_after_confirm"}
+    RC -->|"plan_status=unconfirmed"| R["replan"]
+    R --> A
+    RC -->|默认| RA["research_agent<br/>(fresh_level→KB 过滤)"]
+    RA --> W["writer_agent"]
+    W --> OUT["最终报告"]
+
+    style C fill:#1a2236,stroke:#8b5cf6,color:#e6edf7
+    style RA fill:#0a4f3a,stroke:#10b981,color:#e6edf7
+    style W fill:#0a4f3a,stroke:#10b981,color:#e6edf7
+      </div>
+    </section>
+
+    <!-- ========== 十三、潜在改进点 ========== -->
+    <section id="issues">
+      <h2>十三、潜在改进点</h2>
+
+      <div class="callout warn">
+        <h4>1. 关键词硬编码丢失 fresh_level 信息</h4>
+        <p>
+          显式路径强制 <code>fresh_level="medium"</code>，即使用户说"开始研究今天比特币"也会被降级。
+          建议改为：<strong>关键词匹配后仍然调 LLM 仅评估 fresh_level</strong>，或允许用户消息中显式标注时效（"<code>!fresh=high</code>"）。
+        </p>
+      </div>
+
+      <div class="callout warn">
+        <h4>2. 关键词是中文硬编码、不分词</h4>
+        <p>
+          <code>"开始研究"</code> 在用户消息中<strong>任何位置</strong>出现都会触发，包括：
+          <ul>
+            <li>评论中提到"我希望系统能开始研究"</li>
+            <li>引用他人话语：「他说'开始研究吧'但其实我不满意」</li>
+          </ul>
+          建议改用<strong>全消息严格匹配</strong>或 <strong>LLM 语义判断</strong>。
+        </p>
+      </div>
+
+      <div class="callout warn">
+        <h4>3. LLM 失败兜底可能掩盖问题</h4>
+        <p>
+          当 <code>isinstance(result, PlanReflection)</code> 为 False 时直接进入研究，
+          没有告警/重试。连续失败可能导致用户的不满意反馈被静默忽略。
+          建议：失败时 <strong>增加 retry</strong>，或 <strong>回退到 awaiting_plan_confirmation</strong> 让用户再确认一次。
+        </p>
+      </div>
+
+      <div class="callout warn">
+        <h4>4. satisfy=False 时丢失 fresh_level</h4>
+        <p>
+          当 LLM 返回 <code>satisfy=False</code> 时，只回写 <code>plan_status=unconfirmed</code>，
+          不保存 LLM 评估出的 <code>fresh_level</code>。
+          下一轮澄清-重新规划后，<code>fresh_level</code> 会被默认 <code>medium</code> 覆盖，
+          丢失上下文。建议：即使回退也保留 LLM 评估结果作为下次参考。
+        </p>
+      </div>
+
+      <div class="callout warn">
+        <h4>5. 没有超时控制</h4>
+        <p>
+          <code>agent.astep(...)</code> 没有 timeout 配置，如果 LLM 服务挂起，整个 confirm_plan 会卡住，
+          进而阻塞整张图。建议传入 <code>timeout</code> 参数。
+        </p>
+      </div>
+
+      <div class="callout warn">
+        <h4>6. 不支持多轮「不满意」的状态累积</h4>
+        <p>
+          每次 <code>satisfy=False</code> 都触发一次 replan，但没有「replan 次数上限」，
+          用户持续拒绝可能陷入死循环。建议加 <code>max_replan_count</code> 状态字段，达到上限后强制进入研究或结束。
+        </p>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<footer>
+  Deep Research Backend · confirm_plan 节点详解 · 基于 src/agent/graph.py:111-141
+</footer>
+
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'dark',
+    themeVariables: {
+      primaryColor: '#1a2236',
+      primaryTextColor: '#e6edf7',
+      primaryBorderColor: '#8b5cf6',
+      lineColor: '#22d3ee',
+      secondaryColor: '#111827',
+      tertiaryColor: '#0a1020',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif',
+    },
+    flowchart: { curve: 'basis', padding: 12 },
+    sequence: { actorMargin: 60, messageMargin: 40 },
+  });
+</script>
+
+</body>
+</html>

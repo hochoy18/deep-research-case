@@ -1,0 +1,1011 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>plan_instructions 详解 · Deep Research Prompt</title>
+<!-- Mermaid -->
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<style>
+  :root {
+    --bg-0: #0b0f1a;
+    --bg-1: #111827;
+    --bg-2: #1a2236;
+    --line: #243049;
+    --text: #e6edf7;
+    --muted: #97a3bd;
+    --primary: #8b5cf6;
+    --primary-2: #6366f1;
+    --accent: #22d3ee;
+    --accent-2: #06b6d4;
+    --warn: #f59e0b;
+    --ok: #10b981;
+    --danger: #ef4444;
+    --code-bg: #0a1020;
+    --shadow: 0 10px 30px rgba(0,0,0,.35);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+                 "Microsoft YaHei", Roboto, Helvetica, Arial, sans-serif;
+    background:
+      radial-gradient(1200px 600px at 10% -10%, rgba(139,92,246,.18), transparent 60%),
+      radial-gradient(1000px 500px at 110% 10%, rgba(34,211,238,.15), transparent 60%),
+      var(--bg-0);
+    color: var(--text);
+    line-height: 1.7;
+    min-height: 100vh;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* Hero */
+  .hero {
+    padding: 56px 16px 32px;
+    text-align: center;
+    border-bottom: 1px solid var(--line);
+    background: linear-gradient(180deg, rgba(139,92,246,.10), transparent 60%);
+  }
+  .hero .badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 999px;
+    background: rgba(139,92,246,.18);
+    color: #c4b5fd;
+    border: 1px solid rgba(139,92,.35);
+    font-size: 12px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+  .hero h1 {
+    margin: 0 0 8px;
+    font-size: clamp(28px, 4vw, 42px);
+    letter-spacing: -0.5px;
+    background: linear-gradient(90deg, #c4b5fd, #67e8f9);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .hero p.lead { color: var(--muted); margin: 0 auto; max-width: 760px; }
+
+  /* Layout */
+  .layout {
+    display: grid;
+    grid-template-columns: 260px minmax(0, 1fr);
+    gap: 24px;
+    max-width: 1320px;
+    margin: 0 auto;
+    padding: 32px 16px;
+  }
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; }
+    .toc { position: static !important; }
+  }
+
+  /* TOC */
+  .toc {
+    position: sticky;
+    top: 24px;
+    align-self: start;
+    background: linear-gradient(180deg, var(--bg-1), var(--bg-2));
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 16px 18px;
+    box-shadow: var(--shadow);
+    max-height: calc(100vh - 48px);
+    overflow: auto;
+  }
+  .toc h3 {
+    margin: 0 0 10px;
+    font-size: 13px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+  }
+  .toc ol { margin: 0; padding-left: 20px; }
+  .toc li { margin: 6px 0; }
+  .toc a { color: var(--text); font-size: 14px; }
+  .toc a:hover { color: var(--accent); }
+
+  /* Content */
+  .content { min-width: 0; }
+  section {
+    background: linear-gradient(180deg, var(--bg-1), var(--bg-2));
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 24px 26px;
+    box-shadow: var(--shadow);
+    margin-bottom: 22px;
+  }
+  section h2 {
+    margin-top: 0;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--line);
+    font-size: 22px;
+    letter-spacing: -0.2px;
+  }
+  section h3 { margin-top: 22px; font-size: 17px; color: #c7d2fe; }
+  section h4 { margin-top: 16px; font-size: 15px; color: #a5b4fc; }
+  section p { color: var(--text); }
+  .muted { color: var(--muted); }
+
+  /* Code */
+  code {
+    font-family: "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+    background: var(--code-bg);
+    border: 1px solid var(--line);
+    padding: 1px 6px;
+    border-radius: 6px;
+    font-size: 13px;
+  }
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 14px 16px;
+    overflow: auto;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  pre code { background: none; border: none; padding: 0; }
+
+  /* Tables */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 14px 0;
+    font-size: 14px;
+  }
+  th, td {
+    border: 1px solid var(--line);
+    padding: 8px 12px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th { background: rgba(139,92,246,.10); color: #c4b5fd; }
+  tbody tr:nth-child(even) { background: rgba(255,255,255,.02); }
+
+  /* Pills */
+  .pill {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    margin-right: 6px;
+    border: 1px solid var(--line);
+    background: rgba(255,255,255,.04);
+    color: var(--muted);
+  }
+  .pill.ok    { color: var(--ok);    border-color: rgba(16,185,129,.35); background: rgba(16,185,129,.10); }
+  .pill.warn  { color: var(--warn);  border-color: rgba(245,158,11,.35); background: rgba(245,158,11,.10); }
+  .pill.danger{ color: var(--danger);border-color: rgba(239,68,68,.35);  background: rgba(239,68,68,.10); }
+  .pill.info  { color: var(--accent);border-color: rgba(34,211,238,.35); background: rgba(34,211,238,.10); }
+
+  /* Mermaid */
+  .mermaid {
+    background: rgba(255,255,255,.02);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 16px;
+    margin: 14px 0;
+    text-align: center;
+    overflow: auto;
+  }
+
+  /* Sequence diagram actor coloring (用 mermaid 给 rect 设置的 name 属性精确选中) */
+  /* 用户 U: 保留默认色（中性） */
+  /* _clarify 节点 P: 紫色 */
+  .seq-state-flow rect.actor[name="P"] {
+    fill: #1a2236 !important;
+    stroke: #8b5cf6 !important;
+  }
+  .seq-state-flow text.actor:has(+ rect.actor[name="P"]),
+  .seq-state-flow .actor-manual-color-P {
+    fill: #e6edf7 !important;
+  }
+  /* 意图识别 R: 青色 */
+  .seq-state-flow rect.actor[name="R"] {
+    fill: #1a3a5c !important;
+    stroke: #22d3ee !important;
+  }
+  /* ResearchAgent RA: 绿色 */
+  .seq-state-flow rect.actor[name="RA"] {
+    fill: #0a4f3a !important;
+    stroke: #10b981 !important;
+  }
+  /* 让 P/R/RA 对应的 text 也变亮 */
+  .seq-state-flow rect.actor[name="P"] + text.actor,
+  .seq-state-flow rect.actor[name="R"] + text.actor,
+  .seq-state-flow rect.actor[name="RA"] + text.actor {
+    fill: #e6edf7 !important;
+  }
+
+  /* Callout */
+  .callout {
+    border-left: 3px solid var(--accent);
+    background: rgba(34,211,238,.06);
+    padding: 12px 16px;
+    border-radius: 0 8px 8px 0;
+    margin: 14px 0;
+  }
+  .callout.warn { border-color: var(--warn); background: rgba(245,158,11,.06); }
+  .callout.tip  { border-color: var(--ok); background: rgba(16,185,129,.06); }
+  .callout.purple { border-color: var(--primary); background: rgba(139,92,246,.06); }
+
+  footer {
+    text-align: center;
+    color: var(--muted);
+    font-size: 13px;
+    padding: 24px 16px 40px;
+  }
+
+  section[id] { scroll-margin-top: 16px; }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="badge">Deep Research · Prompt 详解</div>
+  <h1>plan_instructions 详解</h1>
+  <p class="lead">将模糊需求转化为清晰情报任务的「澄清循环」提示词 —— 五步法 + 五大关键要素 + 智能默认项 + 可视化进度</p>
+</div>
+
+<div class="layout">
+
+  <!-- ========== 目录 ========== -->
+  <aside class="toc">
+    <h3>目录</h3>
+    <ol>
+      <li><a href="#overview">一、提示词总览</a></li>
+      <li><a href="#mission">二、任务说明与角色定位</a></li>
+      <li><a href="#loop">三、五步「澄清循环」总览</a></li>
+      <li><a href="#step1">四、第一步：解构与模板映射</a></li>
+      <li><a href="#elements">五、五大关键要素详解</a></li>
+      <li><a href="#step2">六、第二步：模糊度评估与问题生成</a></li>
+      <li><a href="#step3">七、第三步：智能默认项与结构化建议</a></li>
+      <li><a href="#step4">八、第四步：迭代与可视化进度</a></li>
+      <li><a href="#step5">九、第五步：锁定与最终确认</a></li>
+      <li><a href="#output">十、输出格式样例</a></li>
+      <li><a href="#variables">十一、模板变量</a></li>
+      <li><a href="#design">十二、核心设计要点</a></li>
+    </ol>
+  </aside>
+
+  <main class="content">
+
+    <!-- ========== 一、提示词总览 ========== -->
+    <section id="overview">
+      <h2>一、提示词总览</h2>
+      <p>
+        <code>plan_instructions</code> 定义于 <code>src/agent/prompts.py:9-125</code>，
+        是 Deep Research 子图入口的<strong>需求澄清节点</strong>（<code>_clarify</code>）所使用的主提示词。
+        它的核心目标不是直接回答用户，而是<strong>通过结构化对话把模糊需求打磨成可执行的需求单</strong>。
+      </p>
+
+      <h3>核心特征</h3>
+      <table>
+        <thead><tr><th>特征</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong>角色定位</strong></td>
+            <td>科研 Agent 的<strong>对话澄清者</strong>，非直接答题者</td>
+          </tr>
+          <tr>
+            <td><strong>核心方法论</strong></td>
+            <td>五步「澄清循环」(Clarification Loop)</td>
+          </tr>
+          <tr>
+            <td><strong>分析模板</strong></td>
+            <td>「专报五大关键要素」分析模板</td>
+          </tr>
+          <tr>
+            <td><strong>输出形态</strong></td>
+            <td>Markdown 代码块包裹的需求单（含进度条 + 核心需求 + 待确认问题 + 智能建议）</td>
+          </tr>
+          <tr>
+            <td><strong>交互终点</strong></td>
+            <td>用户回复「需求确认」 → 需求单锁定 → 进入研究执行</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout purple">
+        <strong>设计哲学</strong>：这个提示词遵循"先对齐再执行"的原则 —— 在调用任何昂贵资源（KB 检索 / Web 搜索 / LLM 摘要）之前，
+        先用低成本对话消除需求歧义，从而降低无效检索与重做成本。
+      </div>
+
+      <h3>在系统中的位置</h3>
+      <div class="mermaid">
+flowchart LR
+    U["用户<br/>(模糊需求)"] --> C["_clarify 节点<br/>plan_instructions"]
+    C -->|"需求未达 100%"| C
+    C -->|"需求确认 (100%)"| P["plan_reflection<br/>意图识别"]
+    P --> R["ResearchAgent<br/>子图 (研究执行)"]
+
+    style C fill:#1a2236,stroke:#8b5cf6,color:#e6edf7
+    style P fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+    style R fill:#0a4f3a,stroke:#10b981,color:#e6edf7
+      </div>
+    </section>
+
+    <!-- ========== 二、任务说明与角色定位 ========== -->
+    <section id="mission">
+      <h2>二、任务说明与角色定位</h2>
+
+      <h3>原文要点（节选）</h3>
+      <pre><code># 任务说明
+你是一个专业的科研Agent。你的核心使命不是直接回答问题或撰写报告，
+而是与用户进行结构化对话，将一个模糊、宽泛的分析需求，
+通过精准、连续的追问，转化为一个定义清晰、范围明确、可执行的情报分析任务。
+
+你的最终产出物是一个得到用户确认的、毫无歧义的"最终版任务需求单"。</code></pre>
+
+      <h3>三个关键定位</h3>
+      <table>
+        <thead><tr><th>维度</th><th>定位</th><th>含义</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><span class="pill danger">不是</span></td>
+            <td>答题者 / 报告撰写者</td>
+            <td>不直接产出最终报告内容</td>
+          </tr>
+          <tr>
+            <td><span class="pill info">而是</span></td>
+            <td>对话澄清者 / 需求工程师</td>
+            <td>通过多轮对话把需求打磨清晰</td>
+          </tr>
+          <tr>
+            <td><span class="pill ok">产出</span></td>
+            <td>经用户确认的需求单</td>
+            <td>作为下游研究子图的输入契约</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout warn">
+        <strong>关键边界</strong>：即使用户的需求非常清晰，本提示词也<strong>不应该跳过澄清直接执行</strong>。
+        它必须走完五步循环（或至少达到 100% 清晰度）后，把"核心需求理解"作为最终产出，
+        再交给下游 <code>plan_reflection</code> 进行意图识别，最后才进入 ResearchAgent。
+      </div>
+    </section>
+
+    <!-- ========== 三、五步「澄清循环」总览 ========== -->
+    <section id="loop">
+      <h2>三、五步「澄清循环」总览</h2>
+      <p>提示词明确要求 Agent <strong>严格遵循</strong>以下五步法与用户互动。</p>
+
+      <div class="mermaid">
+flowchart TD
+    A["用户提出初始需求"] --> S1["1️⃣ 解构与模板映射<br/>Deconstruct & Template Mapping<br/>映射五大关键要素"]
+    S1 --> S2["2️⃣ 模糊度评估与问题生成<br/>Ambiguity Assessment<br/>为每个模糊要素生成选择题"]
+    S2 --> S3["3️⃣ 智能默认项与结构化建议<br/>Propose Smart Defaults<br/>提供默认选项 + 分析框架"]
+    S3 --> S4["4️⃣ 迭代与可视化进度<br/>Iterate & Visualize<br/>进度条 + 更新版核心需求"]
+    S4 --> C{"进度 = 100%?"}
+    C -->|"否"| S2
+    C -->|"是"| S5["5️⃣ 锁定与最终确认<br/>Lock-in & Final Confirmation<br/>需求确认 → 进入研究"]
+
+    style S1 fill:#1a2236,stroke:#8b5cf6,color:#e6edf7
+    style S2 fill:#1a2236,stroke:#8b5cf6,color:#e6edf7
+    style S3 fill:#1a2236,stroke:#8b5cf6,color:#e6edf7
+    style S4 fill:#1a2236,stroke:#8b5cf6,color:#e6edf7
+    style S5 fill:#0a4f3a,stroke:#10b981,color:#e6edf7
+      </div>
+
+      <h3>五步对照表</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>步骤</th>
+            <th>中文名</th>
+            <th>英文名</th>
+            <th>核心动作</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>1</td>
+            <td>解构与模板映射</td>
+            <td>Deconstruct & Template Mapping</td>
+            <td>把模糊语言映射到五大要素上</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>模糊度评估与问题生成</td>
+            <td>Ambiguity Assessment</td>
+            <td>对模糊要素生成封闭式选择题</td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td>智能默认项与建议</td>
+            <td>Propose Smart Defaults</td>
+            <td>主动提供默认信源 / 分析框架</td>
+          </tr>
+          <tr>
+            <td>4</td>
+            <td>迭代与可视化进度</td>
+            <td>Iterate & Visualize</td>
+            <td>输出进度条 + 更新版核心需求</td>
+          </tr>
+          <tr>
+            <td>5</td>
+            <td>锁定与最终确认</td>
+            <td>Lock-in & Final Confirmation</td>
+            <td>发送"需求确认"等待用户回复</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ========== 四、第一步：解构与模板映射 ========== -->
+    <section id="step1">
+      <h2>四、第一步：解构与模板映射</h2>
+      <p>当 Agent 收到用户的初始需求时，<strong>必须立即</strong>启用内置的「专报五大关键要素」分析模板，
+        将用户的模糊语言映射到五个维度上。</p>
+
+      <div class="callout purple">
+        <strong>关键约束</strong>："立即启用"和"必须"两个词表明：模板映射不是可选项，
+        即使用户的需求看似明确，Agent 也要走一遍模板来确保完整覆盖。
+      </div>
+
+      <h3>五大关键要素结构图</h3>
+      <div class="mermaid">
+mindmap
+  root((专报五大<br/>关键要素))
+    Subjects
+      人物
+      团体
+      事件
+    Opponent's Strategy
+      舆论战
+      认知战
+    Risk Assessment
+      政治风险
+      社会风险
+      经济风险
+    Scope and Boundaries
+      Timeframe 时间范围
+      Media Scope 媒体范围
+      Specific Sources 具体信源
+        Core Media List 核心媒体
+        Dynamic Adjustment 动态调整
+    Output Format
+      结构
+      格式
+      可视化
+      </div>
+
+      <h3>原文示例</h3>
+      <pre><code>第一步：解构与模板映射 (Deconstruct & Template Mapping)
+- 当接收到用户任何一个初始需求时，你必须立即启用内置的
+  **"专报五大关键要素"**分析模板，将用户的模糊语言映射到这五个维度上：
+  - 核心分析对象 (Subjects)：要分析的是"谁"？（人物、团体、事件）
+  - 对手策略维度 (Opponent's Strategy)：是否需要分析对手的应对策略？
+  - 风险研判维度 (Risk Assessment)：需要预警哪些潜在风险？
+  - 信息时空边界 (Scope & Boundaries)：
+    - 时间范围 (Timeframe)
+    - 媒体范围 (Media Scope)
+    - 具体信源 (Specific Sources)
+  - 成果呈现形式 (Output Format)</code></pre>
+    </section>
+
+    <!-- ========== 五、五大关键要素详解 ========== -->
+    <section id="elements">
+      <h2>五、五大关键要素详解</h2>
+      <p>「专报五大关键要素」是整套澄清逻辑的<strong>骨架</strong>。每个要素对应一个维度的追问。</p>
+
+      <table>
+        <thead>
+          <tr><th>#</th><th>要素</th><th>英文</th><th>追问问题</th><th>示例</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>1</td>
+            <td><strong>核心分析对象</strong></td>
+            <td>Subjects</td>
+            <td>要分析的是"谁"？</td>
+            <td>人物 / 团体 / 事件</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td><strong>对手策略维度</strong></td>
+            <td>Opponent's Strategy</td>
+            <td>是否需要分析对手的应对策略？</td>
+            <td>舆论战 / 认知战</td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td><strong>风险研判维度</strong></td>
+            <td>Risk Assessment</td>
+            <td>需要预警哪些潜在风险？</td>
+            <td>政治 / 社会 / 经济</td>
+          </tr>
+          <tr>
+            <td>4</td>
+            <td><strong>信息时空边界</strong></td>
+            <td>Scope & Boundaries</td>
+            <td>信息搜集的时间/媒体边界在哪？</td>
+            <td>见下表</td>
+          </tr>
+          <tr>
+            <td>5</td>
+            <td><strong>成果呈现形式</strong></td>
+            <td>Output Format</td>
+            <td>最终报告需要什么结构和格式？</td>
+            <td>FAQ / 报告 / 表格</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>要素 4 拆解：信息时空边界（最复杂）</h3>
+      <div class="mermaid">
+flowchart TD
+    S["信息时空边界<br/>Scope & Boundaries"] --> T["时间范围<br/>Timeframe"]
+    S --> M["媒体范围<br/>Media Scope"]
+    S --> SRC["具体信源<br/>Specific Sources"]
+
+    T --> T1["情报搜集的起点"]
+    T --> T2["情报搜集的终点"]
+
+    M --> M1["媒体类型"]
+    M --> M2["媒体语言"]
+
+    SRC --> SRC1["核心媒体列表<br/>Core Media List"]
+    SRC --> SRC2["动态调整策略<br/>Dynamic Adjustment"]
+
+    SRC2 --> D1["官方政策 → 扩充官方机构网站"]
+    SRC2 --> D2["社会舆论 → 扩充社交平台 (PTT/Dcard)"]
+    SRC2 --> D3["特定智库 → 扩充相关智库网站"]
+
+    style S fill:#1a2236,stroke:#8b5cf6,color:#e6edf7
+    style SRC fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+    style SRC2 fill:#0a4f3a,stroke:#10b981,color:#e6edf7
+      </div>
+
+      <div class="callout warn">
+        <strong>「动态调整策略」是核心智能体现</strong>：当任务涉及<strong>特定垂直领域</strong>时
+        （官方政策、特定社会议题、专业领域等），Agent 必须主动建议<strong>自动扩充信源</strong>，
+        而不只是依赖核心媒体列表。
+      </div>
+    </section>
+
+    <!-- ========== 六、第二步：模糊度评估与问题生成 ========== -->
+    <section id="step2">
+      <h2>六、第二步：模糊度评估与问题生成</h2>
+      <p>对五大要素<strong>逐一</strong>评估用户输入信息的明确度，对模糊要素生成封闭式选择题。</p>
+
+      <h3>原文要点</h3>
+      <pre><code>第二步：模糊度评估与问题生成 (Ambiguity Assessment & Question Generation)
+- 针对上述五个要素，逐一评估用户输入信息的明确度。
+- 对于任何模糊不清的要素，你必须主动生成具体的、封闭式的选择题
+  或带有建议的引导性问题。</code></pre>
+
+      <h3>问题生成的 4 个原则</h3>
+      <table>
+        <thead><tr><th>原则</th><th>说明</th><th>反例</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>1️⃣ <strong>封闭式选项</strong></td>
+            <td>提供 A/B/C 选项，避免开放式问答</td>
+            <td>❌ "您想了解哪些媒体？" → ✅ "台湾媒体 / 国际媒体 / 两者都要？"</td>
+          </tr>
+          <tr>
+            <td>2️⃣ <strong>具体可执行</strong></td>
+            <td>选项落到具体的媒体名 / 工具 / 时间窗口</td>
+            <td>❌ "请指定信源" → ✅ "联合报 / 自由时报 / TVBS / ETtoday"</td>
+          </tr>
+          <tr>
+            <td>3️⃣ <strong>建议引导</strong></td>
+            <td>提供「默认推荐」+「自定义入口」</td>
+            <td>❌ 问完不答 → ✅ "若未指定，我将默认使用...，是否同意？"</td>
+          </tr>
+          <tr>
+            <td>4️⃣ <strong>逐个击破</strong></td>
+            <td>按要素顺序追问，不要一次性把所有问题抛出</td>
+            <td>❌ 一次性问 10 个 → ✅ 本轮聚焦 2-3 个核心要素</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>原文示范（具体信源）</h3>
+      <div class="callout">
+        关于「具体信源」，为了确保分析的准确性，您希望我使用Google AI深度搜索哪些台湾媒体
+        （如：联合报、自由时报）和国际媒体（如：路透社、BBC）的网站？
+        请提供一个列表，或者我可以根据常规重要性为您推荐一个。
+      </div>
+    </section>
+
+    <!-- ========== 七、第三步：智能默认项与建议 ========== -->
+    <section id="step3">
+      <h2>七、第三步：智能默认项与结构化建议</h2>
+      <p>Agent 必须表现出<strong>专业性</strong> —— 在提问的同时，主动提供「智能默认选项」或「高级分析框架」来引导用户。
+        提示词给出了 4 个示例。</p>
+
+      <h3>示例 1：信源建议（Default Source Bundle）</h3>
+      <div class="mermaid">
+flowchart LR
+    Q{"用户是否指定<br/>媒体列表?"} -->|"是"| Y["使用用户列表"]
+    Q -->|"否"| N["智能默认组合"]
+    N --> T["台湾媒体<br/>联合报 / 自由时报<br/>TVBS / ETtoday"]
+    N --> I["国际媒体<br/>Reuters / BBC<br/>AP / The Diplomat"]
+    Y --> C{"用户同意?"}
+    T --> C
+    I --> C
+    C -->|"是"| OK["锁定信源"]
+    C -->|"否"| Q
+
+    style N fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+    style OK fill:#0a4f3a,stroke:#10b981,color:#e6edf7
+      </div>
+
+      <div class="callout">
+        若您没有指定媒体列表，我将默认使用Google AI深度搜索以下核心媒体组合：<br/>
+        <strong>台湾</strong>：联合报、自由时报、TVBS、ETtoday<br/>
+        <strong>国际</strong>：Reuters, BBC, AP, The Diplomat<br/>
+        此组合兼顾了不同立场与影响力，是否同意？
+      </div>
+
+      <h3>示例 2：分析框架（拆解模糊概念）</h3>
+      <p>当「认知作战」这种<strong>概念模糊</strong>时，主动把它拆成可分析维度：</p>
+      <div class="callout">
+        关于民进党策略，是否需要我深化分析其<br/>
+        → <strong>「舆论斗争」</strong>手段（如贴标签、威胁）<br/>
+        → <strong>「认知作战」</strong>路径（如利用外媒、智库合作）？
+      </div>
+
+      <h3>示例 3：输出格式建议</h3>
+      <div class="callout">
+        为了让报告更具洞察力，我建议采用「<strong>人物-事件-链条</strong>」的分析模式，<br/>
+        例如：<code>A人物发言 → B阵营攻击 → C国际媒体引用</code>，您认为如何？
+      </div>
+
+      <h3>示例 4：动态信源调整（核心智能）</h3>
+      <p>这是 Agent <strong>最核心的智能体现</strong> —— 当用户确认具体分析对象后，必须触发此策略：</p>
+
+      <table>
+        <thead>
+          <tr><th>触发条件</th><th>扩充信源类型</th><th>具体示例</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>涉<strong>官方政策</strong></td>
+            <td>官方机构网站</td>
+            <td>台湾陆委会、「总统府」官网</td>
+          </tr>
+          <tr>
+            <td>涉<strong>社会舆论</strong></td>
+            <td>社交舆论平台</td>
+            <td>PTT、Dcard 等主流论坛</td>
+          </tr>
+          <tr>
+            <td>涉<strong>特定智库</strong></td>
+            <td>相关智库网站</td>
+            <td>2049 项目研究所等</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout warn">
+        <strong>标准话术</strong>：<br/>
+        根据我们已确认的需求，我判断本次任务需要进行深度分析。<br/>
+        因此，除了之前确认的核心媒体列表外，我将<strong>【自动扩充】</strong>搜索以下信源...<br/>
+        您是否同意此动态扩充的信源策略？
+      </div>
+    </section>
+
+    <!-- ========== 八、第四步：迭代与可视化进度 ========== -->
+    <section id="step4">
+      <h2>八、第四步：迭代与可视化进度</h2>
+      <p>每次回复都应包含<strong>两个部分</strong>，让用户直观感受到对话正在推进。</p>
+
+      <h3>回复结构</h3>
+      <div class="mermaid">
+flowchart TD
+    R["Agent 的一次回复"] --> P1["① 核心需求理解<br/>(更新版)"]
+    R --> P2["② 待确认/待补充问题"]
+
+    P1 --> P11["核心分析对象"]
+    P1 --> P12["对手策略维度"]
+    P1 --> P13["风险研判维度"]
+    P1 --> P14["信息时空边界"]
+    P1 --> P15["成果呈现形式"]
+
+    P2 --> P21["进度条<br/>e.g. 60% → 90% → 95%"]
+
+    style P1 fill:#1a2236,stroke:#8b5cf6,color:#e6edf7
+    style P2 fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+      </div>
+
+      <h3>进度条设计意图</h3>
+      <table>
+        <thead><tr><th>进度区间</th><th>含义</th><th>Agent 行为</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>0% ~ 30%</td>
+            <td>需求非常模糊</td>
+            <td>抛出 2-3 个最关键的封闭式问题</td>
+          </tr>
+          <tr>
+            <td>30% ~ 70%</td>
+            <td>部分要素已澄清</td>
+            <td>针对性追问未澄清要素 + 提供默认建议</td>
+          </tr>
+          <tr>
+            <td>70% ~ 95%</td>
+            <td>大部分要素已澄清</td>
+            <td>启动动态信源调整 + 输出格式确认</td>
+          </tr>
+          <tr>
+            <td>95% ~ 100%</td>
+            <td>全部要素已澄清</td>
+            <td>进入第五步：锁定与最终确认</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout tip">
+        <strong>可视化是体验核心</strong>：进度条让用户<strong>持续感知到对话价值</strong>，
+        避免「我到底还要被问多久」的挫败感。
+      </div>
+    </section>
+
+    <!-- ========== 九、第五步：锁定与最终确认 ========== -->
+    <section id="step5">
+      <h2>九、第五步：锁定与最终确认</h2>
+      <p>当所有关键要素都已澄清，<strong>没有任何「待确认问题」</strong>时，整合所有信息形成「核心需求理解 (最终版)」。</p>
+
+      <h3>标准话术</h3>
+      <div class="callout">
+        以上需求若无遗漏，请回复 <strong>【需求确认】</strong>。<br/>
+        若需补充或调整，请直接说明。<br/>
+        在得到您的确认后，我将开始生成报告。
+      </div>
+
+      <h3>锁定 → 执行的状态流转</h3>
+      <div class="mermaid seq-state-flow">
+sequenceDiagram
+    autonumber
+    participant U as 用户
+    participant P as _clarify 节点
+    participant R as 意图识别
+    participant RA as ResearchAgent
+
+    U->>P: 初始模糊需求
+    P-->>U: 进度 30% (核心要素)
+    U->>P: 选择部分要素
+    P-->>U: 进度 70% (智能默认项)
+    U->>P: 补充关键信源
+    P-->>U: 进度 95% (动态扩充建议)
+    U->>P: 同意动态扩充
+    P-->>U: 进度 100% (最终版需求单)
+    Note over P: 等待用户回复 需求确认
+    U->>P: 需求确认
+    P->>R: 输出最终版需求单
+    R->>R: 意图识别 satisfy=true
+    R->>RA: 启动 ResearchAgent 子图
+      </div>
+    </section>
+
+    <!-- ========== 十、输出格式样例 ========== -->
+    <section id="output">
+      <h2>十、输出格式样例</h2>
+      <p>提示词要求所有输出必须放在 <code>```markdown</code> 和 <code>```</code> 之间，包含以下结构：</p>
+
+      <h3>完整输出骨架</h3>
+      <pre><code># 需求清晰度进度条: {N}%
+## 核心需求理解：
+1. **核心分析对象 (Subjects)**: ...
+2. **对手策略维度 (Opponent's Strategy)**: ...
+3. **风险研判维度 (Risk Assessment)**: ...
+4. **信息时空边界 (Scope & Boundaries)**:
+   - 时间范围: ...
+   - 媒体范围: ...
+   - 具体信源: ...
+5. **成果呈现形式 (Output Format)**: ...
+
+## 待确认问题：
+1. **要素名**：您的偏好是？
+   - 选项 A
+   - 选项 B
+   - 选项 C
+   - 其他(请说明)_______
+
+## 智能建议：
+1. 针对当前主题，建议采用「X-Y-Z」框架
+2. ...
+
+## 下一步：
+请确认上述问题，或补充其他需求细节。
+
+（如需调整关键词或者范围，请直接告知），
+如需求清晰明了，请回复【需求确认】，
+我将进行报告生成任务，如果还存在问题，请直接说明。</code></pre>
+
+      <h3>原始样例（Topic=稳定币）</h3>
+      <div class="callout purple">
+        <strong>Topic</strong>: 稳定币是什么东西？<br/><br/>
+        <strong>进度</strong>: 30%<br/>
+        <strong>已澄清</strong>: 仅「核心分析对象 = 稳定币」<br/>
+        <strong>待澄清</strong>: 时间范围 / 媒体范围 / 分析深度 / 风险维度 / 输出格式<br/>
+        <strong>智能建议</strong>: 采用「概念-类型-机制-风险」四维框架 / 默认包含 USDT vs USDC 对比
+      </div>
+
+      <table>
+        <thead><tr><th>结构</th><th>作用</th><th>何时更新</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong>进度条</strong></td>
+            <td>可视化清晰度</td>
+            <td>每轮回复都更新</td>
+          </tr>
+          <tr>
+            <td><strong>核心需求理解</strong></td>
+            <td>当前对需求的理解快照</td>
+            <td>每轮回复都更新</td>
+          </tr>
+          <tr>
+            <td><strong>待确认问题</strong></td>
+            <td>需要用户回答的封闭选项</td>
+            <td>每轮回复都更新</td>
+          </tr>
+          <tr>
+            <td><strong>智能建议</strong></td>
+            <td>Agent 主动提供的框架 / 扩展</td>
+            <td>每轮回复都更新</td>
+          </tr>
+          <tr>
+            <td><strong>下一步</strong></td>
+            <td>引导用户回复</td>
+            <td>进度 = 100% 时改为"请回复【需求确认】"</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ========== 十一、模板变量 ========== -->
+    <section id="variables">
+      <h2>十一、模板变量</h2>
+      <p>提示词末尾通过 <code>{...}</code> 占位符注入运行时变量，由上游代码负责填充。</p>
+
+      <table>
+        <thead>
+          <tr><th>变量</th><th>来源</th><th>用途</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>{current_date}</code></td>
+            <td><code>get_current_date()</code></td>
+            <td>注入"今天"日期，帮助 Agent 推断时效性</td>
+          </tr>
+          <tr>
+            <td><code>{research_topic}</code></td>
+            <td>用户输入 + LangGraph state</td>
+            <td>本次研究的主题</td>
+          </tr>
+          <tr>
+            <td><code>{research_proposal}</code></td>
+            <td>上游 plan 节点产出</td>
+            <td>当前已生成的研究计划草案</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>模板变量注入流程</h3>
+      <div class="mermaid">
+flowchart LR
+    A["get_current_date()<br/>(datetime.now)"] --> V["模板变量 dict"]
+    B["state.research_topic"] --> V
+    C["state.research_proposal"] --> V
+    V --> F["plan_instructions.format(**vars)"]
+    F --> LLM["LLM 调用"]
+
+    style F fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+    style LLM fill:#0a4f3a,stroke:#10b981,color:#e6edf7
+      </div>
+
+      <pre><code>prompt = plan_instructions.format(
+    current_date=get_current_date(),
+    research_topic=state["research_topic"],
+    research_proposal=state.get("research_proposal", ""),
+)</code></pre>
+    </section>
+
+    <!-- ========== 十二、核心设计要点 ========== -->
+    <section id="design">
+      <h2>十二、核心设计要点</h2>
+
+      <h3>设计哲学</h3>
+      <ul>
+        <li><strong>先对齐再执行</strong>：在调用昂贵资源前，先用低成本对话消除需求歧义</li>
+        <li><strong>结构化对话</strong>：用五步循环约束 Agent 行为，避免"自由发挥"导致跑题</li>
+        <li><strong>用户确认制</strong>：需求单必须经用户回复【需求确认】后才执行，体现"人在回路"</li>
+        <li><strong>可视化进度</strong>：进度条让用户持续感知对话价值，避免挫败感</li>
+        <li><strong>主动智能</strong>：不只追问，还主动提供默认信源 + 分析框架 + 输出格式</li>
+        <li><strong>动态信源调整</strong>：根据任务垂直领域自动扩充信源，区别于通用 RAG</li>
+      </ul>
+
+      <h3>与下游 prompt 的协作</h3>
+      <table>
+        <thead>
+          <tr><th>Prompt</th><th>协作点</th><th>数据流向</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>plan_reflection_instructions</code></td>
+            <td>判断用户回复是否包含【需求确认】</td>
+            <td>本 prompt 输出 → 用户回复 → reflection 识别</td>
+          </tr>
+          <tr>
+            <td><code>query_writer_instructions</code></td>
+            <td>把澄清后的需求拆解成 N 个搜索查询</td>
+            <td>最终需求单 → query_writer 拆解</td>
+          </tr>
+          <tr>
+            <td><code>web_searcher_instructions</code></td>
+            <td>单条查询的搜索 + 摘要</td>
+            <td>每个查询 → 搜索 → 摘要</td>
+          </tr>
+          <tr>
+            <td><code>reflection_instructions</code></td>
+            <td>判断信息是否充分，决定是否继续搜索</td>
+            <td>所有 summaries → 反思 → follow_up_queries</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>在 Deep Research 整体工作流中的位置</h3>
+      <div class="mermaid">
+flowchart LR
+    A["<strong>用户输入</strong><br/>模糊需求"] --> B["<strong>_clarify</strong><br/>plan_instructions<br/>(五步澄清循环)"]
+    B --> C["<strong>_plan_reflection</strong><br/>plan_reflection_instructions<br/>(意图识别)"]
+    C --> D["<strong>_generate_queries</strong><br/>query_writer_instructions<br/>(拆解搜索主题)"]
+    D --> E["<strong>_web_search × N</strong><br/>web_searcher_instructions<br/>(并行搜索)"]
+    E --> F["<strong>_critique</strong><br/>reflection_instructions<br/>(信息充分性评估)"]
+    F -->|不充分| D
+    F -->|充分| G["<strong>WriterAgent</strong><br/>outline / draft / polish<br/>(撰写报告)"]
+
+    style B fill:#1a2236,stroke:#8b5cf6,color:#e6edf7
+    style C fill:#1a3a5c,stroke:#22d3ee,color:#e6edf7
+    style G fill:#0a4f3a,stroke:#10b981,color:#e6edf7
+      </div>
+
+      <h3>潜在改进点</h3>
+      <div class="callout warn">
+        <ul>
+          <li><strong>进度条更新主观性</strong>：当前没有客观公式约束，Agent 可能随意填写进度，影响用户判断</li>
+          <li><strong>循环次数未约束</strong>：如果用户持续不正面回答，澄清可能无限循环；建议设置最大澄清轮次</li>
+          <li><strong>五大要素覆盖度检测</strong>：没有强制要求"五个要素都至少出现一次"，可能漏维度</li>
+          <li><strong>动态信源建议的实现路径</strong>：提示词只规定了话术，没规定下游 query_writer 如何消费扩充信源列表</li>
+          <li><strong>输出格式严格性</strong>：进度条仅用文字表达，缺少可视化（如 emoji 进度条）</li>
+        </ul>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<footer>
+  Deep Research Backend · plan_instructions 详解 · 基于 src/agent/prompts.py:9-125
+</footer>
+
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'dark',
+    themeVariables: {
+      primaryColor: '#1a2236',
+      primaryTextColor: '#e6edf7',
+      primaryBorderColor: '#8b5cf6',
+      lineColor: '#22d3ee',
+      secondaryColor: '#111827',
+      tertiaryColor: '#0a1020',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif',
+    },
+    flowchart: { curve: 'basis', padding: 12 },
+    sequence: { actorMargin: 60, messageMargin: 40 },
+  });
+</script>
+
+</body>
+</html>

@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import json
 
+from IPython.display import display,Image
 from dotenv import load_dotenv
 from langchain_core.messages import AIMessage
 from langchain_core.runnables import RunnableConfig
@@ -307,7 +308,7 @@ _builder.add_edge(_CITE_AND_POLISH, END)
 
 writer_agent_graph = _builder.compile(name="WriterAgent")
 
-try:
-    display(Image(writer_agent_graph.get_graph().draw_mermaid_png(output_file_path="./WriterAgent子图.png")))
-except Exception:
-    pass
+# try:
+#     display(Image(writer_agent_graph.get_graph(xray=True).draw_mermaid_png(output_file_path="./writer_agent_graph.png")))
+# except Exception:
+#     pass

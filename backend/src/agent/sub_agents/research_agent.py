@@ -336,7 +336,8 @@ _builder.add_conditional_edges(_CRITIQUE, _route_after_critique, [_WEB_SEARCH, E
 
 research_agent_graph = _builder.compile(name="ResearchAgent")
 
-# try:
-#     display(Image(research_agent_graph.get_graph().draw_mermaid_png(output_file_path="./ResearchAgent子图.png")))
-# except Exception:
-#     pass
+try:
+    from IPython.display import display, Image
+    display(Image(research_agent_graph.get_graph(xray=True).draw_mermaid_png(output_file_path="./research_agent_graph.png")))
+except Exception:
+    pass
