@@ -1,0 +1,1456 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>📚 Deep Research 后端文档地图 · Documentation Map</title>
+<!-- Mermaid -->
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<style>
+  :root {
+    --bg-0: #0b0f1a;
+    --bg-1: #111827;
+    --bg-2: #1a2236;
+    --line: #243049;
+    --text: #e6edf7;
+    --muted: #97a3bd;
+    --primary: #8b5cf6;
+    --primary-2: #6366f1;
+    --accent: #22d3ee;
+    --accent-2: #06b6d4;
+    --warn: #f59e0b;
+    --ok: #10b981;
+    --danger: #ef4444;
+    --code-bg: #0a1020;
+    --shadow: 0 10px 30px rgba(0,0,0,.35);
+
+    /* Tag colors per category */
+    --tag-arch: #8b5cf6;
+    --tag-mech: #22d3ee;
+    --tag-flow: #f59e0b;
+    --tag-sub: #06b6d4;
+    --tag-eval: #ef4444;
+    --tag-kb: #10b981;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+                 "Microsoft YaHei", Roboto, Helvetica, Arial, sans-serif;
+    background:
+      radial-gradient(1200px 600px at 10% -10%, rgba(139,92,246,.18), transparent 60%),
+      radial-gradient(1000px 500px at 110% 10%, rgba(34,211,238,.15), transparent 60%),
+      var(--bg-0);
+    color: var(--text);
+    line-height: 1.7;
+    min-height: 100vh;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* Hero */
+  .hero {
+    padding: 56px 16px 32px;
+    text-align: center;
+    border-bottom: 1px solid var(--line);
+    background: linear-gradient(180deg, rgba(139,92,246,.10), transparent 60%);
+  }
+  .hero .badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 999px;
+    background: rgba(139,92,246,.18);
+    color: #c4b5fd;
+    border: 1px solid rgba(139,92,.35);
+    font-size: 12px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+  .hero h1 {
+    margin: 0 0 8px;
+    font-size: clamp(28px, 4vw, 42px);
+    letter-spacing: -0.5px;
+    background: linear-gradient(90deg, #c4b5fd, #67e8f9);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .hero p.lead { color: var(--muted); margin: 0 auto; max-width: 820px; font-size: 16px; }
+  .hero .meta {
+    margin-top: 18px;
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .hero .meta span { margin: 0 8px; }
+
+  /* Layout */
+  .layout {
+    display: grid;
+    grid-template-columns: 280px minmax(0, 1fr);
+    gap: 24px;
+    max-width: 1380px;
+    margin: 0 auto;
+    padding: 32px 16px;
+  }
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; }
+    .toc { position: static !important; }
+  }
+
+  /* TOC */
+  .toc {
+    position: sticky;
+    top: 24px;
+    align-self: start;
+    background: linear-gradient(180deg, var(--bg-1), var(--bg-2));
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 16px 18px;
+    box-shadow: var(--shadow);
+    max-height: calc(100vh - 48px);
+    overflow: auto;
+  }
+  .toc h3 {
+    margin: 0 0 10px;
+    font-size: 13px;
+    color: var(--muted);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .toc ul { list-style: none; padding: 0; margin: 0; }
+  .toc li { margin: 4px 0; }
+  .toc a {
+    display: block;
+    color: var(--text);
+    font-size: 13px;
+    padding: 5px 8px;
+    border-radius: 6px;
+    border-left: 2px solid transparent;
+    transition: all 0.15s;
+  }
+  .toc a:hover {
+    background: rgba(139,92,246,.10);
+    border-left-color: var(--primary);
+    color: #c4b5fd;
+    text-decoration: none;
+  }
+  .toc .group {
+    margin-top: 14px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--line);
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  /* Section */
+  section {
+    background: linear-gradient(180deg, var(--bg-1), var(--bg-2));
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 28px 32px;
+    margin-bottom: 24px;
+    box-shadow: var(--shadow);
+  }
+  section h2 {
+    margin: 0 0 8px;
+    font-size: 24px;
+    letter-spacing: -0.3px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  section h2 .num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    color: #fff;
+    font-size: 16px;
+    font-weight: 700;
+  }
+  section h2 .en {
+    font-size: 13px;
+    color: var(--muted);
+    font-weight: 400;
+    margin-left: 4px;
+  }
+  section h3 {
+    margin: 22px 0 10px;
+    font-size: 18px;
+    color: #c4b5fd;
+    letter-spacing: -0.2px;
+  }
+  section h4 {
+    margin: 16px 0 8px;
+    font-size: 15px;
+    color: var(--accent);
+  }
+  section p, section li { color: var(--text); }
+  section ul, section ol { padding-left: 22px; }
+  section code {
+    background: var(--code-bg);
+    color: #67e8f9;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 13px;
+    font-family: "JetBrains Mono", "Fira Code", Consolas, Menlo, monospace;
+  }
+  section pre {
+    background: var(--code-bg);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 16px 18px;
+    overflow-x: auto;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  section pre code { background: none; padding: 0; color: var(--text); }
+  section blockquote {
+    margin: 12px 0;
+    padding: 10px 16px;
+    border-left: 3px solid var(--accent);
+    background: rgba(34, 211, 238, .06);
+    color: var(--muted);
+    border-radius: 0 8px 8px 0;
+  }
+  section strong { color: #fde68a; }
+  section em { color: var(--accent); font-style: normal; }
+
+  /* Doc cards */
+  .doc-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+    gap: 16px;
+    margin-top: 12px;
+  }
+  .doc-card {
+    background: rgba(11, 15, 26, .5);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 16px 18px;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .doc-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--primary);
+    box-shadow: 0 8px 24px rgba(139, 92, 246, .15);
+  }
+  .doc-card .tag {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+  .doc-card h4 {
+    margin: 0 0 6px;
+    font-size: 15px;
+    color: var(--text);
+    padding-right: 60px;
+  }
+  .doc-card .path {
+    font-family: "JetBrains Mono", Consolas, monospace;
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 8px;
+    word-break: break-all;
+  }
+  .doc-card p {
+    margin: 0;
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.55;
+  }
+  .doc-card .highlight {
+    margin-top: 10px;
+    font-size: 12px;
+    color: var(--accent);
+    border-top: 1px dashed var(--line);
+    padding-top: 8px;
+  }
+
+  /* Tag colors */
+  .tag-arch   { background: rgba(139, 92, 246, .18); color: #c4b5fd; border: 1px solid rgba(139,92,246,.35); }
+  .tag-mech   { background: rgba(34, 211, 238, .18); color: #67e8f9; border: 1px solid rgba(34,211,238,.35); }
+  .tag-flow   { background: rgba(245, 158, 11, .18); color: #fcd34d; border: 1px solid rgba(245,158,11,.35); }
+  .tag-sub    { background: rgba(6, 182, 212, .18); color: #67e8f9; border: 1px solid rgba(6,182,212,.35); }
+  .tag-eval   { background: rgba(239, 68, 68, .18); color: #fca5a5; border: 1px solid rgba(239,68,68,.35); }
+  .tag-kb     { background: rgba(16, 185, 129, .18); color: #6ee7b7; border: 1px solid rgba(16,185,129,.35); }
+
+  /* Layer badges */
+  .layer {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 4px;
+    background: rgba(139, 92, 246, .15);
+    color: #c4b5fd;
+    font-size: 12px;
+    font-weight: 600;
+    margin-right: 6px;
+  }
+
+  /* Highlight badges */
+  .highlight-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 14px;
+    margin-top: 14px;
+  }
+  .highlight-card {
+    background: linear-gradient(135deg, rgba(139,92,246,.08), rgba(34,211,238,.08));
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 14px 16px;
+  }
+  .highlight-card h5 {
+    margin: 0 0 6px;
+    color: #fde68a;
+    font-size: 14px;
+  }
+  .highlight-card p {
+    margin: 0;
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  /* Mermaid container */
+  .mermaid {
+    background: rgba(255, 255, 255, .03);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 18px;
+    margin: 14px 0;
+    overflow-x: auto;
+    text-align: center;
+  }
+
+  /* Stat tile */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
+    margin-top: 12px;
+  }
+  .stat {
+    background: rgba(11, 15, 26, .5);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 14px 16px;
+    text-align: center;
+  }
+  .stat .v {
+    font-size: 28px;
+    font-weight: 700;
+    background: linear-gradient(90deg, var(--primary), var(--accent));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .stat .k {
+    font-size: 12px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-top: 4px;
+  }
+
+  /* Section anchors */
+  section { scroll-margin-top: 24px; }
+
+  /* Footer */
+  footer {
+    text-align: center;
+    padding: 24px 16px;
+    color: var(--muted);
+    font-size: 13px;
+    border-top: 1px solid var(--line);
+    margin-top: 40px;
+  }
+
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="badge">📚 DOCUMENTATION MAP</div>
+  <h1>Deep Research 后端文档地图</h1>
+  <p class="lead">
+    21 份详细文档的系统化索引 · 从主图编排到 KB 知识库，从流式响应到评估打分
+    <br/>快速定位每个模块的核心逻辑、组件依赖和实现亮点
+  </p>
+  <div class="meta">
+    <span>📁 共 21 篇文档</span>·
+    <span>🏗️ 6 大模块</span>·
+    <span>🔗 全部含 Mermaid 图</span>·
+    <span>⭐ 5 个核心架构亮点</span>
+  </div>
+</div>
+
+<div class="layout">
+
+  <aside class="toc">
+    <h3>📑 目录</h3>
+    <ul>
+      <li><a href="#overview">项目概览</a></li>
+      <li><a href="#arch">总体架构</a></li>
+      <li><a href="#layers">分层架构</a></li>
+      <li><a href="#docs">文档目录</a></li>
+      <li><a href="#core">核心架构类（4）</a></li>
+      <li><a href="#mech">技术机制类（5）</a></li>
+      <li><a href="#flow">流程与确认类（5）</a></li>
+      <li><a href="#sub">子图与子Agent（5）</a></li>
+      <li><a href="#data">索引与评估类（2）</a></li>
+      <li><a href="#flow-main">端到端数据流</a></li>
+      <li><a href="#highlights">项目亮点</a></li>
+      <li><a href="#matrix">组件×文档矩阵</a></li>
+      <li><a href="#legend">阅读路径建议</a></li>
+    </ul>
+    <div class="group">按类别速查</div>
+    <ul>
+      <li><a href="#docs">📂 全部文档速览</a></li>
+      <li><a href="#matrix">🔗 模块依赖矩阵</a></li>
+    </ul>
+  </aside>
+
+  <main>
+
+    <!-- ========== 1. 项目概览 ========== -->
+    <section id="overview">
+      <h2><span class="num">1</span>项目概览 <span class="en">Project Overview</span></h2>
+      <p>
+        <strong>Deep Research</strong> 是一个基于 <strong>LangGraph</strong> 的多智能体深度研究后端，
+        支持人类参与（HITL）的研究计划确认、并行网络搜索、研究反思循环、写作子图辩论评审，
+        以及基于 Milvus 向量库的跨任务知识库（KB）长期记忆。系统通过 FastAPI + Redis Stream
+        实现异步任务调度，SSE 推送流式响应。
+      </p>
+      <div class="stats">
+        <div class="stat"><div class="v">21</div><div class="k">文档数量</div></div>
+        <div class="stat"><div class="v">6</div><div class="k">文档类别</div></div>
+        <div class="stat"><div class="v">3</div><div class="k">LangGraph 图</div></div>
+        <div class="stat"><div class="v">5</div><div class="k">Redis Key 类型</div></div>
+        <div class="stat"><div class="v">12</div><div class="k">维度评估</div></div>
+        <div class="stat"><div class="v">4</div><div class="k">KB 生命周期模式</div></div>
+      </div>
+    </section>
+
+    <!-- ========== 2. 总体架构 ========== -->
+    <section id="arch">
+      <h2><span class="num">2</span>总体架构 <span class="en">Overall Architecture</span></h2>
+      <p>从浏览器到 LLM API 的端到端 7 层技术栈，每一层都有专门文档支撑：</p>
+
+      <div class="mermaid">
+flowchart LR
+    subgraph BROWSER["浏览器层"]
+        UI["前端 UI<br/>(React + Vite)"]
+    end
+
+    subgraph PROXY["代理层"]
+        VITE["Vite Dev Server<br/>:5173"]
+    end
+
+    subgraph API["API 层 · FastAPI :2024"]
+        AUTH["AuthMiddleware<br/>(session 校验)"]
+        SUBMIT["submit_research<br/>→ enqueue_task"]
+        SSE_API["SSE Endpoint<br/>read_task_events"]
+    end
+
+    subgraph QUEUE["异步任务队列层 · Redis Stream"]
+        TASKS["research:tasks<br/>任务队列"]
+        EVENTS["research:events:{id}<br/>事件流"]
+        CHECKPOINT["AsyncRedisSaver<br/>LangGraph checkpoint (7d TTL)"]
+        SESSION["session:{id}<br/>登录会话 (24h TTL)"]
+    end
+
+    subgraph WORKER["Worker 协程层"]
+        PROCESS["_process_one_task<br/>XREADGROUP 消费"]
+        ASTREAM["persistent_graph.astream<br/>(subgraphs=True)"]
+        TOKEN["emit_token<br/>旁路推送"]
+    end
+
+    subgraph MAIN["主图层 · graph.py"]
+        GEN["generate_plan"]
+        EVAL["evaluate_plan"]
+        CONFIRM["confirm_plan<br/>关键词短路 + LLM 兜底"]
+        HITL["awaiting_plan_confirmation<br/>(透传 + 无出边暂停)"]
+    end
+
+    subgraph SUBGRAPH["子图层"]
+        RESEARCH["ResearchAgent<br/>generate_queries → web_search ×N → critique"]
+        WRITE["WriterAgent<br/>outline → draft ↔ critic → cite_and_polish"]
+    end
+
+    subgraph BASE["基础类层 · base_agent.py"]
+        AGENT["Agent / JsonAgent"]
+        MCPA["MCPAgent / WebSearchAgent"]
+        RL["RateLimiter<br/>(令牌桶 12 QPS)"]
+        RETRY["_retry_with_classified_errors"]
+    end
+
+    subgraph KB["KB 知识库层"]
+        EXTRACT["FactExtractor<br/>(LLM 抽取 facts)"]
+        STORE["FactStore<br/>(Milvus + Embedding + Rerank)"]
+        LIFE["Lifecycle<br/>(时效策略)"]
+    end
+
+    subgraph EXTERNAL["外部服务"]
+        SEARCH["MCP Web Search<br/>(DashScope)"]
+        EMBED["Embedding API<br/>(text-embedding-v3)"]
+        MILVUS["Milvus 向量库"]
+        LLM["LLM (Qwen/DeepSeek)"]
+    end
+
+    UI -->|HTTP| VITE -->|proxy| AUTH
+    AUTH -->|注入 state.user_id| SUBMIT
+    SUBMIT -->|XADD| TASKS
+    SUBMIT -->|200 task_id| UI
+
+    TASKS -->|XREADGROUP| PROCESS
+    PROCESS --> ASTREAM
+    PROCESS --> TOKEN
+    TOKEN -->|XADD| EVENTS
+
+    ASTREAM -->|thread_id| CHECKPOINT
+    ASTREAM -->|subgraphs| MAIN
+    MAIN -->|嵌入| RESEARCH
+    MAIN -->|嵌入| WRITE
+    HITL -.->|暂停 + 恢复| MAIN
+
+    RESEARCH -->|依赖| AGENT
+    RESEARCH -->|调用| MCPA
+    WRITE -->|调用| AGENT
+    RESEARCH -->|写 facts| EXTRACT -->|add_facts| STORE
+    STORE -->|query 召回| RESEARCH
+    STORE -->|insert| MILVUS
+    STORE -->|embed| EMBED
+    MCPA -->|限流| RL
+    MCPA -->|调用| SEARCH
+    AGENT -->|retry| RETRY
+    AGENT -->|调用| LLM
+
+    EVENTS -->|XREAD| SSE_API -->|SSE| UI
+
+    SESSION -.->|关联| AUTH
+
+    %% Mermaid v10 不支持 rgba()，改用深色 hex 保持暗色主题
+    style MAIN fill:#1a1438,stroke:#8b5cf6
+    style SUBGRAPH fill:#0e1f24,stroke:#22d3ee
+    style BASE fill:#241a08,stroke:#f59e0b
+    style KB fill:#0a1f15,stroke:#10b981
+    style QUEUE fill:#1f0a0a,stroke:#ef4444
+      </div>
+
+      <blockquote>
+        <strong>核心数据流：</strong>浏览器 → Vite 代理 → FastAPI → Redis Task Stream → Worker 协程 →
+        LangGraph astream(subgraphs=True) → 主图 + 2 子图 → Redis Event Stream → SSE → 浏览器。
+      </blockquote>
+    </section>
+
+    <!-- ========== 3. 分层架构 ========== -->
+    <section id="layers">
+      <h2><span class="num">3</span>分层架构 <span class="en">Layered Architecture</span></h2>
+      <p>系统可清晰划分为 6 层，每层有独立文档支撑，层与层之间解耦清晰：</p>
+
+      <div class="mermaid">
+flowchart TB
+    L1["<b>L1. API 层</b><br/>FastAPI + AuthMiddleware<br/>📄 post-api-research"]
+    L2["<b>L2. 任务队列层</b><br/>Redis Stream + AsyncRedisSaver<br/>📄 process-one-task · redis-operations"]
+    L3["<b>L3. 主图层</b><br/>LangGraph graph.py<br/>Plan 生成 + HITL + 路由<br/>📄 main-graph · hitl_awaiting_plan_confirmation"]
+    L4["<b>L4. 子图层</b><br/>ResearchAgent + WriterAgent<br/>📄 research-agent · writer-agent · subagent_writer/web_search"]
+    L5["<b>L5. 基础类层</b><br/>Agent / JsonAgent / MCPAgent<br/>RateLimiter / 重试<br/>📄 base-agent"]
+    L6["<b>L6. KB 知识库层</b><br/>FactExtractor + FactStore<br/>📄 kb/index · fact-store · fact_extractor · extractor-explained"]
+
+    L1 --> L2
+    L2 --> L3
+    L3 --> L4
+    L4 --> L5
+    L4 --> L6
+    L5 --> L6
+
+    L3 -.->|"prompt 驱动"| P1["prompts/plan_instructions"]
+    L4 -.->|"生成查询"| P2["subagent_researcher/generate-queries"]
+    L4 -.->|"确认计划"| P3["main_graph/confirm_plan"]
+    L4 -.->|"计划生成"| P4["generate_plan_docs"]
+    L2 -.->|"流程时序"| F1["hitl_interaction_flow.md"]
+    L4 -.->|"流式响应"| M1["astream-explained"]
+    L4 -.->|"查询生成"| M2["_generate_queries_explain"]
+
+    style L1 fill:#1f0a0a,stroke:#ef4444
+    style L2 fill:#241a08,stroke:#f59e0b
+    style L3 fill:#1a1438,stroke:#8b5cf6
+    style L4 fill:#0e1f24,stroke:#22d3ee
+    style L5 fill:#1a1438,stroke:#8b5cf6
+    style L6 fill:#0a1f15,stroke:#10b981
+      </div>
+
+      <h3>各层职责</h3>
+      <ol>
+        <li><span class="layer">L1 API</span>：HTTP 入口、身份认证、参数解析、任务入队。同步响应 <code>task_id</code>，不等待 LLM。</li>
+        <li><span class="layer">L2 队列</span>：Redis Stream 任务队列 + 事件流 + Checkpoint 持久化 + 会话存储。支持断点续传。</li>
+        <li><span class="layer">L3 主图</span>：LangGraph 状态机编排，Plan → HITL 暂停 → Research/Write 路由。</li>
+        <li><span class="layer">L4 子图</span>：ResearchAgent（搜索循环）和 WriterAgent（写作辩论）两个独立子图，共享 OverallState。</li>
+        <li><span class="layer">L5 基础类</span>：所有 LLM/MCP/Web 调用的统一入口抽象，含令牌桶速率限制和分类重试。</li>
+        <li><span class="layer">L6 KB</span>：长期记忆层，从搜索摘要抽取原子事实，存 Milvus 向量库，下次检索复用。</li>
+      </ol>
+    </section>
+
+    <!-- ========== 4. 文档目录 ========== -->
+    <section id="docs">
+      <h2><span class="num">4</span>文档目录 <span class="en">Document Inventory</span></h2>
+      <p>
+        21 份文档按职责分为 <strong>5 大类别</strong>，每类用不同色标。
+        点击文件名即可在新页面打开对应文档。
+      </p>
+
+      <div class="doc-grid">
+
+        <!-- 核心架构 -->
+        <div class="doc-card">
+          <span class="tag tag-arch">核心架构</span>
+          <h4>📄 main-graph.html</h4>
+          <div class="path">docs/html/main-graph.html</div>
+          <p>主图 <code>graph.py</code> 详解：6 节点 + 6 边的 LangGraph 状态机，HITL 暂停与二次提交幂等早退。</p>
+          <div class="highlight">⭐ HITL 断点续传核心实现</div>
+        </div>
+
+        <div class="doc-card">
+          <span class="tag tag-arch">核心架构</span>
+          <h4>📄 base-agent.html</h4>
+          <div class="path">docs/html/base-agent.html</div>
+          <p><code>base_agent.py</code>（629 行）：Agent 4 层继承、RateLimiter 令牌桶、3 次重试、流式 6 层链路。</p>
+          <div class="highlight">⭐ 所有 LLM 调用的统一入口</div>
+        </div>
+
+        <div class="doc-card">
+          <span class="tag tag-arch">核心架构</span>
+          <h4>📄 writer-agent.html</h4>
+          <div class="path">docs/html/writer-agent.html</div>
+          <p>WriterAgent 子图（313 行）：outline → draft ↔ critic → polish，<strong>四重退出保险</strong>防御自评偏差。</p>
+          <div class="highlight">⭐ 唯一流式节点 cite_and_polish</div>
+        </div>
+
+        <div class="doc-card">
+          <span class="tag tag-arch">核心架构</span>
+          <h4>📄 research-agent.html</h4>
+          <div class="path">docs/html/research-agent.html</div>
+          <p>ResearchAgent 子图（343 行）：generate_queries → web_search ×N → critique，<strong>KB 闭环</strong>+ 并行扇出。</p>
+          <div class="highlight">⭐ Send API + operator.add reducer</div>
+        </div>
+
+        <!-- 技术机制 -->
+        <div class="doc-card">
+          <span class="tag tag-mech">技术机制</span>
+          <h4>📄 astream-explained.html</h4>
+          <div class="path">docs/html/astream-explained.html</div>
+          <p><code>astream(subgraphs=True)</code> 全景：子图命名空间穿透、<code>_SUBGRAPH_EVENT_MAP</code> 节点名翻译、<code>finalize_answer</code> 包装。</p>
+          <div class="highlight">⭐ 图执行引擎核心参考</div>
+        </div>
+
+        <div class="doc-card">
+          <span class="tag tag-mech">技术机制</span>
+          <h4>📄 redis-operations.html</h4>
+          <div class="path">docs/html/redis-operations.html</div>
+          <p>5 类 Redis Key 操作全景：session / tasks / events / search_cache / langgraph checkpoint。</p>
+          <div class="highlight">⭐ 唯一带降级的模块是 search_cache</div>
+        </div>
+
+        <div class="doc-card">
+          <span class="tag tag-kb">KB 知识库</span>
+          <h4>📄 fact-store.html</h4>
+          <div class="path">docs/html/fact-store.html</div>
+          <p><code>FactStore</code>（482 行）：Milvus 封装 + 5 阶段 query 流水线 + 4 类异常分类决策树。</p>
+          <div class="highlight">⭐ 置信衰减公式 decay_factor = max(0.3, ...)</div>
+        </div>
+
+        <div class="doc-card">
+          <span class="tag tag-kb">KB 知识库</span>
+          <h4>📄 fact_extractor.html</h4>
+          <div class="path">docs/html/fact_extractor.html</div>
+          <p><code>FactExtractor</code>（143 行）：LLM 抽取 7 步流程 + <code>_validate</code> 5 道过滤 + "失败不抛异常"哲学。</p>
+          <div class="highlight">⭐ 5 类 fact_category 对应不同 TTL</div>
+        </div>
+
+        <div class="doc-card">
+          <span class="tag tag-kb">KB 知识库</span>
+          <h4>📄 extractor-explained.html</h4>
+          <div class="path">docs/html/extractor-explained.html</div>
+          <p><code>FactExtractor</code> 详解的另一版（11 章节）：强调 <code>Post.extract_pattern</code> 三层 fallback 与 <code>str.replace</code> 防御。</p>
+          <div class="highlight">⭐ @staticmethod _validate 便于复用</div>
+        </div>
+
+        <!-- 流程与确认 -->
+        <div class="doc-card">
+          <span class="tag tag-flow">流程</span>
+          <h4>📄 process-one-task.html</h4>
+          <div class="path">docs/html/process-one-task.html</div>
+          <p>Worker 协程 <code>_process_one_task</code>：XREADGROUP 抢任务 → 重建消息 → 注入 config → astream 驱动 LangGraph。</p>
+          <div class="highlight">⭐ finally 保证 XACK + 24h EXPIRE</div>
+        </div>
+
+        <div class="doc-card">
+          <span class="tag tag-flow">流程</span>
+          <h4>📄 post-api-research.html</h4>
+          <div class="path">docs/html/post-api-research.html</div>
+          <p><code>POST /api/research</code> API 链路：AuthMiddleware → 解析 JSON → enqueue_task → DB user_threads 关联。</p>
+          <div class="highlight">⭐ 同步入队 < 100ms，异步执行解耦</div>
+        </div>
+
+        <div class="doc-card">
+          <span class="tag tag-flow">HITL</span>
+          <h4>📄 hitl_awaiting_plan_confirmation.html</h4>
+          <div class="path">docs/html/hitl_awaiting_plan_confirmation.html</div>
+          <p>HITL 流转详解：透传节点 + 无出边 = "暂停"，图自然结束而非后台挂起，前端必须改契约恢复。</p>
+          <div class="highlight">⭐ 隐式契约 vs 显式 Interrupt 对比</div>
+        </div>
+
+        <div class="doc-card">
+          <span class="tag tag-flow">HITL</span>
+          <h4>📄 generate_plan_docs.html</h4>
+          <div class="path">docs/html/generate_plan_docs.html</div>
+          <p><code>generate_plan</code> 节点详解：<code>plan_instructions</code> 提示词 + 五步澄清循环 + Post.extract_pattern fence 提取。</p>
+          <div class="highlight">⭐ plan_messages 隔离避免污染主对话</div>
+        </div>
+
+        <div class="doc-card">
+          <span class="tag tag-flow">HITL</span>
+          <h4>📄 hitl_interaction_flow.md</h4>
+          <div class="path">docs/html/hitl_interaction_flow.md</div>
+          <p>真实交互端到端时序："企业级 AI Agent 落地方案"案例，effort 翻译搜索预算，App 二次 submit 设 confirmed。</p>
+          <div class="highlight">⭐ 前端 + 后端 + LangGraph 三方交互</div>
+        </div>
+
+        <!-- 子图与子Agent -->
+        <div class="doc-card">
+          <span class="tag tag-sub">子Agent</span>
+          <h4>📄 subagent_writer/web_search.html</h4>
+          <div class="path">docs/html/subagent_writer/web_search.html</div>
+          <p><code>_web_search</code> 节点：7 步流水线（MCP 搜索 → rerank → URL 短化 → LLM 摘要 → KB 入库）。</p>
+          <div class="highlight">⭐ 五合一聚合 + 空结果防御</div>
+        </div>
+
+        <div class="doc-card">
+          <span class="tag tag-sub">子Agent</span>
+          <h4>📄 subagent_researcher/generate-queries.html</h4>
+          <div class="path">docs/html/subagent_researcher/generate-queries.html</div>
+          <p><code>_generate_queries</code>（浅色版）：KB 去重检索 + JsonAgent 生成 SearchQueryList + 失败兜底。</p>
+          <div class="highlight">⭐ 4 种 KB 模式可插拔</div>
+        </div>
+
+        <div class="doc-card">
+          <span class="tag tag-sub">子Agent</span>
+          <h4>📄 _generate_queries_explain.html</h4>
+          <div class="path">docs/html/_generate_queries_explain.html</div>
+          <p><code>_generate_queries</code>（深色版）：额外展示图构建代码、KB header/footer 三种模式、错误分类处理。</p>
+          <div class="highlight">⭐ 与浅色版互补</div>
+        </div>
+
+        <div class="doc-card">
+          <span class="tag tag-sub">子Agent</span>
+          <h4>📄 main_graph/confirm_plan.html</h4>
+          <div class="path">docs/html/main_graph/confirm_plan.html</div>
+          <p><code>confirm_plan</code>：关键词短路（开始研究/需求确认）+ LLM 意图识别 + 4 路出口 + fresh_level 时效。</p>
+          <div class="highlight">⭐ 3 种确认路径都默认推进</div>
+        </div>
+
+        <div class="doc-card">
+          <span class="tag tag-sub">Prompt</span>
+          <h4>📄 prompts/plan_instructions.html</h4>
+          <div class="path">docs/html/prompts/plan_instructions.html</div>
+          <p>提示词 <code>plan_instructions</code>：五步澄清循环 + 专报五大要素 + 进度条 + 动态信源调整。</p>
+          <div class="highlight">⭐ "先对齐再执行"哲学落地</div>
+        </div>
+
+        <!-- 索引与评估 -->
+        <div class="doc-card">
+          <span class="tag tag-kb">KB 知识库</span>
+          <h4>📄 kb/index.html</h4>
+          <div class="path">docs/html/kb/index.html</div>
+          <p>KB 知识库模块功能说明：4 文件 ~746 行，写闭环/读流水线/4 种 lifecycle 模式/6 类已知问题。</p>
+          <div class="highlight">⭐ KB 子系统完整说明</div>
+        </div>
+
+        <div class="doc-card">
+          <span class="tag tag-eval">评估</span>
+          <h4>📄 eval/index.html</h4>
+          <div class="path">docs/html/eval/index.html</div>
+          <p>评估打分详解：LLM-as-Judge，端到端 5 维度 + 组件级 7 维度 + 10 个测试 topic + 评分量纲分布。</p>
+          <div class="highlight">⭐ "旁路观察者"不改主链路</div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ========== 5. 核心架构类详情 ========== -->
+    <section id="core">
+      <h2><span class="num">5</span>核心架构类详解 <span class="en">Core Architecture (4 docs)</span></h2>
+
+      <h3>📄 main-graph.html — 主图 <code>graph.py</code> 详解</h3>
+      <p><strong>197 行</strong>，6 节点 + 6 边编排整个研究流程。</p>
+      <ul>
+        <li><strong>节点</strong>：<code>generate_plan</code>、<code>evaluate_plan</code>（路由）、<code>confirm_plan</code>、<code>replan</code>（lambda 重置）、<code>awaiting_plan_confirmation</code>（HITL 暂停）、<code>research</code>/<code>write</code>（子图）</li>
+        <li><strong>核心特色</strong>：HITL 通过 <code>awaiting_plan_confirmation</code>（lambda 透传 + 无出边）+ <code>AsyncRedisSaver</code> checkpoint 实现</li>
+        <li><strong>二次提交幂等</strong>：<code>plan_status=confirmed</code> 时 <code>generate_plan</code> 返回 <code>{}</code> 直接跳过</li>
+        <li><strong>fresh_level 跨层传递</strong>：confirm_plan 写入 → research_agent 按新鲜度过滤 Milvus KB</li>
+        <li><strong>20 张 Mermaid 图</strong>：节点类型对照、状态字段生命周期、首次 vs 二次提交时序</li>
+      </ul>
+      <pre><code>builder.add_node("awaiting_plan_confirmation", lambda state, config: state)  # 透传 + 暂停三要素
+builder.add_node("replan", lambda state, config: {"plan_status": "unconfirmed"})
+builder.add_edge(START, GENERATE_PLAN_NODE)
+builder.add_conditional_edges(GENERATE_PLAN_NODE, evaluate_plan,
+    ["confirm_plan", "replan", "awaiting_plan_confirmation"])
+builder.add_conditional_edges("confirm_plan", route_after_confirm,
+    [RESEARCH_AGENT_NODE, "replan"])</code></pre>
+
+      <h3>📄 base-agent.html — <code>base_agent.py</code> Agent 框架</h3>
+      <p><strong>629 行</strong>，所有 LLM/MCP/Web 调用的统一抽象层。</p>
+      <ul>
+        <li><strong>RateLimiter</strong>：令牌桶，全局单例，默认 12 QPS（环境变量 <code>WEB_SEARCH_MAX_QPS</code>）</li>
+        <li><strong>_retry_with_classified_errors</strong>：3 次重试，Permanent 直接抛、Transient 重试、未知异常保守重试</li>
+        <li><strong>Agent 四层继承</strong>：Agent → JsonAgent / MCPAgent → WebSearchAgent</li>
+        <li><strong>流式 6 层链路</strong>：LLM → <code>astream_step</code> → <code>on_token</code> → <code>emit_token</code> → Redis XADD → SSE → 浏览器</li>
+        <li><strong>流式降级</strong>：3 次流式失败 → 降级非流式 <code>astep</code></li>
+        <li><strong>WebSearchAgent 4 步</strong>：缓存查找 → 速率限制 → MCP 调用 → 缓存写入</li>
+        <li><strong>post_process 3 层 JSON 解析</strong>：first_level.result.content[0].text / pages / data.pages</li>
+        <li><strong>5 类 MCP 异常</strong>：MCPRateLimitError / MCPAuthError / MCPAccessDeniedError / MCPServerError / MCPParseError</li>
+        <li><strong>22 张图</strong>：含完整同步/异步调用时序图</li>
+      </ul>
+      <blockquote>
+        <strong>亮点：</strong>on_token 回调失败不中断流式（try/except 吞掉）；prompt_format 用 <code>str.replace</code> 而非 <code>format</code> 防御 <code>{}</code> 误解析。
+      </blockquote>
+
+      <h3>📄 writer-agent.html — WriterAgent 子图</h3>
+      <p><strong>313 行</strong>，写作子图实现"写作 + Critic 辩论循环"。</p>
+      <ul>
+        <li><strong>5 节点</strong>：<code>_outline</code> → <code>_draft</code> ↔ <code>_critic_review</code> → <code>_cite_and_polish</code></li>
+        <li><strong>四重退出保险</strong>：①ready_for_polish=True ②critic_score≥8.0 ③score≥6.0+revision≥1 ④revision≥max_revisions(3)</li>
+        <li><strong>_draft 双角色</strong>：首版 vs 修订通过 <code>critic_feedback</code> 区分，<code>is_revision = bool(feedback)</code></li>
+        <li><strong>CritiqueResult Schema</strong>：overall_rating / summary / issues（含 critical/major/minor 分级）/ ready_for_polish</li>
+        <li><strong>唯一流式节点</strong>：<code>_cite_and_polish</code> 用 <code>astream_step</code> 推送最终报告</li>
+        <li><strong>URL 还原 + 去重</strong>：<code>polished.replace(short_url, value)</code>，只保留被引用的 source</li>
+      </ul>
+      <pre><code>def _route_after_critic(state, config) -> str:
+    """四重退出保险：防御 Critic 自评偏差"""
+    revision = state.get("revision_count", 0)
+    if state.get("ready_for_polish"):  return _CITE_AND_POLISH  # ① LLM 自评
+    if state.get("critic_score", 0) >= 8.0:  return _CITE_AND_POLISH  # ② 硬阈值
+    if state.get("critic_score", 0) >= 6.0 and revision >= 1:  return _CITE_AND_POLISH  # ③ 软阈值
+    if revision >= state.get("max_revisions", 3):  return _CITE_AND_POLISH  # ④ 强制上限
+    return _DRAFT</code></pre>
+
+      <h3>📄 research-agent.html — ResearchAgent 子图</h3>
+      <p><strong>343 行</strong>，研究子图实现"查询生成 → 并行搜索 → 评估反思"循环。</p>
+      <ul>
+        <li><strong>5 大模块</strong>：KB 单例、<code>_generate_queries</code>、<code>_fan_out_to_web_search</code>、<code>_web_search</code>、<code>_critique</code></li>
+        <li><strong>KB 闭环（"读旧写新"）</strong>：查询前 Milvus 检索已有 facts → LLM prompt 增强避免重复；搜索后 FactExtractor 抽 facts → 写入 Milvus</li>
+        <li><strong>并行扇出</strong>：<code>Send</code> API + <code>operator.add</code> reducer 把 N 个并行副本的输出自动累积</li>
+        <li><strong>双重退出保险</strong>：<code>is_sufficient</code> OR <code>loop&gt;=max_loops</code></li>
+        <li><strong>KB 失败优雅降级</strong>：连接失败/临时错误用 sentinel <code>False</code>，永久错误 logger.error</li>
+        <li><strong>FRESHNESS_MAX_AGE</strong>：按 <code>fresh_level</code> 映射 max_age（high=7/medium=30/low=不限）</li>
+        <li><strong>33 张图</strong>：含完整 9 参与者调用时序图</li>
+      </ul>
+    </section>
+
+    <!-- ========== 6. 技术机制类详情 ========== -->
+    <section id="mech">
+      <h2><span class="num">6</span>技术机制类详解 <span class="en">Technical Mechanisms (5 docs)</span></h2>
+
+      <h3>📄 astream-explained.html — LangGraph 流式执行引擎</h3>
+      <p>图执行引擎核心参考，覆盖 <code>task_queue.py:220</code> 的 <code>persistent_graph.astream(initial_state, config, subgraphs=True)</code> 完整链路。</p>
+      <ul>
+        <li><strong>11 张图</strong>：系统拓扑、节点拓扑、子图嵌套、checkpointer 关系、initial_state 演化、事件结构、主链路管道、旁路终止事件、完整时序、子图事件名映射</li>
+        <li><strong>subgraphs=True</strong>：穿透子图边界，让前端可见 research/write 内部节点</li>
+        <li><strong>_SUBGRAPH_EVENT_MAP</strong>：<code>generate_queries → generate_query</code>、<code>web_search → web_research</code>、<code>critique → reflection</code></li>
+        <li><strong>_emit_token</strong>：闭包旁路，绕过 astream 直接 XADD token 到 Redis Stream</li>
+        <li><strong>finalize_answer</strong>：从 writer 子图返回的 messages 列表筛最后一条 ai 消息包装</li>
+        <li><strong>8 条常见陷阱</strong>：initial_state 是 patch 语义、async for 而非 for、stream_mode="values" 会让 <code>list(data.keys())[0]</code> 崩溃等</li>
+      </ul>
+
+      <h3>📄 redis-operations.html — Redis 操作全景</h3>
+      <p>所有 Redis 操作的整理（按 Key、按命令、按业务流程分类）。</p>
+      <ul>
+        <li><strong>5 类 Key</strong>：<code>session:{id}</code>（Hash）/ <code>research:tasks</code>（Stream）/ <code>research:events:{id}</code>（Stream）/ <code>search_cache:{md5}</code>（String）/ <code>langgraph:*</code>（内部）</li>
+        <li><strong>任务队列</strong>：XREADGROUP 阻塞 5s, COUNT=1，<code>&gt;</code> 游标；XACK 在 finally 中</li>
+        <li><strong>事件流</strong>：XREAD 阻塞 5s, COUNT=10，游标由 Last-Event-ID 推进；3 种终止事件（error/finalize_answer/task_paused）</li>
+        <li><strong>search_cache 降级</strong>：唯一带降级的模块，Redis 不可用 → 内存 dict + Lock</li>
+        <li><strong>AsyncRedisSaver</strong>：TTL 7 天 + <code>refresh_on_read=True</code></li>
+        <li><strong>运维命令清单</strong>：XLEN/XINFO/XPENDING/KEYS/DBSIZE/INFO</li>
+        <li><strong>6 张图</strong>：含完整 9 阶段业务流程时间线</li>
+      </ul>
+
+      <h3>📄 fact-store.html / fact_extractor.html / extractor-explained.html — KB 三件套</h3>
+      <p><strong>KB 子系统的三份独立但互补的文档</strong>，共同覆盖：</p>
+      <div class="mermaid">
+flowchart LR
+    subgraph WRITE["写链路"]
+        SUMMARY["搜索摘要"] --> EXT["FactExtractor<br/>(143行)"]
+        EXT -->|"extract() 7 步"| FACTS["facts 列表"]
+        FACTS --> STORE["FactStore.add_facts<br/>(482行)"]
+        STORE --> MILVUS[("Milvus<br/>research_facts")]
+    end
+
+    subgraph READ["读链路"]
+        TOPIC["研究主题"] --> EMBED["_embed (HTTP)"]
+        EMBED --> SEARCH["client.search<br/>(向量检索)"]
+        SEARCH --> RERANK["Reranker<br/>(可选)"]
+        RERANK --> FILTER["时效过滤"]
+        FILTER --> DECAY["置信度衰减"]
+        DECAY --> HITS["known_facts"]
+    end
+
+    MILVUS -.->|"query 5 阶段"| SEARCH
+
+    style WRITE fill:#0a1f15,stroke:#10b981
+    style READ fill:#0e1f24,stroke:#22d3ee
+      </div>
+      <ul>
+        <li><strong>fact-store.html（482 行）</strong>：5 阶段 query 流水线 + 4 类异常决策树 + 16 张图</li>
+        <li><strong>fact_extractor.html（143 行）</strong>：extract 7 步流程 + <code>_validate</code> 5 道过滤 + 13 张图</li>
+        <li><strong>extractor-explained.html</strong>：与 fact_extractor 互补，强调 <code>Post.extract_pattern</code> 三层 fallback + @staticmethod 设计</li>
+      </ul>
+
+      <h4>KB 核心亮点</h4>
+      <div class="highlight-grid">
+        <div class="highlight-card">
+          <h5>📐 衰减公式</h5>
+          <p><code>decay_factor = max(0.3, 1 - age/(max_age*2))</code><br/>保证旧 fact 仍有最低 0.3 可用价值</p>
+        </div>
+        <div class="highlight-card">
+          <h5>🔗 配置回退链</h5>
+          <p><code>EMBEDDING_BASE_URL</code> → <code>LLM_BASE_URL</code><br/><code>EMBEDDING_API_KEY</code> → <code>APP_TOKEN</code></p>
+        </div>
+        <div class="highlight-card">
+          <h5>📂 5 类 fact_category TTL</h5>
+          <p>market_data 7天 / product_info 30天<br/>strategy 60天 / technology 180天 / historical 365天</p>
+        </div>
+        <div class="highlight-card">
+          <h5>🛡️ 失败不抛异常</h5>
+          <p>所有路径失败都 <code>return []</code><br/>KB 写失败绝不阻塞 ResearchAgent 主流程</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== 7. 流程与确认类详情 ========== -->
+    <section id="flow">
+      <h2><span class="num">7</span>流程与确认类详解 <span class="en">Process &amp; HITL (5 docs)</span></h2>
+
+      <h3>📄 process-one-task.html — Worker 协程</h3>
+      <p><code>_process_one_task</code>（<code>task_queue.py:148-308</code>）完整解析，9 张图覆盖端到端时序。</p>
+      <ul>
+        <li><strong>5 个阶段</strong>：XREADGROUP 抢任务 → 重建 HumanMessage/AIMessage → 注入 config → astream 驱动 → finally XACK + EXPIRE 24h</li>
+        <li><strong>重建消息</strong>：未知类型丢弃且保留 id，避免 <code>add_messages</code> reducer 重复</li>
+        <li><strong>emit_token 闭包</strong>：<code>{"token":{"text":..., "node":...}}</code> XADD，捕获 Redis 失败</li>
+        <li><strong>config 注入</strong>：thread_id + initial_search_query_count + max_research_loops + reasoning_model + _emit_token</li>
+        <li><strong>事件过滤</strong>：二元 tuple、data 非空、节点名非 <code>__</code>；子图节点名翻译</li>
+        <li><strong>终态事件</strong>：write 节点 AI 消息 → <code>finalize_answer</code>；暂停 → <code>task_paused</code>；异常 → <code>error</code></li>
+      </ul>
+
+      <h3>📄 post-api-research.html — API 入口</h3>
+      <p><code>POST /api/research</code> 从浏览器请求到返回 <code>task_id</code> 的 API 链路，8 张图。</p>
+      <ul>
+        <li><strong>Vite 代理</strong>：<code>:5173/api</code> → <code>:2024</code></li>
+        <li><strong>AuthMiddleware</strong>：<code>session_id</code> Cookie → Redis Hash → 注入 <code>request.state.user_id</code>，TTL 24h 滑动刷新</li>
+        <li><strong>submit_research</strong>：解析 JSON → enqueue_task → 异步查重/写 user_threads（DB 失败仅 warn）</li>
+        <li><strong>响应</strong>：<code>{task_id, stream_url}</code>，通常 &lt; 100ms</li>
+        <li><strong>3 类出口</strong>：400（JSON 错）、401（session 无效）、503（Redis 不可用）</li>
+      </ul>
+
+      <h3>📄 hitl_awaiting_plan_confirmation.html + generate_plan_docs.html + hitl_interaction_flow.md — HITL 三部曲</h3>
+
+      <div class="mermaid">
+sequenceDiagram
+    autonumber
+    participant U as 用户
+    participant FE as 前端 (React)
+    participant API as FastAPI
+    participant W as Worker
+    participant G as LangGraph 主图
+    participant L as LLM
+    participant CP as AsyncRedisSaver
+
+    U->>FE: 输入研究问题
+    FE->>API: POST /api/research (plan_status=unconfirmed)
+    API->>W: XADD research:tasks
+    W->>G: astream(initial_state)
+    G->>L: generate_plan (plan_instructions)
+    L-->>G: markdown 研究计划
+    G-->>W: evaluate_plan → awaiting_plan_confirmation
+    Note over W,G: ★ 图自然结束（透传节点 + 无出边）
+    W->>CP: 自动 checkpoint (thread_id=task_id)
+    W-->>FE: SSE event.generate_plan + finalize paused
+
+    U->>FE: 补充细节 / 需求确认
+    FE->>API: POST /api/research (plan_status=confirmed + new HumanMessage)
+    API->>W: XADD research:tasks
+    W->>CP: 加载 checkpoint
+    W->>G: astream(initial_state)
+    G->>G: generate_plan 早退 (return {})
+    G->>L: confirm_plan (关键词/JsonAgent)
+    alt 满足
+        G-->>W: 进入 research_agent
+        Note over W,L: 研究 → 写作 → finalize_answer
+    else 不满足
+        G-->>W: replan → generate_plan 重做
+    end
+      </div>
+
+      <h4>HITL 设计核心要点</h4>
+      <ul>
+        <li><strong>暂停三要素</strong>：透传节点 <code>lambda state, config: state</code> + 无出边 + AsyncRedisSaver</li>
+        <li><strong>图自然结束而非后台挂起</strong>：等待时间无限，零后端线程/LLM 资源</li>
+        <li><strong>二次 invoke 幂等</strong>：<code>generate_plan</code> 看到 <code>plan_status=confirmed</code> 返回 <code>{}</code></li>
+        <li><strong>evaluate_plan 三路路由</strong>：<code>unconfirmed</code>→等待 / <code>plan</code> 空→replan / 否则→<code>confirm_plan</code></li>
+        <li><strong>confirm_plan 三种确认路径</strong>：关键词短路 / LLM 兜底 / LLM 隐式确认（乐观偏向）</li>
+        <li><strong>plan_messages 隔离</strong>：独立累计避免 replan 污染主 messages</li>
+        <li><strong>前端契约</strong>：必须 append HumanMessage + 改 <code>plan_status="confirmed"</code></li>
+      </ul>
+
+      <blockquote>
+        <strong>改进方向：</strong>采用显式 <code>interrupt_before + checkpointer + Command(resume=...)</code> 模式，将恢复交给 LangGraph runtime 而非前端拼隐式 state。
+      </blockquote>
+    </section>
+
+    <!-- ========== 8. 子图与子Agent详情 ========== -->
+    <section id="sub">
+      <h2><span class="num">8</span>子图与子Agent详解 <span class="en">Sub-Agents &amp; Prompts (5 docs)</span></h2>
+
+      <h3>📄 subagent_writer/web_search.html — <code>_web_search</code> 节点</h3>
+      <p>单条查询的"端到端处理单元"：MCP 搜索 → 交叉编码器精排 → URL 短化 → LLM 摘要 → KB 事实抽取存储。</p>
+      <ul>
+        <li><strong>七步流水线</strong>：MCP搜索 → 空结果防御 → rerank → URL短化 → LLM摘要 → KB入库 → 返回 state</li>
+        <li><strong>双重缓存</strong>：MCP 层 <code>get_cached/set_cached</code> + KB 层 Milvus 向量检索</li>
+        <li><strong>精排可选</strong>：<code>RERANKER_WEB_ENABLED</code> 环境变量开关</li>
+        <li><strong>URL 双向映射</strong>：LLM 用短 URL 节省 token，KB 入库前反向还原</li>
+        <li><strong>空结果防御</strong>：用"未找到"占位符而非抛异常，让 critique 继续判断</li>
+        <li><strong>7 张图</strong>：含正常调用时序 + 异常分支时序</li>
+      </ul>
+
+      <h3>📄 subagent_researcher/generate-queries.html + _generate_queries_explain.html — <code>_generate_queries</code></h3>
+      <p>ResearchAgent 子图入口：把研究主题拆解为 N 条独立、可并行、已被 KB 去重的搜索查询。两份文档互补。</p>
+      <ul>
+        <li><strong>6 步流程</strong>：配置初始化 → KB 检索 → 拼装 known_facts_text → LLM 生成 → 失败降级 → 返回状态</li>
+        <li><strong>4 种 KB 模式</strong>：<code>off</code> / <code>inform</code> / <code>freshness</code> / <code>lifecycle</code>，由环境变量切换</li>
+        <li><strong>Pydantic 强约束</strong>：<code>SearchQueryList</code> TypedDict（query + rationale）</li>
+        <li><strong>失败兜底</strong>：LLM 全部失败 → 降级为 1 条原始主题，保证 fan-out 不空指针</li>
+        <li><strong>KB header/footer 三种模式</strong>：<code>off</code> 不打 tag / <code>inform/lifecycle</code> 加"知识库中已有的相关事实" / <code>freshness</code> 加 ⚠️ 过时警告</li>
+      </ul>
+      <pre><code>async def _generate_queries(state, config):
+    store = _get_kb_store()
+    if store:
+        hits = store.query(topic, top_k=20, min_confidence=0.6,
+                           max_age_days=max_age, decay=decay,
+                           lifecycle_mode=use_lifecycle)
+        known_facts_text = format_kb_hits(hits)
+    agent = JsonAgent(model_id=..., keys=SearchQueryList)
+    agent.set_step_prompt(query_writer_instructions)
+    result = agent.step(research_topic=topic, known_facts=known_facts_text, ...)
+    if not isinstance(result, SearchQueryList):
+        return {"search_query": [get_research_topic(state["messages"])]}  # 兜底
+    return {"search_query": result.query}</code></pre>
+
+      <h3>📄 main_graph/confirm_plan.html — <code>confirm_plan</code> 节点</h3>
+      <p>计划评估的"门神"：识别用户意图、设置 fresh_level、决定进入研究还是重新规划。3 种确认路径的乐观偏向设计。</p>
+      <ul>
+        <li><strong>先短路，后 LLM</strong>：关键词（开始研究/需求确认）→ <code>fresh_level=medium</code> 直接推进</li>
+        <li><strong>PlanReflection Schema</strong>：<code>satisfy: bool</code> + <code>fresh_level: str</code> (high/medium/low)</li>
+        <li><strong>FRESHNESS_MAX_AGE</strong>：high≈7天（市场数据/价格）/ medium≈30天（产品/趋势）/ low=不限（技术原理/历史）</li>
+        <li><strong>4 路出口</strong>：replan / 显式确认 / 兜底确认 / 隐式确认</li>
+        <li><strong>13 张图</strong>：含 3 个完整场景时序（关键词命中、LLM 不满意、LLM 失败兜底）</li>
+      </ul>
+
+      <h3>📄 prompts/plan_instructions.html — <code>plan_instructions</code> 提示词</h3>
+      <p>将模糊需求转化为清晰情报任务的"澄清循环"提示词，9 张图详细解析。</p>
+      <ul>
+        <li><strong>五步澄清循环</strong>：①解构与模板映射 ②模糊度评估 ③智能默认项 ④迭代可视化 ⑤锁定最终确认</li>
+        <li><strong>专报五大关键要素</strong>：Subjects（核心分析对象）/ Opponent's Strategy（对手策略）/ Risk Assessment（风险研判）/ Scope &amp; Boundaries（信息时空边界）/ Output Format（成果呈现形式）</li>
+        <li><strong>问题生成 4 原则</strong>：封闭式选项 / 具体可执行 / 建议引导 / 逐个击破</li>
+        <li><strong>进度条设计</strong>：0-30% 模糊期 / 30-70% 部分澄清 / 70-95% 大部分澄清 / 95-100% 进入锁定</li>
+        <li><strong>动态信源调整</strong>：涉官方政策 → 扩充官方机构网站；涉社会舆论 → 扩充 PTT/Dcard</li>
+        <li><strong>"先对齐再执行"哲学</strong>：在调用昂贵资源前用低成本对话消除需求歧义</li>
+      </ul>
+      <blockquote>
+        <strong>闭环：</strong>第五步"回复【需求确认】"既是 UX 终止语又是 <code>confirm_plan</code> 节点的关键词路由信号。
+      </blockquote>
+    </section>
+
+    <!-- ========== 9. 索引与评估类详情 ========== -->
+    <section id="data">
+      <h2><span class="num">9</span>索引与评估类详解 <span class="en">Index &amp; Evaluation (2 docs)</span></h2>
+
+      <h3>📄 kb/index.html — KB 知识库模块功能说明</h3>
+      <p>KB 子系统的完整功能说明文档，8 大章节系统讲解。</p>
+      <ul>
+        <li><strong>4 文件 ~746 行</strong>：FactExtractor（extractor.py）/ FactStore（fact_store.py）/ Lifecycle（lifecycle.py）/ __init__.py</li>
+        <li><strong>写闭环</strong>：摘要 → FactExtractor.extract() → URL 还原 → FactStore.add_facts() → Milvus 写入</li>
+        <li><strong>读流水线</strong>：召回 → 精排 → 时效过滤 → 置信衰减</li>
+        <li><strong>4 种 lifecycle 模式</strong>：off / inform / freshness / lifecycle（连续光谱设计）</li>
+        <li><strong>已知 6 类问题</strong>：JSON 数组回落路径缺失、relevance 回落边界 <code>or</code> 误判、float() 失败连坐、无去重机制、同步调用限制、research_topic 赋值分散</li>
+        <li><strong>设计哲学</strong>：失败即降级、不污染主流程；sentinel 单例模式（初始化失败 <code>_kb_store = False</code>）</li>
+      </ul>
+
+      <h3>📄 eval/index.html — 评估打分功能详解</h3>
+      <p>LLM-as-Judge 驱动的端到端与组件级质量评估框架，8 大章节。</p>
+      <ul>
+        <li><strong>端到端 5 维度</strong>：事实准确性 / 信息覆盖度 / 逻辑结构 / 时效性 / 引用质量</li>
+        <li><strong>组件级 7 维度</strong>：plan / queries / summarization / critique / citations / plan reflection（独立打分）</li>
+        <li><strong>三阶段调度</strong>：Phase 1 plan_a → Phase 2 user_feedback → Phase 3 plan_b</li>
+        <li><strong>_CaptureCtx monkey-patch</strong>：拦截 <code>WebSearchAgent.step</code> 捕获原始搜索结果，弥补只存摘要的缺陷</li>
+        <li><strong>Judge._call 3 次重试</strong>：LLM 调用 + Post.extract_pattern 抽 json + Pydantic 强类型校验</li>
+        <li><strong>测试集</strong>：10 个 topic（5 基础 + 5 需求澄清）</li>
+        <li><strong>评分量纲</strong>：1.0-1.9 红（不可用）/ 2.0-2.9 橙（较差）/ 3.0-3.9 青（合格）/ 4.0-5.0 绿（优秀）</li>
+      </ul>
+      <blockquote>
+        <strong>"旁路观察者"设计哲学：</strong>评估框架不修改 application 主链路任何文件，只 import 并调用，可直接重跑对比分数变化。
+      </blockquote>
+      <div class="mermaid">
+flowchart LR
+    EVAL["eval/run_eval.py<br/>CLI 入口"]
+    EVALUATOR["Evaluator<br/>_invoke_agent_with_feedback<br/>_CaptureCtx"]
+    JUDGE["Judge._call<br/>3 次重试"]
+    PROMPTS["prompts.py<br/>7 套评分提示词"]
+    PYDANTIC["Pydantic<br/>强类型校验"]
+    MAIN["application 主链路<br/>(graph.invoke)"]
+    PROD["production<br/>(用户实际使用)"]
+
+    EVAL --> EVALUATOR
+    EVALUATOR -->|"thread_id=eval-*<br/>隔离执行"| MAIN
+    MAIN -.->|"只 import 不修改"| EVALUATOR
+    EVALUATOR -->|"中间产物"| JUDGE
+    JUDGE --> PROMPTS
+    JUDGE --> PYDANTIC
+    JUDGE -->|"5 维度 × topic"| REPORT["JSON 报告<br/>+ 评分量纲可视化"]
+
+    style EVAL fill:#1f0a0a,stroke:#ef4444
+      </div>
+    </section>
+
+    <!-- ========== 10. 端到端数据流 ========== -->
+    <section id="flow-main">
+      <h2><span class="num">10</span>端到端数据流 <span class="en">End-to-End Data Flow</span></h2>
+
+      <h3>完整 9 阶段业务流程</h3>
+      <div class="mermaid">
+sequenceDiagram
+    autonumber
+    participant U as 用户浏览器
+    participant FE as 前端<br/>(React)
+    participant API as FastAPI<br/>:2024
+    participant DB as PostgreSQL<br/>user_threads
+    participant R as Redis
+    participant W as Worker<br/>_process_one_task
+    participant G as LangGraph<br/>主图 + 子图
+    participant KB as KB<br/>Milvus
+
+    U->>FE: 输入研究问题
+    FE->>API: POST /api/research
+    API->>API: AuthMiddleware 校验 session
+    API->>R: enqueue_task (XADD research:tasks)
+    API->>DB: 异步 INSERT user_threads
+    API-->>FE: 200 {task_id, stream_url}
+
+    FE->>API: GET /api/research/{id}/stream (SSE)
+    API->>R: XREAD research:events:{id}
+
+    R->>W: XREADGROUP (worker-1)
+    W->>W: 重建 HumanMessage/AIMessage
+    W->>G: astream(initial_state, config, subgraphs=True)
+
+    G->>G: generate_plan (plan_instructions)
+    G-->>R: event.generate_plan token
+    R-->>FE: SSE token 流
+
+    G->>G: evaluate_plan → awaiting_plan_confirmation
+    G-->>W: 暂停 (透传 + 无出边)
+    Note over G: AsyncRedisSaver 自动 checkpoint
+
+    U->>FE: 用户确认 / 补充细节
+    FE->>API: POST (plan_status=confirmed)
+    API->>R: XADD (复用 task_id)
+    R->>W: XREADGROUP
+    W->>G: astream (二次)
+    G->>G: generate_plan 早退 (return {})
+    G->>G: confirm_plan → 进入 research_agent
+    G->>KB: query (读旧 facts)
+    G->>G: generate_queries → web_search ×N
+    G->>KB: add_facts (写新 facts)
+    G->>G: critique (信息充分性)
+    G->>G: 进入 writer_agent
+    G->>G: outline → draft ↔ critic → cite_and_polish
+    G-->>R: event.finalize_answer
+    R-->>FE: SSE final report
+    W->>R: XACK + EXPIRE 24h
+      </div>
+
+      <h3>关键数据字段生命周期</h3>
+      <pre><code>OverallState = {
+    # 主图核心字段
+    "messages":         list[BaseMessage],     # 主对话（add_messages reducer）
+    "plan":             str,                    # 当前研究计划（markdown）
+    "plan_status":      str,                    # "unconfirmed" / "confirmed"
+    "plan_messages":    list[AIMessage],        # 计划生成历史（隔离）
+    "fresh_level":      str,                    # high/medium/low（KB 时效过滤）
+
+    # ResearchAgent 字段
+    "search_query":     list[str],              # N 个并行查询
+    "initial_search_query_count": int,
+    "max_research_loops": int,
+    "number_of_ran_queries": int,
+    "research_loop_count": int,
+    "web_search_result": list[str],             # 并行副本累积
+    "sources_gathered": list[dict],              # [{short_url, value, label}, ...]
+    "is_sufficient":    bool,                   # critique 判断
+    "knowledge_gap":    str,
+    "follow_up_queries": list[str],
+
+    # WriterAgent 字段
+    "report_outline":   str,
+    "report_draft":     str,
+    "critic_score":     float,                  # 0-10
+    "critic_feedback":  str,
+    "issues":           list[dict],
+    "ready_for_polish": bool,
+    "revision_count":   int,
+    "max_revisions":    int,                    # 默认 3
+
+    # 跨图配置
+    "reasoning_model":  str,
+    "query_generator_model": str,
+}</code></pre>
+    </section>
+
+    <!-- ========== 11. 项目亮点 ========== -->
+    <section id="highlights">
+      <h2><span class="num">11</span>项目亮点 <span class="en">Project Highlights</span></h2>
+
+      <div class="highlight-grid">
+        <div class="highlight-card">
+          <h5>🏗️ HITL 断点续传</h5>
+          <p>透传 lambda + 无出边 + AsyncRedisSaver 三要素实现暂停；图自然结束，零线程/LLM 资源占用。</p>
+        </div>
+        <div class="highlight-card">
+          <h5>📚 KB 闭环（读旧写新）</h5>
+          <p>查询前 Milvus 检索已有 facts → LLM prompt 增强避免重复；搜索后 FactExtractor 抽 facts → 写新 facts 复用知识。</p>
+        </div>
+        <div class="highlight-card">
+          <h5>🛡️ 优雅降级</h5>
+          <p>"失败即降级、不污染主流程"工程哲学：KB 异常被 logger.warning 吞掉返回空列表，KB 挂掉主图仍能正常生成报告。</p>
+        </div>
+        <div class="highlight-card">
+          <h5>🚀 并行扇出</h5>
+          <p>LangGraph Send API + operator.add reducer 把 N 个并行副本的输出自动累积，研究时间从 O(Nt) 降到 O(t)。</p>
+        </div>
+        <div class="highlight-card">
+          <h5>📡 流式输出 6 层链路</h5>
+          <p>LLM → astream_step → on_token → emit_token → Redis XADD → SSE → 浏览器，实时推送 token。</p>
+        </div>
+        <div class="highlight-card">
+          <h5>🔄 四重退出保险（WriterAgent）</h5>
+          <p>ready_for_polish / score≥8.0 / score≥6.0+revision≥1 / revision≥max_revisions，多层防御 Critic 自评偏差。</p>
+        </div>
+        <div class="highlight-card">
+          <h5>🎯 双重退出保险（ResearchAgent）</h5>
+          <p>is_sufficient OR loop≥max_loops，防止研究循环死循环 + LLM 自评失误。</p>
+        </div>
+        <div class="highlight-card">
+          <h5>🔍 旁路评估框架</h5>
+          <p>eval 子系统不修改主链路任何文件，只 import 并调用，LLM-as-Judge 端到端 5 维 + 组件级 7 维。</p>
+        </div>
+        <div class="highlight-card">
+          <h5>🎨 提示词驱动</h5>
+          <p>plan_instructions 五步澄清循环 + 专报五大要素 + 进度条可视化，"先对齐再执行"哲学落地。</p>
+        </div>
+        <div class="highlight-card">
+          <h5>📦 4 层类继承</h5>
+          <p>Agent → JsonAgent / MCPAgent → WebSearchAgent，统一 LLM/MCP/Web 调用入口，含 RateLimiter 和分类重试。</p>
+        </div>
+        <div class="highlight-card">
+          <h5>⏱️ 异步任务调度</h5>
+          <p>Redis Stream 任务队列 + Consumer Group + Worker XREADGROUP，支持多 worker 抢占、断点续传、24h 自动清理。</p>
+        </div>
+        <div class="highlight-card">
+          <h5>🔗 配置回退链</h5>
+          <p><code>EMBEDDING_BASE_URL</code>→<code>LLM_BASE_URL</code>、<code>EMBEDDING_API_KEY</code>→<code>APP_TOKEN</code>，避免重复配置。</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== 12. 组件×文档矩阵 ========== -->
+    <section id="matrix">
+      <h2><span class="num">12</span>组件 × 文档矩阵 <span class="en">Component × Doc Matrix</span></h2>
+      <p>本节给出「每个核心组件由哪些文档覆盖」的速查矩阵，方便按组件反向定位文档：</p>
+
+      <table style="width:100%; border-collapse: collapse; margin-top: 12px; font-size: 13px;">
+        <thead>
+          <tr style="background: rgba(139, 92, 246, .15); border-bottom: 2px solid var(--primary);">
+            <th style="padding: 10px 12px; text-align: left; color: #c4b5fd;">组件</th>
+            <th style="padding: 10px 12px; text-align: left; color: #c4b5fd;">代码位置</th>
+            <th style="padding: 10px 12px; text-align: left; color: #c4b5fd;">覆盖文档</th>
+            <th style="padding: 10px 12px; text-align: left; color: #c4b5fd;">核心要点</th>
+          </tr>
+        </thead>
+        <tbody style="color: var(--text);">
+          <tr style="border-bottom: 1px solid var(--line);">
+            <td style="padding: 8px 12px;"><strong>主图编排</strong></td>
+            <td style="padding: 8px 12px; font-family: monospace; font-size: 12px;">graph.py</td>
+            <td style="padding: 8px 12px;">main-graph、hitl_awaiting_plan_confirmation、hitl_interaction_flow.md</td>
+            <td style="padding: 8px 12px;">HITL 暂停、二次提交幂等、fresh_level 传递</td>
+          </tr>
+          <tr style="border-bottom: 1px solid var(--line); background: rgba(255,255,255,.02);">
+            <td style="padding: 8px 12px;"><strong>ResearchAgent</strong></td>
+            <td style="padding: 8px 12px; font-family: monospace; font-size: 12px;">research_agent.py</td>
+            <td style="padding: 8px 12px;">research-agent、subagent_researcher/generate-queries、_generate_queries_explain、subagent_writer/web_search</td>
+            <td style="padding: 8px 12px;">KB 闭环、并行扇出、双重退出保险</td>
+          </tr>
+          <tr style="border-bottom: 1px solid var(--line);">
+            <td style="padding: 8px 12px;"><strong>WriterAgent</strong></td>
+            <td style="padding: 8px 12px; font-family: monospace; font-size: 12px;">writer_agent.py</td>
+            <td style="padding: 8px 12px;">writer-agent</td>
+            <td style="padding: 8px 12px;">四重退出保险、_draft 双角色、唯一流式节点</td>
+          </tr>
+          <tr style="border-bottom: 1px solid var(--line); background: rgba(255,255,255,.02);">
+            <td style="padding: 8px 12px;"><strong>Agent 框架</strong></td>
+            <td style="padding: 8px 12px; font-family: monospace; font-size: 12px;">base_agent.py</td>
+            <td style="padding: 8px 12px;">base-agent</td>
+            <td style="padding: 8px 12px;">RateLimiter、4 层继承、6 层流式链路、分类重试</td>
+          </tr>
+          <tr style="border-bottom: 1px solid var(--line);">
+            <td style="padding: 8px 12px;"><strong>任务队列</strong></td>
+            <td style="padding: 8px 12px; font-family: monospace; font-size: 12px;">task_queue.py</td>
+            <td style="padding: 8px 12px;">process-one-task、astream-explained、redis-operations</td>
+            <td style="padding: 8px 12px;">XREADGROUP、astream(subgraphs=True)、事件 Stream</td>
+          </tr>
+          <tr style="border-bottom: 1px solid var(--line); background: rgba(255,255,255,.02);">
+            <td style="padding: 8px 12px;"><strong>API 入口</strong></td>
+            <td style="padding: 8px 12px; font-family: monospace; font-size: 12px;">app.py</td>
+            <td style="padding: 8px 12px;">post-api-research、redis-operations</td>
+            <td style="padding: 8px 12px;">AuthMiddleware、enqueue_task、user_threads 关联</td>
+          </tr>
+          <tr style="border-bottom: 1px solid var(--line);">
+            <td style="padding: 8px 12px;"><strong>KB 存储</strong></td>
+            <td style="padding: 8px 12px; font-family: monospace; font-size: 12px;">kb/fact_store.py</td>
+            <td style="padding: 8px 12px;">kb/index、fact-store</td>
+            <td style="padding: 8px 12px;">Milvus + 5 阶段 query + 衰减公式 + 4 类异常</td>
+          </tr>
+          <tr style="border-bottom: 1px solid var(--line); background: rgba(255,255,255,.02);">
+            <td style="padding: 8px 12px;"><strong>KB 抽取</strong></td>
+            <td style="padding: 8px 12px; font-family: monospace; font-size: 12px;">kb/extractor.py</td>
+            <td style="padding: 8px 12px;">fact_extractor、extractor-explained、kb/index</td>
+            <td style="padding: 8px 12px;">7 步抽取流程 + _validate + 5 类 fact_category</td>
+          </tr>
+          <tr style="border-bottom: 1px solid var(--line);">
+            <td style="padding: 8px 12px;"><strong>提示词</strong></td>
+            <td style="padding: 8px 12px; font-family: monospace; font-size: 12px;">prompts.py</td>
+            <td style="padding: 8px 12px;">prompts/plan_instructions、main_graph/confirm_plan</td>
+            <td style="padding: 8px 12px;">五步澄清、五大要素、关键词短路 + LLM 兜底</td>
+          </tr>
+          <tr style="border-bottom: 1px solid var(--line); background: rgba(255,255,255,.02);">
+            <td style="padding: 8px 12px;"><strong>评估系统</strong></td>
+            <td style="padding: 8px 12px; font-family: monospace; font-size: 12px;">eval/*</td>
+            <td style="padding: 8px 12px;">eval/index</td>
+            <td style="padding: 8px 12px;">LLM-as-Judge、12 维度、_CaptureCtx monkey-patch</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 12px;"><strong>Redis Checkpoint</strong></td>
+            <td style="padding: 8px 12px; font-family: monospace; font-size: 12px;">AsyncRedisSaver</td>
+            <td style="padding: 8px 12px;">redis-operations、astream-explained、main-graph</td>
+            <td style="padding: 8px 12px;">7 天 TTL + refresh_on_read、断点续传基石</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ========== 13. 阅读路径建议 ========== -->
+    <section id="legend">
+      <h2><span class="num">13</span>阅读路径建议 <span class="en">Reading Path Suggestions</span></h2>
+
+      <h3>🟢 新人入门（30 分钟）</h3>
+      <ol>
+        <li><a href="main-graph.html">main-graph.html</a> — 理解主图编排与 HITL 暂停</li>
+        <li><a href="research-agent.html">research-agent.html</a> — 理解研究子图与 KB 闭环</li>
+        <li><a href="writer-agent.html">writer-agent.html</a> — 理解写作子图与四重退出保险</li>
+        <li><a href="hitl_interaction_flow.md">hitl_interaction_flow.md</a> — 看一次完整端到端流程</li>
+      </ol>
+
+      <h3>🟡 深入架构（2 小时）</h3>
+      <ol start="5">
+        <li><a href="base-agent.html">base-agent.html</a> — Agent 框架与 RateLimiter</li>
+        <li><a href="astream-explained.html">astream-explained.html</a> — 图执行引擎与子图穿透</li>
+        <li><a href="redis-operations.html">redis-operations.html</a> — Redis 操作全景</li>
+        <li><a href="kb/index.html">kb/index.html</a> — KB 子系统功能说明</li>
+        <li><a href="fact-store.html">fact-store.html</a> + <a href="fact_extractor.html">fact_extractor.html</a> — KB 三件套细节</li>
+      </ol>
+
+      <h3>🔴 深度研究（半天）</h3>
+      <ol start="10">
+        <li><a href="process-one-task.html">process-one-task.html</a> — Worker 协程完整解析</li>
+        <li><a href="post-api-research.html">post-api-research.html</a> — API 链路</li>
+        <li><a href="hitl_awaiting_plan_confirmation.html">hitl_awaiting_plan_confirmation.html</a> — HITL 流转深度</li>
+        <li><a href="generate_plan_docs.html">generate_plan_docs.html</a> — generate_plan 节点</li>
+        <li><a href="subagent_writer/web_search.html">subagent_writer/web_search.html</a> — _web_search 节点</li>
+        <li><a href="subagent_researcher/generate-queries.html">subagent_researcher/generate-queries.html</a> + <a href="_generate_queries_explain.html">_generate_queries_explain.html</a> — _generate_queries 双版本</li>
+        <li><a href="main_graph/confirm_plan.html">main_graph/confirm_plan.html</a> — confirm_plan 节点</li>
+        <li><a href="prompts/plan_instructions.html">prompts/plan_instructions.html</a> — plan_instructions 提示词</li>
+        <li><a href="extractor-explained.html">extractor-explained.html</a> — FactExtractor 另一视角</li>
+        <li><a href="eval/index.html">eval/index.html</a> — 评估框架</li>
+      </ol>
+
+      <h3>🔧 按需查阅</h3>
+      <ul>
+        <li>想改 <strong>主图逻辑</strong> → <a href="main-graph.html">main-graph</a> + <a href="hitl_awaiting_plan_confirmation.html">hitl_awaiting_plan_confirmation</a></li>
+        <li>想改 <strong>研究子图</strong> → <a href="research-agent.html">research-agent</a> + <a href="subagent_researcher/generate-queries.html">generate-queries</a> + <a href="subagent_writer/web_search.html">web_search</a></li>
+        <li>想改 <strong>写作子图</strong> → <a href="writer-agent.html">writer-agent</a></li>
+        <li>想改 <strong>KB 行为</strong> → <a href="kb/index.html">kb/index</a> + <a href="fact-store.html">fact-store</a> + <a href="fact_extractor.html">fact_extractor</a></li>
+        <li>想改 <strong>提示词</strong> → <a href="prompts/plan_instructions.html">plan_instructions</a></li>
+        <li>想跑 <strong>评估</strong> → <a href="eval/index.html">eval/index</a></li>
+        <li>想调试 <strong>SSE/Redis</strong> → <a href="redis-operations.html">redis-operations</a> + <a href="astream-explained.html">astream-explained</a></li>
+        <li>想理解 <strong>异步任务</strong> → <a href="process-one-task.html">process-one-task</a> + <a href="post-api-research.html">post-api-research</a></li>
+      </ul>
+    </section>
+
+  </main>
+
+</div>
+
+<footer>
+  <p>
+    🗺️ <strong>Deep Research 后端文档地图</strong> · 自动聚合 21 份详细文档生成 · 2026-09-10
+    <br/>
+    📁 文档目录：<code>backend/docs/html/</code> · 主入口：<a href="main-graph.html">main-graph.html</a> · <a href="kb/index.html">kb/index.html</a> · <a href="eval/index.html">eval/index.html</a>
+  </p>
+</footer>
+
+<!-- Mermaid init -->
+<script>
+  if (window.mermaid) {
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'base',
+      themeVariables: {
+        primaryColor: '#1a2236',
+        primaryTextColor: '#e6edf7',
+        primaryBorderColor: '#8b5cf6',
+        lineColor: '#22d3ee',
+        secondaryColor: '#111827',
+        tertiaryColor: '#0a1020',
+        background: '#0a1020',
+        fontFamily: '-apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif'
+      },
+      flowchart: { curve: 'basis', htmlLabels: true },
+      sequence: { actorMargin: 60, messageMargin: 40 },
+      securityLevel: 'loose'
+    });
+  }
+</script>
+
+</body>
+</html>
