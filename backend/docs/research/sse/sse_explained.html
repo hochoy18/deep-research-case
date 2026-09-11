@@ -1,0 +1,1325 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SSE详解 & 落地实现</title>
+<style>
+  /* ── Reset & Base ───────────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; scroll-padding-top: 80px; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+                 "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-size: 15px; line-height: 1.75; color: #1e293b;
+    background: linear-gradient(135deg, #f8fafc 0%, #eef2f7 100%);
+    min-height: 100vh;
+  }
+
+  /* ── Layout ─────────────────────────────────────────────────── */
+  .container { max-width: 1180px; margin: 0 auto; padding: 32px 24px; }
+  header.hero {
+    background: linear-gradient(135deg, #1e293b 0%, #334155 50%, #475569 100%);
+    color: #f1f5f9; padding: 56px 24px 48px;
+    border-radius: 16px; margin-bottom: 36px; box-shadow: 0 12px 32px rgba(15, 23, 42, .12);
+  }
+  header.hero .badge {
+    display: inline-block; padding: 4px 12px; background: rgba(96, 165, 250, .2);
+    color: #93c5fd; border-radius: 12px; font-size: 12px; font-weight: 600;
+    letter-spacing: .5px; margin-bottom: 16px;
+  }
+  header.hero h1 {
+    font-size: 38px; font-weight: 800; letter-spacing: -.5px; line-height: 1.2;
+    margin-bottom: 12px;
+  }
+  header.hero h1 .accent { color: #60a5fa; }
+  header.hero p.lead { font-size: 17px; color: #cbd5e1; max-width: 720px; }
+
+  /* ── TOC ────────────────────────────────────────────────────── */
+  .toc {
+    background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px;
+    padding: 24px 28px; margin-bottom: 36px; box-shadow: 0 2px 6px rgba(15, 23, 42, .04);
+  }
+  .toc h2 { font-size: 14px; font-weight: 700; color: #64748b; text-transform: uppercase;
+            letter-spacing: 1px; margin-bottom: 14px; }
+  .toc ol { list-style: none; counter-reset: toc-item; columns: 2; column-gap: 32px; }
+  .toc li {
+    counter-increment: toc-item; padding: 6px 0; break-inside: avoid;
+  }
+  .toc li::before {
+    content: counter(toc-item, decimal-leading-zero) "  "; color: #94a3b8;
+    font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 12px; font-weight: 600;
+    margin-right: 6px;
+  }
+  .toc a { color: #1e293b; text-decoration: none; font-weight: 500; }
+  .toc a:hover { color: #2563eb; }
+
+  /* ── Section ────────────────────────────────────────────────── */
+  section { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px;
+            padding: 36px 36px 32px; margin-bottom: 24px; box-shadow: 0 1px 3px rgba(15, 23, 42, .04); }
+  section h2 {
+    font-size: 26px; font-weight: 800; color: #0f172a; padding-bottom: 12px;
+    margin-bottom: 24px; border-bottom: 2px solid #e2e8f0;
+    display: flex; align-items: center; gap: 12px;
+  }
+  section h2 .num {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 36px; height: 36px; background: #2563eb; color: #fff;
+    border-radius: 8px; font-size: 16px; font-weight: 800;
+  }
+  section h3 {
+    font-size: 18px; font-weight: 700; color: #1e293b; margin: 28px 0 12px;
+    padding-left: 12px; border-left: 4px solid #3b82f6;
+  }
+  section h4 {
+    font-size: 15px; font-weight: 700; color: #334155; margin: 18px 0 8px;
+    text-transform: uppercase; letter-spacing: .5px;
+  }
+  section p { margin-bottom: 12px; color: #334155; }
+  section ul, section ol { padding-left: 24px; margin-bottom: 12px; color: #334155; }
+  section li { margin-bottom: 4px; }
+  section strong { color: #0f172a; font-weight: 600; }
+  section code {
+    font-family: "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    background: #f1f5f9; color: #be185d; padding: 2px 6px; border-radius: 4px;
+    font-size: 13px;
+  }
+
+  /* ── Diagram Wrapper ────────────────────────────────────────── */
+  .diagram {
+    background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px;
+    padding: 24px 16px; margin: 20px 0; text-align: center;
+  }
+  .diagram svg { max-width: 100%; height: auto; display: block; margin: 0 auto; }
+  .diagram .caption {
+    font-size: 12px; color: #64748b; margin-top: 12px; font-style: italic;
+  }
+
+  /* ── Tables ─────────────────────────────────────────────────── */
+  table {
+    width: 100%; border-collapse: collapse; margin: 16px 0;
+    background: #fff; border-radius: 8px; overflow: hidden;
+    border: 1px solid #e2e8f0; font-size: 14px;
+  }
+  thead { background: #1e293b; color: #f1f5f9; }
+  th, td { padding: 10px 14px; text-align: left; vertical-align: top; }
+  th { font-weight: 700; font-size: 13px; letter-spacing: .3px; }
+  tbody tr:nth-child(even) { background: #f8fafc; }
+  tbody tr:hover { background: #eff6ff; }
+  td code { font-size: 12px; }
+
+  /* ── Code Block ─────────────────────────────────────────────── */
+  pre {
+    background: #0f172a; color: #e2e8f0; border-radius: 10px;
+    padding: 18px 22px; overflow-x: auto; margin: 14px 0;
+    border: 1px solid #1e293b; font-size: 13px; line-height: 1.6;
+    font-family: "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  }
+  pre .c-key   { color: #93c5fd; font-weight: 600; }
+  pre .c-str   { color: #86efac; }
+  pre .c-num   { color: #fcd34d; }
+  pre .c-com   { color: #64748b; font-style: italic; }
+  pre .c-fn    { color: #c4b5fd; }
+  pre .c-cls   { color: #f9a8d4; }
+  pre .c-anno  { color: #fcd34d; font-weight: 600; }
+  pre .c-em    { color: #fbbf24; font-weight: 600; background: rgba(251, 191, 36, .1); padding: 1px 4px; border-radius: 3px; }
+
+  /* ── Callout ─────────────────────────────────────────────────── */
+  .callout {
+    border-left: 4px solid; border-radius: 8px; padding: 14px 18px;
+    margin: 16px 0; background: #f8fafc;
+  }
+  .callout-info    { border-color: #3b82f6; background: #eff6ff; }
+  .callout-warn    { border-color: #f59e0b; background: #fffbeb; }
+  .callout-success { border-color: #10b981; background: #ecfdf5; }
+  .callout-danger  { border-color: #ef4444; background: #fef2f2; }
+  .callout-title   { font-weight: 700; margin-bottom: 6px; color: #1e293b; }
+  .callout p       { margin-bottom: 4px; color: #334155; font-size: 14px; }
+
+  /* ── Grid layout for code + explanation ─────────────────────── */
+  .row {
+    display: grid; grid-template-columns: 1.4fr 1fr; gap: 20px;
+    margin: 16px 0; align-items: start;
+  }
+  .row .explanation {
+    background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;
+    padding: 16px 18px; font-size: 14px;
+  }
+  .row .explanation h4 {
+    color: #2563eb; margin: 0 0 8px; font-size: 13px; letter-spacing: 1px;
+  }
+  .row .explanation ul { padding-left: 18px; font-size: 13px; }
+
+  @media (max-width: 880px) {
+    .row { grid-template-columns: 1fr; }
+    .toc ol { columns: 1; }
+    header.hero h1 { font-size: 28px; }
+    section { padding: 24px 20px; }
+  }
+
+  /* ── Footer ─────────────────────────────────────────────────── */
+  footer {
+    text-align: center; padding: 24px; color: #64748b; font-size: 13px;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- ── Hero ─────────────────────────────────────────────────── -->
+  <header class="hero">
+    <div class="badge">SSE · Server-Sent Events</div>
+    <h1>SSE 详解与 <span class="accent">项目落地</span> </h1>
+    <p class="lead">从协议原理到 6 层流式链路实战。结合 <code>base_knowledge.md</code> 与项目源码（<code>app.py</code> · <code>task_queue.py</code> · <code>useResearchStream.ts</code>）逐段对照讲解。</p>
+  </header>
+
+  <!-- ── TOC ──────────────────────────────────────────────────── -->
+  <nav class="toc">
+    <h2>目录</h2>
+    <ol>
+      <li><a href="#sec-1">SSE 是什么 · 一句话定义</a></li>
+      <li><a href="#sec-2">SSE vs 普通 HTTP 时序对比</a></li>
+      <li><a href="#sec-3">SSE 协议格式详解</a></li>
+      <li><a href="#sec-4">SSE vs WebSocket 取舍</a></li>
+      <li><a href="#sec-5">SSE 三大生产陷阱</a></li>
+      <li><a href="#sec-6">本项目架构 · 6 层流式链路</a></li>
+      <li><a href="#sec-7">完整数据流 · 端到端时序</a></li>
+      <li><a href="#sec-8">代码逐段解读</a></li>
+      <li><a href="#sec-9">Redis Stream 解耦原理</a></li>
+      <li><a href="#sec-10">断线重连 · Last-Event-ID 机制</a></li>
+      <li><a href="#sec-11">实战对照表</a></li>
+      <li><a href="#sec-12">关键设计亮点 &amp; 与 base_knowledge 的差异</a></li>
+    </ol>
+  </nav>
+
+  <!-- ─────────────────────────────────────────────────────────── -->
+  <!-- §1 定义                                                     -->
+  <!-- ─────────────────────────────────────────────────────────── -->
+  <section id="sec-1">
+    <h2><span class="num">1</span>SSE 是什么</h2>
+
+    <div class="callout callout-success">
+      <div class="callout-title">一句话定义</div>
+      <p><strong>SSE = 一个保持打开的 HTTP Response，服务器不断按 <code>text/event-stream</code> 格式往里写事件，浏览器持续接收，并且支持自动重连。</strong></p>
+    </div>
+
+    <p>它是基于 HTTP 的 <strong>服务器 → 客户端单向实时通信机制</strong>。核心要点：</p>
+    <ul>
+      <li>底层仍然是 HTTP，不需要协议升级握手（不像 WebSocket）。</li>
+      <li>请求只有一次，但响应可以持续很久（长连接）。</li>
+      <li>浏览器原生 <code>EventSource</code> 提供 <strong>自动重连</strong> 与 <strong>断线恢复</strong>（<code>Last-Event-ID</code>）。</li>
+      <li>适合 AI 流式输出、实时日志、任务进度、消息通知、监控数据。</li>
+    </ul>
+  </section>
+
+  <!-- ─────────────────────────────────────────────────────────── -->
+  <!-- §2 SSE vs HTTP 时序                                         -->
+  <!-- ─────────────────────────────────────────────────────────── -->
+  <section id="sec-2">
+    <h2><span class="num">2</span>SSE vs 普通 HTTP 时序对比</h2>
+
+    <div class="diagram">
+      <svg viewBox="0 0 880 360" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="HTTP vs SSE sequence diagram">
+        <defs>
+          <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/>
+          </marker>
+          <marker id="arr-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#2563eb"/>
+          </marker>
+          <marker id="arr-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#ef4444"/>
+          </marker>
+        </defs>
+
+        <!-- Title labels -->
+        <text x="190" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#475569">普通 HTTP</text>
+        <text x="690" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="#2563eb">SSE</text>
+
+        <!-- HTTP side -->
+        <line x1="40" y1="60" x2="340" y2="60" stroke="#cbd5e1" stroke-width="1"/>
+        <line x1="40" y1="70" x2="40" y2="340" stroke="#475569" stroke-width="1.5"/>
+        <line x1="340" y1="70" x2="340" y2="340" stroke="#475569" stroke-width="1.5"/>
+        <text x="40" y="50" font-size="12" font-weight="600" fill="#475569">Client</text>
+        <text x="340" y="50" font-size="12" font-weight="600" fill="#475569">Server</text>
+
+        <line x1="60" y1="100" x2="320" y2="100" stroke="#475569" stroke-width="1.5" marker-end="url(#arr)"/>
+        <text x="190" y="92" text-anchor="middle" font-size="11" fill="#475569">① HTTP Request</text>
+
+        <line x1="320" y1="130" x2="60" y2="130" stroke="#475569" stroke-width="1.5" marker-end="url(#arr)"/>
+        <text x="190" y="122" text-anchor="middle" font-size="11" fill="#475569">② HTTP Response</text>
+
+        <text x="190" y="180" text-anchor="middle" font-size="11" fill="#94a3b8">{ "answer": "完整文本" }</text>
+
+        <line x1="40" y1="240" x2="340" y2="240" stroke="#ef4444" stroke-width="2" stroke-dasharray="4 4" marker-end="url(#arr-red)"/>
+        <text x="190" y="232" text-anchor="middle" font-size="11" font-weight="600" fill="#ef4444">③ 连接关闭</text>
+
+        <text x="190" y="300" text-anchor="middle" font-size="11" fill="#64748b">请求 1 次，响应 1 次，连接立即结束</text>
+        <text x="190" y="320" text-anchor="middle" font-size="10" fill="#94a3b8">用户必须等服务器把所有数据准备好</text>
+
+        <!-- SSE side -->
+        <line x1="540" y1="60" x2="840" y2="60" stroke="#cbd5e1" stroke-width="1"/>
+        <line x1="540" y1="70" x2="540" y2="340" stroke="#2563eb" stroke-width="1.5"/>
+        <line x1="840" y1="70" x2="840" y2="340" stroke="#2563eb" stroke-width="1.5"/>
+        <text x="540" y="50" font-size="12" font-weight="600" fill="#2563eb">Client</text>
+        <text x="840" y="50" font-size="12" font-weight="600" fill="#2563eb">Server</text>
+
+        <line x1="560" y1="100" x2="820" y2="100" stroke="#2563eb" stroke-width="1.5" marker-end="url(#arr-blue)"/>
+        <text x="690" y="92" text-anchor="middle" font-size="11" fill="#2563eb">① HTTP Request</text>
+
+        <line x1="820" y1="130" x2="560" y2="130" stroke="#2563eb" stroke-width="1.5" marker-end="url(#arr-blue)"/>
+        <text x="690" y="122" text-anchor="middle" font-size="11" fill="#2563eb">② HTTP 200 + text/event-stream</text>
+
+        <line x1="820" y1="160" x2="560" y2="160" stroke="#2563eb" stroke-width="1.5" marker-end="url(#arr-blue)"/>
+        <text x="690" y="152" text-anchor="middle" font-size="11" fill="#2563eb">③ data: hello</text>
+
+        <line x1="820" y1="190" x2="560" y2="190" stroke="#2563eb" stroke-width="1.5" marker-end="url(#arr-blue)"/>
+        <text x="690" y="182" text-anchor="middle" font-size="11" fill="#2563eb">④ data: world</text>
+
+        <line x1="820" y1="220" x2="560" y2="220" stroke="#2563eb" stroke-width="1.5" marker-end="url(#arr-blue)"/>
+        <text x="690" y="212" text-anchor="middle" font-size="11" fill="#2563eb">⑤ data: SSE</text>
+
+        <line x1="690" y1="270" x2="690" y2="305" stroke="#10b981" stroke-width="3"/>
+        <text x="690" y="290" text-anchor="middle" font-size="11" font-weight="600" fill="#10b981">长连接持续保持</text>
+
+        <text x="690" y="330" text-anchor="middle" font-size="10" fill="#94a3b8">请求 1 次，响应 N 次，服务器持续推送</text>
+      </svg>
+      <div class="caption">普通 HTTP 一次性响应 vs SSE 持续流式推送</div>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────────────────────────────────────── -->
+  <!-- §3 协议格式                                                 -->
+  <!-- ─────────────────────────────────────────────────────────── -->
+  <section id="sec-3">
+    <h2><span class="num">3</span>SSE 协议格式详解</h2>
+
+    <h3>3.1 必备的 Response Header</h3>
+    <div class="diagram">
+      <svg viewBox="0 0 720 200" xmlns="http://www.w3.org/2000/svg">
+        <rect x="20" y="20" width="680" height="160" rx="8" fill="#0f172a" stroke="#1e293b"/>
+        <text x="40" y="55" font-family="monospace" font-size="13" fill="#e2e8f0">
+          <tspan x="40" dy="0">HTTP/1.1 200 OK</tspan>
+          <tspan x="40" dy="22" fill="#86efac">Content-Type: text/event-stream</tspan>
+          <tspan x="40" dy="22" fill="#86efac">Cache-Control: no-cache</tspan>
+          <tspan x="40" dy="22" fill="#86efac">Connection: keep-alive</tspan>
+        </text>
+        <!-- annotations -->
+        <line x1="515" y1="55" x2="600" y2="55" stroke="#fbbf24" stroke-width="1" stroke-dasharray="3 3"/>
+        <text x="610" y="58" font-size="11" fill="#fbbf24">告诉浏览器：这是 SSE 流</text>
+        <line x1="430" y1="77" x2="600" y2="100" stroke="#fbbf24" stroke-width="1" stroke-dasharray="3 3"/>
+        <text x="610" y="103" font-size="11" fill="#fbbf24">代理不许缓存</text>
+        <line x1="440" y1="99" x2="600" y2="125" stroke="#fbbf24" stroke-width="1" stroke-dasharray="3 3"/>
+        <text x="610" y="128" font-size="11" fill="#fbbf24">显式声明长连接</text>
+      </svg>
+    </div>
+
+    <h3>3.2 事件字段格式</h3>
+    <p>每个事件由若干 <code>field: value</code> 行组成，<strong style color: red">以一个空行结束</strong>。</p>
+
+    <div class="diagram">
+      <svg viewBox="0 0 760 360" xmlns="http://www.w3.org/2000/svg">
+        <rect x="20" y="20" width="720" height="320" rx="8" fill="#0f172a"/>
+        <text font-family="monospace" font-size="13" fill="#e2e8f0">
+          <tspan x="40" y="55"><tspan fill="#c4b5fd">event:</tspan> message</tspan>
+          <tspan x="40" y="80"><tspan fill="#c4b5fd">id:</tspan> 101</tspan>
+          <tspan x="40" y="105"><tspan fill="#c4b5fd">data:</tspan> {"token": {"text": "你"}}</tspan>
+          <tspan x="40" y="130" fill="#fbbf24">              ← 空行 = 一个 Event 结束</tspan>
+          <tspan x="40" y="155"><tspan fill="#c4b5fd">event:</tspan> token</tspan>
+          <tspan x="40" y="180"><tspan fill="#c4b5fd">id:</tspan> 102</tspan>
+          <tspan x="40" y="205"><tspan fill="#c4b5fd">data:</tspan> {"token": {"text": "好"}}</tspan>
+          <tspan x="40" y="230" fill="#fbbf24">              ← 空行 = 一个 Event 结束</tspan>
+          <tspan x="40" y="270" fill="#64748b"># 多行 data 会被拼接为同一个事件：</tspan>
+          <tspan x="40" y="290"><tspan fill="#c4b5fd">data:</tspan> 第一行</tspan>
+          <tspan x="40" y="312"><tspan fill="#c4b5fd">data:</tspan> 第二行</tspan>
+        </text>
+        <text x="450" y="105" font-size="11" fill="#94c8fb">← 事件类型（前端 addEventListener）</text>
+        <text x="450" y="130" font-size="11" fill="#94c8fb">← 事件 ID（用于断线恢复）</text>
+        <text x="450" y="155" font-size="11" fill="#94c8fb">← 事件载荷（可多行）</text>
+        <text x="450" y="180" font-size="11" fill="#94c8fb">← \n\n 是关键分隔符</text>
+      </svg>
+    </div>
+
+    <h3>3.3 字段含义速查</h3>
+    <table>
+      <thead><tr><th>字段</th><th>作用</th><th>示例</th></tr></thead>
+      <tbody>
+        <tr><td><code>event:</code></td><td>事件类型（自定义）</td><td><code>event: token</code></td></tr>
+        <tr><td><code>data:</code></td><td>事件载荷，可多行拼接</td><td><code>data: {"text":"你"}</code></td></tr>
+        <tr><td><code>id:</code></td><td>事件 ID，用于断线恢复</td><td><code>id: 1745-0</code></td></tr>
+        <tr><td><code>retry:</code></td><td>客户端重连等待毫秒</td><td><code>retry: 5000</code></td></tr>
+        <tr><td><code>: comment</code></td><td>SSE 注释，客户端不触发事件，用于心跳</td><td><code>: heartbeat\n\n</code></td></tr>
+      </tbody>
+    </table>
+
+    <div class="callout callout-warn">
+      <div class="callout-title">⚠ 为什么必须 \n\n ？</div>
+      <p><strong>空行是 SSE 事件分隔符</strong>。少了它客户端会把多条当成同一条；多了它会被截断成空事件。</p>
+      <p style="margin-top:8px;">错误：<code>data: hello \n data: world</code> → 客户端认为是一个事件，data="hello\nworld"。</p>
+      <p>正确：<code>data: hello \n\n data: world \n\n</code> → 两个事件。</p>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────────────────────────────────────── -->
+  <!-- §4 SSE vs WebSocket                                        -->
+  <!-- ─────────────────────────────────────────────────────────── -->
+  <section id="sec-4">
+    <h2><span class="num">4</span>SSE vs WebSocket 取舍</h2>
+
+    <table>
+      <thead><tr><th>维度</th><th>SSE</th><th>WebSocket</th></tr></thead>
+      <tbody>
+        <tr><td>协议</td><td>HTTP</td><td>独立协议（升级握手）</td></tr>
+        <tr><td>通信方向</td><td><strong>单向</strong> Server → Client</td><td><strong>双向</strong></td></tr>
+        <tr><td>浏览器 API</td><td><code>EventSource</code>（原生自动重连）</td><td><code>WebSocket</code>（需手写重连）</td></tr>
+        <tr><td>数据格式</td><td>文本</td><td>文本 / 二进制</td></tr>
+        <tr><td>实现复杂度</td><td>低</td><td>中</td></tr>
+        <tr><td>服务端推送场景</td><td>⭐⭐⭐⭐⭐</td><td>⭐⭐⭐⭐</td></tr>
+        <tr><td>实时双向通信</td><td>❌</td><td>⭐⭐⭐⭐⭐</td></tr>
+      </tbody>
+    </table>
+
+    <div class="diagram">
+      <svg viewBox="0 0 880 280" xmlns="http://www.w3.org/2000/svg">
+        <!-- SSE -->
+        <text x="220" y="30" text-anchor="middle" font-size="16" font-weight="700" fill="#2563eb">SSE：单向推送</text>
+        <line x1="60" y1="80" x2="60" y2="220" stroke="#475569" stroke-width="1.5"/>
+        <line x1="380" y1="80" x2="380" y2="220" stroke="#475569" stroke-width="1.5"/>
+        <text x="60" y="68" font-size="12" font-weight="600">Client</text>
+        <text x="380" y="68" font-size="12" font-weight="600">Server</text>
+
+        <line x1="80" y1="100" x2="360" y2="100" stroke="#475569" stroke-width="1.5" marker-end="url(#arr)"/>
+        <text x="220" y="92" text-anchor="middle" font-size="11">HTTP Request</text>
+        <line x1="360" y1="130" x2="80" y2="130" stroke="#2563eb" stroke-width="1.5" marker-end="url(#arr-blue)"/>
+        <text x="220" y="122" text-anchor="middle" font-size="11" fill="#2563eb">event 1</text>
+        <line x1="360" y1="160" x2="80" y2="160" stroke="#2563eb" stroke-width="1.5" marker-end="url(#arr-blue)"/>
+        <text x="220" y="152" text-anchor="middle" font-size="11" fill="#2563eb">event 2</text>
+        <line x1="360" y1="190" x2="80" y2="190" stroke="#2563eb" stroke-width="1.5" marker-end="url(#arr-blue)"/>
+        <text x="220" y="182" text-anchor="middle" font-size="11" fill="#2563eb">event 3</text>
+
+        <text x="220" y="250" text-anchor="middle" font-size="11" fill="#64748b">AI 输出 / 日志 / 通知 / 监控</text>
+
+        <!-- WebSocket -->
+        <text x="660" y="30" text-anchor="middle" font-size="16" font-weight="700" fill="#8b5cf6">WebSocket：双向通信</text>
+        <line x1="500" y1="80" x2="500" y2="220" stroke="#475569" stroke-width="1.5"/>
+        <line x1="820" y1="80" x2="820" y2="220" stroke="#475569" stroke-width="1.5"/>
+        <text x="500" y="68" font-size="12" font-weight="600">Client</text>
+        <text x="820" y="68" font-size="12" font-weight="600">Server</text>
+
+        <line x1="520" y1="100" x2="800" y2="100" stroke="#475569" stroke-width="1.5" marker-end="url(#arr)"/>
+        <text x="660" y="92" text-anchor="middle" font-size="11">① msg</text>
+        <line x1="800" y1="130" x2="520" y2="130" stroke="#8b5cf6" stroke-width="1.5" marker-end="url(#arr)"/>
+        <text x="660" y="122" text-anchor="middle" font-size="11" fill="#8b5cf6">② reply</text>
+        <line x1="520" y1="160" x2="800" y2="160" stroke="#475569" stroke-width="1.5" marker-end="url(#arr)"/>
+        <text x="660" y="152" text-anchor="middle" font-size="11">③ msg</text>
+        <line x1="800" y1="190" x2="520" y2="190" stroke="#8b5cf6" stroke-width="1.5" marker-end="url(#arr)"/>
+        <text x="660" y="182" text-anchor="middle" font-size="11" fill="#8b5cf6">④ reply</text>
+
+        <text x="660" y="250" text-anchor="middle" font-size="11" fill="#64748b">聊天室 / 协同编辑 / 实时游戏</text>
+
+        <defs>
+          <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/>
+          </marker>
+          <marker id="arr-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#2563eb"/>
+          </marker>
+        </defs>
+      </svg>
+      <div class="caption">SSE 单向推送 vs WebSocket 全双工</div>
+    </div>
+
+    <div class="callout callout-info">
+      <div class="callout-title">选择建议</div>
+      <p><strong>本项目属于 AI 流式输出场景</strong>，服务器不断吐 token，前端只渲染 → <strong>SSE 是最佳选择</strong>。</p>
+      <p>如果未来增加协同注释、多人同时改文档等强双向功能，再考虑 WebSocket。</p>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────────────────────────────────────── -->
+  <!-- §5 三大生产陷阱                                             -->
+  <!-- ─────────────────────────────────────────────────────────── -->
+  <section id="sec-5">
+    <h2><span class="num">5</span>SSE 三大生产陷阱</h2>
+
+    <div class="diagram">
+      <svg viewBox="0 0 880 360" xmlns="http://www.w3.org/2000/svg">
+        <!-- Card 1: Nginx 缓冲 -->
+        <rect x="20" y="20" width="270" height="320" rx="10" fill="#fef2f2" stroke="#ef4444" stroke-width="2"/>
+        <text x="155" y="50" text-anchor="middle" font-size="14" font-weight="700" fill="#dc2626">① Nginx 缓冲</text>
+
+        <rect x="40" y="80" width="60" height="36" rx="6" fill="#dbeafe"/>
+        <text x="70" y="103" text-anchor="middle" font-size="11">Browser</text>
+        <rect x="120" y="80" width="60" height="36" rx="6" fill="#fde68a"/>
+        <text x="150" y="103" text-anchor="middle" font-size="11">Nginx</text>
+        <rect x="200" y="80" width="60" height="36" rx="6" fill="#dcfce7"/>
+        <text x="230" y="103" text-anchor="middle" font-size="11">Server</text>
+
+        <line x1="100" y1="98" x2="120" y2="98" stroke="#475569" stroke-width="1.5" marker-end="url(#arr)"/>
+        <line x1="180" y1="98" x2="200" y2="98" stroke="#475569" stroke-width="1.5" marker-end="url(#arr)"/>
+
+        <text x="155" y="150" text-anchor="middle" font-size="11" fill="#64748b">proxy_buffering on</text>
+        <text x="155" y="170" text-anchor="middle" font-size="11" fill="#dc2626" font-weight="600">Nginx 把响应攒起来再发</text>
+
+        <text x="155" y="210" text-anchor="middle" font-size="10" fill="#64748b">流式失效</text>
+        <rect x="50" y="225" width="200" height="60" rx="4" fill="#fff" stroke="#ef4444" stroke-dasharray="3 3"/>
+        <text x="155" y="245" text-anchor="middle" font-size="10" fill="#dc2626">data: 1</text>
+        <text x="155" y="260" text-anchor="middle" font-size="10" fill="#dc2626">data: 2</text>
+        <text x="155" y="275" text-anchor="middle" font-size="10" fill="#dc2626">data: 3</text>
+
+        <text x="155" y="305" text-anchor="middle" font-size="10" font-weight="700" fill="#10b981">✅ 解法</text>
+        <text x="155" y="320" text-anchor="middle" font-size="9">X-Accel-Buffering: no</text>
+
+        <!-- Card 2: 代理超时 -->
+        <rect x="305" y="20" width="270" height="320" rx="10" fill="#fffbeb" stroke="#f59e0b" stroke-width="2"/>
+        <text x="440" y="50" text-anchor="middle" font-size="14" font-weight="700" fill="#d97706">② 代理超时</text>
+
+        <text x="440" y="90" text-anchor="middle" font-size="11" fill="#64748b">60 秒没数据 → SLB / Nginx 主动断</text>
+
+        <rect x="340" y="120" width="200" height="80" rx="4" fill="#fff" stroke="#f59e0b"/>
+        <text x="440" y="142" text-anchor="middle" font-size="10" fill="#64748b">… 沉默 60s …</text>
+        <line x1="340" y1="160" x2="540" y2="160" stroke="#ef4444" stroke-width="2" stroke-dasharray="4 4"/>
+        <text x="440" y="185" text-anchor="middle" font-size="10" fill="#dc2626">连接被强制关闭</text>
+
+        <text x="440" y="235" text-anchor="middle" font-size="10" font-weight="700" fill="#10b981">✅ 解法</text>
+        <text x="440" y="255" text-anchor="middle" font-size="9">心跳注释：</text>
+        <text x="440" y="275" text-anchor="middle" font-size="9" font-family="monospace" fill="#10b981">: heartbeat\n\n</text>
+        <text x="440" y="295" text-anchor="middle" font-size="9">每 15 秒发一次</text>
+
+        <!-- Card 3: 断线重连 -->
+        <rect x="590" y="20" width="270" height="320" rx="10" fill="#eff6ff" stroke="#3b82f6" stroke-width="2"/>
+        <text x="725" y="50" text-anchor="middle" font-size="14" font-weight="700" fill="#2563eb">③ 断线重连</text>
+
+        <text x="725" y="90" text-anchor="middle" font-size="11" fill="#64748b">网络抖动 / 切换 Wi-Fi</text>
+
+        <rect x="620" y="115" width="80" height="40" rx="4" fill="#dbeafe"/>
+        <text x="660" y="138" text-anchor="middle" font-size="10">Client</text>
+        <rect x="750" y="115" width="80" height="40" rx="4" fill="#dcfce7"/>
+        <text x="790" y="138" text-anchor="middle" font-size="10">Server</text>
+
+        <line x1="700" y1="135" x2="750" y2="135" stroke="#475569" stroke-width="1.5" marker-end="url(#arr)"/>
+        <text x="725" y="128" text-anchor="middle" font-size="9">id:103</text>
+
+        <text x="725" y="180" text-anchor="middle" font-size="10" fill="#dc2626">⨯ 连接断开</text>
+
+        <line x1="700" y1="205" x2="750" y2="205" stroke="#475569" stroke-width="1.5" marker-end="url(#arr)"/>
+        <text x="725" y="198" text-anchor="middle" font-size="9">Last-Event-ID:103</text>
+
+        <text x="725" y="235" text-anchor="middle" font-size="10" fill="#10b981">✅ 服务端从 104 续推</text>
+        <text x="725" y="255" text-anchor="middle" font-size="10" fill="#10b981">不重复 / 不丢失</text>
+
+        <text x="725" y="295" text-anchor="middle" font-size="10" font-weight="700" fill="#10b981">✅ 解法</text>
+        <text x="725" y="310" text-anchor="middle" font-size="9">事件带 id + 服务端记录游标</text>
+      </svg>
+      <div class="caption">Nginx 缓冲 / 代理超时 / 断线重连 —— 三大 SSE 落地陷阱与解法</div>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────────────────────────────────────── -->
+  <!-- §6 项目架构                                                 -->
+  <!-- ─────────────────────────────────────────────────────────── -->
+  <section id="sec-6">
+    <h2><span class="num">6</span>本项目架构 · 6 层流式链路</h2>
+
+    <div class="callout callout-info">
+      <div class="callout-title">README 总结</div>
+      <p><strong>6 层流式链路：LLM → astream → on_token → emit → Redis → SSE → Browser</strong></p>
+    </div>
+
+    <div class="diagram">
+      <svg viewBox="0 0 1100 540" xmlns="http://www.w3.org/2000/svg">
+        <!-- Layer boxes -->
+        <style>
+          .lyr { fill: #ffffff; stroke-width: 2; rx: 10; }
+          .lbl { font-size: 13px; font-weight: 700; fill: #0f172a; }
+          .sub { font-size: 11px; fill: #64748b; }
+          .arr { stroke: #3b82f6; stroke-width: 2; fill: none; marker-end: url(#ar); }
+          .arr-red { stroke: #ef4444; stroke-width: 2; fill: none; marker-end: url(#arr); }
+        </style>
+        <defs>
+          <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#3b82f6"/>
+          </marker>
+          <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#ef4444"/>
+          </marker>
+        </defs>
+
+        <!-- L1 LLM -->
+        <rect x="380" y="20" width="320" height="60" class="lyr" stroke="#8b5cf6"/>
+        <text x="540" y="48" text-anchor="middle" class="lbl">① LLM (DashScope / Qwen)</text>
+        <text x="540" y="68" text-anchor="middle" class="sub">逐 token yield</text>
+
+        <!-- L2 LangGraph Node -->
+        <rect x="380" y="110" width="320" height="60" class="lyr" stroke="#3b82f6"/>
+        <text x="540" y="138" text-anchor="middle" class="lbl">② LangGraph 节点</text>
+        <text x="540" y="158" text-anchor="middle" class="sub">generate_plan · cite_and_polish ...</text>
+
+        <!-- L3 emit_token callback -->
+        <rect x="380" y="200" width="320" height="60" class="lyr" stroke="#06b6d4"/>
+        <text x="540" y="228" text-anchor="middle" class="lbl">③ emit_token(text, node)</text>
+        <text x="540" y="248" text-anchor="middle" class="sub">通过 RunnableConfig 注入回调</text>
+
+        <!-- L4 Redis Stream -->
+        <rect x="380" y="290" width="320" height="60" class="lyr" stroke="#10b981"/>
+        <text x="540" y="318" text-anchor="middle" class="lbl">④ Redis Stream</text>
+        <text x="540" y="338" text-anchor="middle" class="sub">research:events:{task_id}</text>
+
+        <!-- L5 SSE Endpoint -->
+        <rect x="380" y="380" width="320" height="60" class="lyr" stroke="#f59e0b"/>
+        <text x="540" y="408" text-anchor="middle" class="lbl">⑤ FastAPI SSE 端点</text>
+        <text x="540" y="428" text-anchor="middle" class="sub">/api/research/{task_id}/stream</text>
+
+        <!-- L6 Browser -->
+        <rect x="380" y="470" width="320" height="60" class="lyr" stroke="#ef4444"/>
+        <text x="540" y="498" text-anchor="middle" class="lbl">⑥ Browser EventSource</text>
+        <text x="540" y="518" text-anchor="middle" class="sub">useResearchStream.ts → setState</text>
+
+        <!-- Arrows -->
+        <line x1="540" y1="80" x2="540" y2="108" class="arr"/>
+        <line x1="540" y1="170" x2="540" y2="198" class="arr"/>
+        <line x1="540" y1="260" x2="540" y2="288" class="arr"/>
+        <line x1="540" y1="350" x2="540" y2="378" class="arr"/>
+        <line x1="540" y1="440" x2="540" y2="468" class="arr"/>
+
+        <!-- Left annotation -->
+        <text x="20" y="50" font-size="11" font-weight="700" fill="#8b5cf6">LLM Token</text>
+        <text x="20" y="65" font-size="10" fill="#64748b">每个字符</text>
+        <text x="20" y="140" font-size="11" font-weight="700" fill="#3b82f6">astream()</text>
+        <text x="20" y="155" font-size="10" fill="#64748b">节点级聚合</text>
+        <text x="20" y="230" font-size="11" font-weight="700" fill="#06b6d4">解耦点 1</text>
+        <text x="20" y="245" font-size="10" fill="#64748b">把 node 上下文</text>
+        <text x="20" y="258" font-size="10" fill="#64748b">写入 Redis</text>
+        <text x="20" y="320" font-size="11" font-weight="700" fill="#10b981">解耦点 2</text>
+        <text x="20" y="335" font-size="10" fill="#64748b">两个生命周期</text>
+        <text x="20" y="348" font-size="10" fill="#64748b">不同的协程</text>
+        <text x="20" y="410" font-size="11" font-weight="700" fill="#f59e0b">SSE 协议</text>
+        <text x="20" y="425" font-size="10" fill="#64748b">data: ... \n\n</text>
+        <text x="20" y="500" font-size="11" font-weight="700" fill="#ef4444">UI 渲染</text>
+        <text x="20" y="515" font-size="10" fill="#64748b">打字机效果</text>
+
+        <!-- Right side: decoupling callout -->
+        <rect x="760" y="200" width="320" height="160" rx="8" fill="#fffbeb" stroke="#f59e0b" stroke-width="1.5"/>
+        <text x="920" y="225" text-anchor="middle" font-size="13" font-weight="700" fill="#d97706">⚡ 为什么需要 Redis 解耦？</text>
+        <text x="780" y="255" font-size="11" fill="#334155">• LangGraph astream 必须在 worker 协程</text>
+        <text x="780" y="275" font-size="11" fill="#334155">  内消费（与 HTTP 请求同生命周期）</text>
+        <text x="780" y="295" font-size="11" fill="#334155">• SSE 端点是另一个 HTTP 协程</text>
+        <text x="780" y="315" font-size="11" fill="#334155">• 两者生命周期不同，必须用 Redis</text>
+        <text x="780" y="335" font-size="11" fill="#334155">  Stream 作为共享缓冲</text>
+        <text x="780" y="350" font-size="11" font-weight="700" fill="#dc2626">  Stream 还能持久化、支持 Last-Event-ID</text>
+      </svg>
+      <div class="caption">6 层流式链路 · 两个解耦点把 LLM 与浏览器隔离</div>
+    </div>
+
+    <h3>设计对照</h3>
+    <table>
+      <thead><tr><th>层</th><th>组件</th><th>关键代码</th></tr></thead>
+      <tbody>
+        <tr><td>①</td><td>LLM (Qwen / GPT)</td><td><code>astream()</code> 逐 token 输出</td></tr>
+        <tr><td>②</td><td>LangGraph 节点</td><td><code>graph.py:59</code> · <code>writer_agent.py:256</code> 调用 <code>astream_step(on_token, ...)</code></td></tr>
+        <tr><td>③</td><td>emit_token 回调</td><td><code>task_queue.py:179</code> 注入到 <code>RunnableConfig.configurable._emit_token</code></td></tr>
+        <tr><td>④</td><td>Redis Stream</td><td><code>task_queue.py:186</code> <code>XADD research:events:{task_id}</code></td></tr>
+        <tr><td>⑤</td><td>SSE 端点</td><td><code>app.py:201</code> <code>StreamingResponse(event_generator(), media_type="text/event-stream")</code></td></tr>
+        <tr><td>⑥</td><td>浏览器 EventSource</td><td><code>useResearchStream.ts:135</code> <code>new EventSource(stream_url)</code></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ─────────────────────────────────────────────────────────── -->
+  <!-- §7 完整数据流时序图                                         -->
+  <!-- ─────────────────────────────────────────────────────────── -->
+  <section id="sec-7">
+    <h2><span class="num">7</span>完整数据流 · 端到端时序</h2>
+
+    <div class="diagram">
+      <svg viewBox="0 0 1100 920" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="a1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/>
+          </marker>
+          <marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#2563eb"/>
+          </marker>
+          <marker id="a3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#10b981"/>
+          </marker>
+          <marker id="a4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#f59e0b"/>
+          </marker>
+        </defs>
+
+        <!-- Lanes -->
+        <line x1="60"   y1="60" x2="60"   y2="900" stroke="#94a3b8" stroke-width="1.5"/>
+        <line x1="280"  y1="60" x2="280"  y2="900" stroke="#94a3b8" stroke-width="1.5"/>
+        <line x1="500"  y1="60" x2="500"  y2="900" stroke="#94a3b8" stroke-width="1.5"/>
+        <line x1="720"  y1="60" x2="720"  y2="900" stroke="#10b981" stroke-width="1.5" stroke-dasharray="3 3"/>
+        <line x1="940"  y1="60" x2="940"  y2="900" stroke="#94a3b8" stroke-width="1.5"/>
+
+        <!-- Lane headers -->
+        <rect x="0"    y="20" width="180" height="30" rx="4" fill="#dbeafe"/>
+        <text x="90"   y="40" text-anchor="middle" font-size="12" font-weight="700">Browser (React)</text>
+
+        <rect x="220"  y="20" width="180" height="30" rx="4" fill="#fde68a"/>
+        <text x="310"  y="40" text-anchor="middle" font-size="12" font-weight="700">FastAPI (HTTP)</text>
+
+        <rect x="440"  y="20" width="180" height="30" rx="4" fill="#dcfce7"/>
+        <text x="530"  y="40" text-anchor="middle" font-size="12" font-weight="700">Worker 协程 (后台)</text>
+
+        <rect x="660"  y="20" width="180" height="30" rx="4" fill="#fee2e2"/>
+        <text x="750"  y="40" text-anchor="middle" font-size="12" font-weight="700">Redis Stream</text>
+
+        <rect x="880"  y="20" width="180" height="30" rx="4" fill="#f3e8ff"/>
+        <text x="970"  y="40" text-anchor="middle" font-size="12" font-weight="700">LLM (Qwen)</text>
+
+        <!-- ① POST /api/research -->
+        <line x1="80"  y1="100" x2="260" y2="100" stroke="#475569" stroke-width="2" marker-end="url(#a1)"/>
+        <text x="170" y="92" text-anchor="middle" font-size="11" font-weight="600">① POST /api/research</text>
+        <text x="170" y="118" text-anchor="middle" font-size="10" fill="#64748b">{ messages, model, ... }</text>
+
+        <!-- ② XADD -->
+        <line x1="300" y1="140" x2="660" y2="140" stroke="#10b981" stroke-width="2" marker-end="url(#a3)"/>
+        <text x="480" y="132" text-anchor="middle" font-size="11" font-weight="600" fill="#10b981">② XADD research:tasks</text>
+
+        <!-- ③ Return task_id -->
+        <line x1="260" y1="170" x2="80"  y2="170" stroke="#475569" stroke-width="2" marker-end="url(#a1)"/>
+        <text x="170" y="162" text-anchor="middle" font-size="11" font-weight="600">③ { task_id, stream_url }</text>
+
+        <!-- ④ Open SSE -->
+        <line x1="80"  y1="210" x2="260" y2="210" stroke="#2563eb" stroke-width="2" marker-end="url(#a2)"/>
+        <text x="170" y="202" text-anchor="middle" font-size="11" font-weight="600" fill="#2563eb">④ GET stream_url (EventSource)</text>
+
+        <line x1="260" y1="240" x2="80"  y2="240" stroke="#2563eb" stroke-width="2" marker-end="url(#a2)"/>
+        <text x="170" y="232" text-anchor="middle" font-size="10" fill="#2563eb">HTTP 200 + text/event-stream</text>
+
+        <!-- ⑤ Worker picks up -->
+        <line x1="540" y1="290" x2="660" y2="290" stroke="#10b981" stroke-width="2" marker-end="url(#a3)"/>
+        <text x="600" y="282" text-anchor="middle" font-size="11" font-weight="600" fill="#10b981">⑤ XREADGROUP research:tasks</text>
+
+        <line x1="660" y1="320" x2="540" y2="320" stroke="#10b981" stroke-width="2" marker-end="url(#a3)"/>
+        <text x="600" y="312" text-anchor="middle" font-size="10" fill="#10b981">{ task }</text>
+
+        <!-- ⑥ astream -->
+        <line x1="540" y1="370" x2="940" y2="370" stroke="#8b5cf6" stroke-width="2" marker-end="url(#a1)"/>
+        <text x="740" y="362" text-anchor="middle" font-size="11" font-weight="600" fill="#8b5cf6">⑥ astream(node) → LLM token 1</text>
+
+        <!-- ⑦ on_token -->
+        <line x1="940" y1="400" x2="540" y2="400" stroke="#8b5cf6" stroke-width="2" marker-end="url(#a1)"/>
+        <text x="740" y="392" text-anchor="middle" font-size="10" fill="#8b5cf6">token "你"</text>
+
+        <line x1="540" y1="430" x2="660" y2="430" stroke="#10b981" stroke-width="2" marker-end="url(#a3)"/>
+        <text x="600" y="422" text-anchor="middle" font-size="10" fill="#10b981">⑦ XADD research:events:{tid}</text>
+
+        <line x1="940" y1="460" x2="540" y2="460" stroke="#8b5cf6" stroke-width="2" marker-end="url(#a1)"/>
+        <text x="740" y="452" text-anchor="middle" font-size="10" fill="#8b5cf6">token "好"</text>
+
+        <line x1="540" y1="490" x2="660" y2="490" stroke="#10b981" stroke-width="2" marker-end="url(#a3)"/>
+        <text x="600" y="482" text-anchor="middle" font-size="10" fill="#10b981">XADD ...</text>
+
+        <!-- ⑧ Node finish -->
+        <line x1="540" y1="540" x2="660" y2="540" stroke="#10b981" stroke-width="2" marker-end="url(#a3)"/>
+        <text x="600" y="532" text-anchor="middle" font-size="11" font-weight="600" fill="#10b981">⑧ 节点事件 generate_plan</text>
+
+        <!-- ⑨ SSE read -->
+        <line x1="300" y1="580" x2="660" y2="580" stroke="#f59e0b" stroke-width="2" marker-end="url(#a4)"/>
+        <text x="480" y="572" text-anchor="middle" font-size="11" font-weight="600" fill="#f59e0b">⑨ XREAD research:events:{tid} (阻塞 5s)</text>
+
+        <line x1="660" y1="610" x2="300" y2="610" stroke="#f59e0b" stroke-width="2" marker-end="url(#a4)"/>
+        <text x="480" y="602" text-anchor="middle" font-size="10" fill="#f59e0b">token events ...</text>
+
+        <!-- ⑩ SSE push -->
+        <line x1="260" y1="650" x2="80"  y2="650" stroke="#2563eb" stroke-width="2" marker-end="url(#a2)"/>
+        <text x="170" y="642" text-anchor="middle" font-size="11" font-weight="600" fill="#2563eb">⑩ data: {token:{text:"你",node:"generate_plan"}}\n\n</text>
+
+        <!-- ⑪ UI render -->
+        <line x1="80"  y1="690" x2="80"  y2="690" stroke="#2563eb"/>
+        <text x="80"  y="705" text-anchor="middle" font-size="10" fill="#2563eb">UI: 流式显示「你」</text>
+
+        <line x1="660" y1="740" x2="300" y2="740" stroke="#f59e0b" stroke-width="2" marker-end="url(#a4)"/>
+        <text x="480" y="732" text-anchor="middle" font-size="10" fill="#f59e0b">XREAD ... (循环)</text>
+
+        <line x1="260" y1="770" x2="80"  y2="770" stroke="#2563eb" stroke-width="2" marker-end="url(#a2)"/>
+        <text x="170" y="762" text-anchor="middle" font-size="10" fill="#2563eb">data: {generate_plan: ...}\n\n</text>
+
+        <!-- ⑫ finalize -->
+        <line x1="540" y1="810" x2="660" y2="810" stroke="#10b981" stroke-width="2" marker-end="url(#a3)"/>
+        <text x="600" y="802" text-anchor="middle" font-size="10" fill="#10b981">XADD {finalize_answer}</text>
+
+        <line x1="660" y1="830" x2="300" y2="830" stroke="#f59e0b" stroke-width="2" marker-end="url(#a4)"/>
+        <text x="480" y="822" text-anchor="middle" font-size="10" fill="#f59e0b">XREAD</text>
+
+        <line x1="260" y1="850" x2="80"  y2="850" stroke="#ef4444" stroke-width="2" marker-end="url(#a1)"/>
+        <text x="170" y="842" text-anchor="middle" font-size="11" font-weight="600" fill="#ef4444">⑫ data: {finalize_answer} + es.close()</text>
+
+        <line x1="540" y1="880" x2="660" y2="880" stroke="#10b981" stroke-width="2" marker-end="url(#a3)"/>
+        <text x="600" y="872" text-anchor="middle" font-size="10" fill="#10b981">XACK + EXPIRE 24h</text>
+      </svg>
+      <div class="caption">端到端时序：提交任务 → SSE 建立 → worker 消费 → LLM 流式 → Redis 解耦 → SSE 推送 → 浏览器渲染</div>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────────────────────────────────────── -->
+  <!-- §8 代码逐段解读                                             -->
+  <!-- ─────────────────────────────────────────────────────────── -->
+  <section id="sec-8">
+    <h2><span class="num">8</span>代码逐段解读</h2>
+
+    <h3>8.1 提交端点：POST /api/research</h3>
+    <p>位置：<code>src/agent/app.py:123-198</code>。提交任务，立即返回 <code>task_id + stream_url</code>。</p>
+<pre><span class="c-anno">@app.post("/api/research")</span>
+<span class="c-key">async def</span> <span class="c-fn">submit_research</span>(request: Request):
+    body = <span class="c-key">await</span> request.json()
+
+    <span class="c-em"># ① 任务入队 → XADD research:tasks</span>
+    task_id = <span class="c-key">await</span> <span class="c-fn">enqueue_task</span>(
+        messages=body.<span class="c-fn">get</span>(<span class="c-str">"messages"</span>, []),
+        initial_search_query_count=body.<span class="c-fn">get</span>(<span class="c-str">"initial_search_query_count"</span>, <span class="c-num">2</span>),
+        max_research_loops=body.<span class="c-fn">get</span>(<span class="c-str">"max_research_loops"</span>, <span class="c-num">2</span>),
+        reasoning_model=body.<span class="c-fn">get</span>(<span class="c-str">"reasoning_model"</span>, <span class="c-str">""</span>),
+        plan_status=body.<span class="c-fn">get</span>(<span class="c-str">"plan_status"</span>, <span class="c-str">"unconfirmed"</span>),
+        plan=body.<span class="c-fn">get</span>(<span class="c-str">"plan"</span>, <span class="c-str">""</span>),
+        task_id=body.<span class="c-fn">get</span>(<span class="c-str">"task_id"</span>, <span class="c-str">""</span>),  <span class="c-com"># 前端回传则复用</span>
+    )
+
+    <span class="c-em"># ② 立即返回，不等流式响应</span>
+    <span class="c-key">return</span> <span class="c-cls">JSONResponse</span>(content={
+        <span class="c-str">"task_id"</span>: task_id,
+        <span class="c-str">"stream_url"</span>: <span class="c-str">f"/api/research/{task_id}/stream"</span>,
+    })</pre>
+
+    <div class="callout callout-success">
+      <div class="callout-title">设计要点</div>
+      <p><strong>提交和拉流分离</strong>。提交接口不被流式响应拖死，客户端可以中途断开 SSE 后用 <code>Last-Event-ID</code> 重连。同一 <code>task_id</code> 可被多个前端标签页订阅。</p>
+    </div>
+
+    <h3>8.2 SSE 端点：GET /api/research/{task_id}/stream</h3>
+    <p>位置：<code>src/agent/app.py:201-225</code>。</p>
+<pre><span class="c-anno">@app.get("/api/research/{task_id}/stream")</span>
+<span class="c-key">async def</span> <span class="c-fn">stream_research</span>(task_id: <span class="c-key">str</span>, request: Request):
+    <span class="c-com"># ① 读取客户端传来的最后事件 ID（断线恢复用）</span>
+    last_event_id = request.headers.<span class="c-fn">get</span>(<span class="c-str">"Last-Event-ID"</span>, <span class="c-str">"0"</span>)
+
+    <span class="c-key">async def</span> <span class="c-fn">event_generator</span>():
+        <span class="c-key">try</span>:
+            <span class="c-key">async for</span> event_str <span class="c-key">in</span> <span class="c-fn">read_task_events</span>(task_id, last_event_id):
+                <span class="c-em"># ② 严格按照 SSE 格式：data: ... \n\n</span>
+                <span class="c-key">yield</span> <span class="c-str">f"data: {event_str}\n\n"</span>
+        <span class="c-key">except</span> <span class="c-cls">Exception</span> <span class="c-key">as</span> exc:
+            <span class="c-key">yield</span> <span class="c-str">f'data: {{"error": "{exc}"}}\n\n'</span>
+
+    <span class="c-em"># ③ 设置必备 Header + 禁用 Nginx 缓冲</span>
+    <span class="c-key">return</span> <span class="c-cls">StreamingResponse</span>(
+        <span class="c-fn">event_generator</span>(),
+        media_type=<span class="c-str">"text/event-stream"</span>,
+        headers={
+            <span class="c-str">"Cache-Control"</span>: <span class="c-str">"no-cache"</span>,
+            <span class="c-str">"Connection"</span>: <span class="c-str">"keep-alive"</span>,
+            <span class="c-str">"X-Accel-Buffering"</span>: <span class="c-str">"no"</span>,  <span class="c-com"># ← 关键</span>
+        },
+    )</pre>
+
+    <h3>8.3 worker 协程：从 Redis Stream 消费并执行图</h3>
+    <p>位置：<code>src/agent/task_queue.py:179-201</code>。关键的依赖注入技巧：</p>
+<pre><span class="c-com"># 这个函数把 token 通过 Redis 流到前端</span>
+<span class="c-key">async def</span> <span class="c-fn">emit_token</span>(text: <span class="c-key">str</span>, node: <span class="c-key">str</span>) -> <span class="c-key">None</span>:
+    event_json = json.<span class="c-fn">dumps</span>(
+        {<span class="c-str">"token"</span>: {<span class="c-str">"text"</span>: text, <span class="c-str">"node"</span>: node}},
+        ensure_ascii=<span class="c-key">False</span>,
+    )
+    <span class="c-key">await</span> r.<span class="c-fn">xadd</span>(
+        <span class="c-str">f"research:events:{task_id}"</span>,
+        {<span class="c-str">"event"</span>: event_json},
+        maxlen=<span class="c-num">500</span>,  <span class="c-com"># 单任务最多保留 500 条事件</span>
+    )
+
+config = {
+    <span class="c-str">"configurable"</span>: {
+        <span class="c-str">"thread_id"</span>: task_id,
+        <span class="c-str">"_emit_token"</span>: emit_token,  <span class="c-em"># ← 注入回调</span>
+    }
+}</pre>
+
+    <h3>8.4 节点调用 emit_token（graph.py / writer_agent.py）</h3>
+<pre><span class="c-com"># src/agent/graph.py:53-67  (generate_plan 节点)</span>
+emit_token = config.<span class="c-fn">get</span>(<span class="c-str">"configurable"</span>, {}).<span class="c-fn">get</span>(<span class="c-str">"_emit_token"</span>)
+<span class="c-key">if</span> emit_token:
+    <span class="c-key">async def</span> <span class="c-fn">on_token</span>(text: <span class="c-key">str</span>) -> <span class="c-key">None</span>:
+        <span class="c-key">await</span> <span class="c-fn">emit_token</span>(text, <span class="c-str">"generate_plan"</span>)
+    response = <span class="c-key">await</span> agent.<span class="c-fn">astream_step</span>(on_token, ...)</pre>
+
+    <div class="callout callout-info">
+      <div class="callout-title">优雅之处</div>
+      <p>节点的代码完全不感知 Redis / SSE 的存在，只负责 <code>await on_token(text)</code> —— <strong>关注点分离 + 依赖注入</strong>。</p>
+    </div>
+
+    <h3>8.5 节点事件翻译：subgraph 节点名 → 前端扁平名</h3>
+    <p>位置：<code>src/agent/task_queue.py:38-42</code>，<code>:218-247</code>。</p>
+<pre><span class="c-com"># 子图内部节点 → 前端约定的事件名</span>
+_SUBGRAPH_EVENT_MAP = {
+    <span class="c-str">"generate_queries"</span>: <span class="c-str">"generate_query"</span>,
+    <span class="c-str">"web_search"</span>:       <span class="c-str">"web_research"</span>,
+    <span class="c-str">"critique"</span>:         <span class="c-str">"reflection"</span>,
+}
+
+<span class="c-key">async for</span> event <span class="c-key">in</span> graph.<span class="c-fn">astream</span>(state, config, subgraphs=<span class="c-key">True</span>):
+    namespace, data = event
+    node_name = <span class="c-fn">list</span>(data.<span class="c-fn">keys</span>())[<span class="c-num">0</span>]
+    node_output = data[node_name]
+
+    is_subgraph = <span class="c-fn">len</span>(namespace) > <span class="c-num">0</span>
+    frontend_event_name = (
+        _SUBGRAPH_EVENT_MAP.<span class="c-fn">get</span>(node_name, node_name)
+        <span class="c-key">if</span> is_subgraph <span class="c-key">else</span> node_name
+    )</pre>
+
+    <div class="diagram">
+      <svg viewBox="0 0 980 280" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="aa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#3b82f6"/>
+          </marker>
+        </defs>
+
+        <!-- LangGraph 内部命名空间 -->
+        <rect x="20" y="40" width="280" height="200" rx="10" fill="#f8fafc" stroke="#3b82f6" stroke-width="2"/>
+        <text x="160" y="68" text-anchor="middle" font-size="13" font-weight="700" fill="#1e293b">LangGraph 内部</text>
+
+        <rect x="40"  y="90" width="240" height="32" rx="4" fill="#dbeafe"/>
+        <text x="160" y="111" text-anchor="middle" font-size="12">父图节点：generate_plan</text>
+        <rect x="40"  y="132" width="240" height="32" rx="4" fill="#dbeafe"/>
+        <text x="160" y="153" text-anchor="middle" font-size="12">子图节点：generate_queries</text>
+        <rect x="40"  y="174" width="240" height="32" rx="4" fill="#dbeafe"/>
+        <text x="160" y="195" text-anchor="middle" font-size="12">子图节点：web_search</text>
+
+        <!-- arrow -->
+        <line x1="320" y1="160" x2="380" y2="160" stroke="#3b82f6" stroke-width="3" marker-end="url(#aa)"/>
+        <text x="350" y="145" text-anchor="middle" font-size="11" font-weight="700" fill="#3b82f6">翻译</text>
+
+        <!-- Frontend 约定命名 -->
+        <rect x="400" y="40" width="280" height="200" rx="10" fill="#f0fdf4" stroke="#10b981" stroke-width="2"/>
+        <text x="540" y="68" text-anchor="middle" font-size="13" font-weight="700" fill="#1e293b">前端约定（扁平）</text>
+
+        <rect x="420" y="90" width="240" height="32" rx="4" fill="#dcfce7"/>
+        <text x="540" y="111" text-anchor="middle" font-size="12">generate_plan</text>
+        <rect x="420" y="132" width="240" height="32" rx="4" fill="#dcfce7"/>
+        <text x="540" y="153" text-anchor="middle" font-size="12">generate_query ← 翻译</text>
+        <rect x="420" y="174" width="240" height="32" rx="4" fill="#dcfce7"/>
+        <text x="540" y="195" text-anchor="middle" font-size="12">web_research ← 翻译</text>
+
+        <!-- Result UI -->
+        <rect x="720" y="100" width="240" height="80" rx="8" fill="#fef3c7" stroke="#f59e0b" stroke-width="2"/>
+        <text x="840" y="125" text-anchor="middle" font-size="12" font-weight="700" fill="#92400e">前端 UI</text>
+        <text x="840" y="148" text-anchor="middle" font-size="11" fill="#7c2d12">不区分父图/子图</text>
+        <text x="840" y="166" text-anchor="middle" font-size="11" fill="#7c2d12">按扁平事件名渲染</text>
+      </svg>
+      <div class="caption">子图节点名翻译为前端扁平事件名，UI 不必区分层级</div>
+    </div>
+
+    <h3>8.6 终止事件</h3>
+<pre><span class="c-com"># task_queue.py:266-292</span>
+<span class="c-key">if</span> final_answer_event:
+    <span class="c-em"># 正常完成</span>
+    <span class="c-key">await</span> r.<span class="c-fn">xadd</span>(..., json.<span class="c-fn">dumps</span>({<span class="c-str">"finalize_answer"</span>: ...}))
+<span class="c-key">else</span>:
+    <span class="c-em"># 暂停在 Plan 确认处（HITL）</span>
+    <span class="c-key">await</span> r.<span class="c-fn">xadd</span>(..., json.<span class="c-fn">dumps</span>({<span class="c-str">"task_paused"</span>: <span class="c-key">True</span>}))</pre>
+    <p>三种终止事件触发 SSE 关闭：<code>finalize_answer</code> · <code>task_paused</code> · <code>error</code>。</p>
+
+    <h3>8.7 前端消费：useResearchStream.ts</h3>
+<pre><span class="c-com">// frontend/src/lib/useResearchStream.ts</span>
+<span class="c-key">const</span> es = <span class="c-key">new</span> <span class="c-cls">EventSource</span>(<span class="c-str">`${API_BASE_URL}${stream_url}`</span>);
+
+es.onmessage = (e) => {
+    <span class="c-key">const</span> raw = <span class="c-cls">JSON</span>.<span class="c-fn">parse</span>(e.data);
+
+    <span class="c-em">// ── 处理 token 流式事件 ──</span>
+    <span class="c-key">if</span> (raw.token) {
+        <span class="c-key">const</span> { text, node } = raw.token;
+        <span class="c-key">if</span> (node !== streamingNodeRef.current) {
+            streamingNodeRef.current = node;
+            <span class="c-fn">setStreamingNode</span>(node);
+            <span class="c-fn">setStreamingContent</span>(text);
+        } <span class="c-key">else</span> {
+            streamingContentRef.current += text;
+            <span class="c-fn">setStreamingContent</span>(prev =&gt; prev + text);
+        }
+        <span class="c-key">return</span>;
+    }
+
+    <span class="c-em">// ── 处理终止事件 ──</span>
+    <span class="c-key">if</span> (event.finalize_answer) { es.<span class="c-fn">close</span>(); }
+    <span class="c-key">if</span> (event.task_paused)    { es.<span class="c-fn">close</span>(); }
+    <span class="c-key">if</span> (event.error)          { es.<span class="c-fn">close</span>(); }
+};</pre>
+    <p>前端用 <code>useRef + setState</code> 双缓冲：ref 避免闭包过期，state 触发 UI 重渲染。节点切换时自动清空旧节点的流式 buffer。</p>
+  </section>
+
+  <!-- ─────────────────────────────────────────────────────────── -->
+  <!-- §9 Redis Stream 解耦原理                                     -->
+  <!-- ─────────────────────────────────────────────────────────── -->
+  <section id="sec-9">
+    <h2><span class="num">9</span>Redis Stream 解耦原理</h2>
+
+    <div class="diagram">
+      <svg viewBox="0 0 1080 360" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="aaa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/>
+          </marker>
+        </defs>
+
+        <!-- Worker process -->
+        <rect x="40" y="40" width="220" height="280" rx="10" fill="#dcfce7" stroke="#10b981" stroke-width="2"/>
+        <text x="150" y="65" text-anchor="middle" font-size="13" font-weight="700">FastAPI Worker 协程</text>
+        <text x="150" y="83" text-anchor="middle" font-size="11" fill="#64748b">（后台常驻）</text>
+        <rect x="60" y="100" width="180" height="30" rx="4" fill="#fff" stroke="#10b981"/>
+        <text x="150" y="120" text-anchor="middle" font-size="11">XREADGROUP tasks</text>
+        <rect x="60" y="140" width="180" height="30" rx="4" fill="#fff" stroke="#10b981"/>
+        <text x="150" y="160" text-anchor="middle" font-size="11">graph.astream()</text>
+        <rect x="60" y="180" width="180" height="30" rx="4" fill="#fff" stroke="#10b981"/>
+        <text x="150" y="200" text-anchor="middle" font-size="11">emit_token()</text>
+        <text x="150" y="240" text-anchor="middle" font-size="11" font-weight="700" fill="#10b981">↓ XADD ↓</text>
+
+        <!-- Redis Stream -->
+        <rect x="430" y="80" width="220" height="200" rx="10" fill="#fee2e2" stroke="#ef4444" stroke-width="2"/>
+        <text x="540" y="105" text-anchor="middle" font-size="13" font-weight="700">Redis Stream</text>
+        <text x="540" y="123" text-anchor="middle" font-size="11" fill="#64748b">research:events:{tid}</text>
+
+        <rect x="450" y="140" width="180" height="22" rx="3" fill="#fff"/>
+        <text x="540" y="156" text-anchor="middle" font-size="10" font-family="monospace">1745-0: token</text>
+        <rect x="450" y="166" width="180" height="22" rx="3" fill="#fff"/>
+        <text x="540" y="182" text-anchor="middle" font-size="10" font-family="monospace">1745-1: token</text>
+        <rect x="450" y="192" width="180" height="22" rx="3" fill="#fff"/>
+        <text x="540" y="208" text-anchor="middle" font-size="10" font-family="monospace">1745-2: generate_plan</text>
+        <rect x="450" y="218" width="180" height="22" rx="3" fill="#fff"/>
+        <text x="540" y="234" text-anchor="middle" font-size="10" font-family="monospace">1745-3: web_research</text>
+        <rect x="450" y="244" width="180" height="22" rx="3" fill="#fff"/>
+        <text x="540" y="260" text-anchor="middle" font-size="10" font-family="monospace">1745-4: finalize_answer</text>
+
+        <!-- SSE HTTP request -->
+        <rect x="820" y="40" width="220" height="280" rx="10" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"/>
+        <text x="930" y="65" text-anchor="middle" font-size="13" font-weight="700">SSE HTTP 协程</text>
+        <text x="930" y="83" text-anchor="middle" font-size="11" fill="#64748b">（每次请求一个）</text>
+        <rect x="840" y="100" width="180" height="30" rx="4" fill="#fff" stroke="#3b82f6"/>
+        <text x="930" y="120" text-anchor="middle" font-size="11">XREAD events (阻塞)</text>
+        <rect x="840" y="140" width="180" height="30" rx="4" fill="#fff" stroke="#3b82f6"/>
+        <text x="930" y="160" text-anchor="middle" font-size="11">StreamingResponse</text>
+        <rect x="840" y="180" width="180" height="30" rx="4" fill="#fff" stroke="#3b82f6"/>
+        <text x="930" y="200" text-anchor="middle" font-size="11">yield data: ... \n\n</text>
+        <text x="930" y="240" text-anchor="middle" font-size="11" font-weight="700" fill="#3b826">↑ XREAD ↑</text>
+
+        <line x1="260" y1="200" x2="430" y2="200" stroke="#475569" stroke-width="2" marker-end="url(#aaa)"/>
+        <text x="345" y="190" text-anchor="middle" font-size="11" font-weight="600">XADD</text>
+        <line x1="650" y1="200" x2="820" y2="200" stroke="#475569" stroke-width="2" marker-end="url(#aaa)"/>
+        <text x="735" y="190" text-anchor="middle" font-size="11" font-weight="600">XREAD</text>
+
+        <text x="540" y="320" text-anchor="middle" font-size="11" fill="#64748b">两者生命周期不同 → 必须用 Stream 作为共享缓冲</text>
+      </svg>
+      <div class="caption">Worker 协程写入 Redis · SSE HTTP 协程从 Redis 读出</div>
+    </div>
+
+    <h3>为什么选 Redis Stream 而不是 Pub/Sub？</h3>
+    <table>
+      <thead><tr><th>特性</th><th>Redis Pub/Sub</th><th>Redis Stream（本项目）</th></tr></thead>
+      <tbody>
+        <tr><td>消息持久化</td><td>❌ fire-and-forget</td><td>✅ 持久化到内存</td></tr>
+        <tr><td>断线即丢</td><td>是</td><td>否，可重读</td></tr>
+        <tr><td>Last-Event-ID 支持</td><td>❌ 无法定位</td><td>✅ 按 msg_id 精确定位</td></tr>
+        <tr><td>消费者组</td><td>❌</td><td>✅ XREADGROUP</td></tr>
+        <tr><td>容量限制</td><td>无</td><td><code>MAXLEN 500</code> / <code>EXPIRE 24h</code></td></tr>
+      </tbody>
+    </table>
+
+    <div class="callout callout-warn">
+      <div class="callout-title">base_knowledge 第 24 节提到的是 Pub/Sub</div>
+      <p>但 <strong>Pub/Sub 断线即丢</strong>，无法满足 SSE 的断线重连。本项目用 <strong>Stream</strong> 是更稳妥的工程选择。</p>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────────────────────────────────────── -->
+  <!-- §10 断线重连                                                -->
+  <!-- ─────────────────────────────────────────────────────────── -->
+  <section id="sec-10">
+    <h2><span class="num">10</span>断线重连 · Last-Event-ID 机制</h2>
+
+    <div class="diagram">
+      <svg viewBox="0 0 1080 480" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="aarr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/>
+          </marker>
+        </defs>
+
+        <!-- Phase 1: 正常推送 -->
+        <rect x="40" y="20" width="1000" height="120" rx="8" fill="#f0fdf4" stroke="#10b981"/>
+        <text x="60" y="42" font-size="12" font-weight="700" fill="#10b981">① 正常推送阶段</text>
+
+        <line x1="120" y1="80" x2="120" y2="120" stroke="#475569" stroke-width="1.5"/>
+        <line x1="960" y1="80" x2="960" y2="120" stroke="#475569" stroke-width="1.5"/>
+        <text x="120" y="74" text-anchor="middle" font-size="11" font-weight="600">Client</text>
+        <text x="960" y="74" text-anchor="middle" font-size="11" font-weight="600">Server (FastAPI)</text>
+
+        <line x1="140" y1="90" x2="940" y2="90" stroke="#475569" stroke-width="1.5" marker-end="url(#aarr)"/>
+        <text x="540" y="82" text-anchor="middle" font-size="10" font-family="monospace">data: id:101 你好</text>
+        <line x1="140" y1="105" x2="940" y2="105" stroke="#475569" stroke-width="1.5" marker-end="url(#aarr)"/>
+        <text x="540" y="115" text-anchor="middle" font-size="10" font-family="monospace">data: id:102 我是 AI</text>
+        <text x="540" y="135" text-anchor="middle" font-size="10" fill="#10b981">... 收到 id:103 后断网 ...</text>
+
+        <!-- Phase 2: 断网 -->
+        <rect x="40" y="160" width="1000" height="120" rx="8" fill="#fef2f2" stroke="#ef4444"/>
+        <text x="60" y="182" font-size="12" font-weight="700" fill="#ef4444">② 断网阶段</text>
+
+        <line x1="500" y1="220" x2="580" y2="260" stroke="#ef4444" stroke-width="3"/>
+        <text x="540" y="220" text-anchor="middle" font-size="11" font-weight="600" fill="#ef4444">⨯ 连接断开</text>
+        <text x="540" y="275" text-anchor="middle" font-size="10" fill="#64748b">server 仍持续写入 events 104, 105, 106, 107...</text>
+
+        <!-- Phase 3: 重连 -->
+        <rect x="40" y="300" width="1000" height="160" rx="8" fill="#eff6ff" stroke="#3b82f6"/>
+        <text x="60" y="322" font-size="12" font-weight="700" fill="#3b82f6">③ 重连阶段（带 Last-Event-ID）</text>
+
+        <line x1="120" y1="350" x2="120" y2="450" stroke="#475569" stroke-width="1.5"/>
+        <line x1="960" y1="350" x2="960" y2="450" stroke="#475569" stroke-width="1.5"/>
+
+        <line x1="140" y1="370" x2="940" y2="370" stroke="#3b82f6" stroke-width="2" marker-end="url(#aarr)"/>
+        <text x="540" y="362" text-anchor="middle" font-size="10" font-family="monospace">GET /stream   Last-Event-ID: 103</text>
+
+        <text x="540" y="395" text-anchor="middle" font-size="10" fill="#10b981">↓ 服务端从 Redis Stream 读 id > 103 的事件</text>
+
+        <line x1="940" y1="410" x2="140" y2="410" stroke="#475569" stroke-width="1.5" marker-end="url(#aarr)"/>
+        <text x="540" y="402" text-anchor="middle" font-size="10" font-family="monospace">data: id:104 ...</text>
+        <line x1="940" y1="430" x2="140" y2="430" stroke="#475569" stroke-width="1.5" marker-end="url(#aarr)"/>
+        <text x="540" y="422" text-anchor="middle" font-size="10" font-family="monospace">data: id:105 ...</text>
+        <text x="540" y="455" text-anchor="middle" font-size="10" font-weight="700" fill="#10b981">✅ 不重复 / 不丢失</text>
+      </svg>
+      <div class="caption">Last-Event-ID 机制：浏览器记录最后 ID，重连时带上，服务端从该 ID 之后续推</div>
+    </div>
+
+    <h3>项目实现：read_task_events（task_queue.py:315-351）</h3>
+<pre><span class="c-key">async def</span> <span class="c-fn">read_task_events</span>(task_id: <span class="c-key">str</span>, last_event_id: <span class="c-key">str</span> = <span class="c-str">"0"</span>):
+    <span class="c-em"># Redis Stream 的 msg_id 作为 SSE 事件游标</span>
+    current_id = last_event_id
+
+    <span class="c-key">while True</span>:
+        result = <span class="c-key">await</span> r.<span class="c-fn">xread</span>(
+            {stream_key: current_id},     <span class="c-com"># ← 从 last_event_id 之后读</span>
+            block=<span class="c-num">5000</span>,                  <span class="c-com"># 阻塞 5s</span>
+            count=<span class="c-num">10</span>,
+        )
+        <span class="c-key">if</span> result:
+            <span class="c-key">for</span> _, messages <span class="c-key">in</span> result:
+                <span class="c-key">for</span> msg_id, data <span class="c-key">in</span> messages:
+                    event_str = data.<span class="c-fn">get</span>(<span class="c-str">"event"</span>, <span class="c-str">"{}"</span>)
+                    current_id = msg_id  <span class="c-com"># ← 滚动游标</span>
+                    <span class="c-key">yield</span> event_str
+
+                    <span class="c-em"># 终止事件 → 关闭 SSE</span>
+                    event = json.<span class="c-fn">loads</span>(event_str)
+                    <span class="c-key">if</span> <span class="c-fn">any</span>(k <span class="c-key">in</span> event <span class="c-key">for</span> k <span class="c-key">in</span> (<span class="c-str">"error"</span>, <span class="c-str">"finalize_answer"</span>, <span class="c-str">"task_paused"</span>)):
+                        <span class="c-key">return</span></pre>
+
+    <div class="callout callout-info">
+      <div class="callout-title">三个细节</div>
+      <p><strong>1.</strong> <code>current_id = msg_id</code> 用 Redis Stream 的 msg_id 同时充当 SSE event id，天然对齐。</p>
+      <p><strong>2.</strong> <code>block=5000</code> 阻塞 5 秒，浏览器断开后没有新事件，5s 后 XREAD 超时返回空，自动进入下一轮。</p>
+      <p><strong>3.</strong> 终止事件（<code>finalize_answer</code> / <code>task_paused</code> / <code>error</code>）自动 <code>return</code> 关闭 SSE。</p>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────────────────────────────────────── -->
+  <!-- §11 实战对照表                                              -->
+  <!-- ─────────────────────────────────────────────────────────── -->
+  <section id="sec-11">
+    <h2><span class="num">11</span>base_knowledge 知识点实战对照</h2>
+
+    <table>
+      <thead><tr><th>base_knowledge 知识点</th><th>项目中的体现</th></tr></thead>
+      <tbody>
+        <tr><td>第3节 必备 Header</td><td><code>app.py:218-225</code> 设置 <code>text/event-stream</code> + <code>no-cache</code> + <code>keep-alive</code></td></tr>
+        <tr><td>第4节 <code>\n\n</code> 分隔</td><td><code>yield f"data: {event_str}\n\n"</code></td></tr>
+        <tr><td>第7节 JSON 数据</td><td><code>event_str</code> 是 JSON 字符串，浏览器 <code>JSON.parse(e.data)</code></td></tr>
+        <tr><td>第10节 自动重连</td><td>浏览器 <code>EventSource</code> 原生；后端 <code>read_task_events</code> 通过 <code>Last-Event-ID</code> 续读 Redis Stream</td></tr>
+        <tr><td>第12节 <code>id</code> 字段</td><td>Redis Stream 的 msg_id 同时充当 SSE event id</td></tr>
+        <tr><td>第16节 AI 流式输出</td><td>LLM token → <code>on_token</code> → <code>emit_token</code> → Redis → SSE</td></tr>
+        <tr><td>第22节 Nginx 缓冲</td><td><code>X-Accel-Buffering: no</code> 显式声明</td></tr>
+        <tr><td>第23节 连接规模</td><td>Redis Stream 解耦 + Consumer Group 可水平扩 worker</td></tr>
+        <tr><td>第24节 SSE + Redis</td><td>本项目用 <strong>Redis Stream</strong>（不是 Pub/Sub），能持久化、支持重连、补读</td></tr>
+        <tr><td>第25节 SSE 认证</td><td><code>app.py:39-40</code> <code>AuthMiddleware</code> 在最外层，登录后 cookie 自动带上</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ─────────────────────────────────────────────────────────── -->
+  <!-- §12 设计亮点                                                -->
+  <!-- ─────────────────────────────────────────────────────────── -->
+  <section id="sec-12">
+    <h2><span class="num">12</span>关键设计亮点 &amp; 与 base_knowledge 的差异</h2>
+
+    <div class="row">
+      <div>
+        <h4 style="color:#2563eb;">① 提交/拉流分离</h4>
+        <pre><span class="c-com"># POST 返回 task_id + stream_url</span>
+{
+  <span class="c-str">"task_id"</span>: <span class="c-str">"uuid-1234"</span>,
+  <span class="c-str">"stream_url"</span>: <span class="c-str">"/api/research/uuid-1234/stream"</span>
+}
+
+<span class="c-com"># 前端再单独 GET 这个 stream_url</span>
+<span class="c-key">const</span> es = <span class="c-key">new</span> <span class="c-cls">EventSource</span>(stream_url);</pre>
+      </div>
+      <div class="explanation">
+        <h4>好处</h4>
+        <ul>
+          <li>提交接口不被流式响应拖死</li>
+          <li>客户端断开后可重连</li>
+          <li>同一 <code>task_id</code> 可被多端订阅</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="row">
+      <div>
+        <h4 style="color:#2563eb;">② Redis Stream 而非 Pub/Sub</h4>
+        <pre><span class="c-com"># task_queue.py:107</span>
+<span class="c-key">await</span> r.<span class="c-fn">xadd</span>(TASK_STREAM, {<span class="c-str">"task"</span>: payload}, maxlen=<span class="c-num">1000</span>)
+
+<span class="c-com"># task_queue.py:327</span>
+result = <span class="c-key">await</span> r.<span class="c-fn">xread</span>({stream_key: current_id}, block=<span class="c-num">5000</span>)
+
+<span class="c-com"># task_queue.py:308</span>
+<span class="c-key">await</span> r.<span class="c-fn">expire</span>(<span class="c-str">f"research:events:{task_id}"</span>, <span class="c-num">86400</span>)  <span class="c-com"># 24h 后过期</span></pre>
+      </div>
+      <div class="explanation">
+        <h4>为什么</h4>
+        <ul>
+          <li>Pub/Sub fire-and-forget，<strong>断线即丢</strong></li>
+          <li>Stream 持久化 + msg_id，支持 <strong>Last-Event-ID</strong> 重连</li>
+          <li><code>maxlen</code> + <code>expire</code> 防止内存爆炸</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="row">
+      <div>
+        <h4 style="color:#2563eb;">③ subgraphs=True + 节点名翻译</h4>
+        <pre><span class="c-com"># task_queue.py:220</span>
+<span class="c-key">async for</span> event <span class="c-key">in</span> graph.<span class="c-fn">astream</span>(state, config, subgraphs=<span class="c-key">True</span>):
+    <span class="c-com"># event = (("research:abc123",), {"generate_queries": {...}})</span>
+    <span class="c-com">#           └─namespace─┘     └──── data ──────────┘</span>
+
+    <span class="c-com"># task_queue.py:38-42</span>
+_SUBGRAPH_EVENT_MAP = {
+    <span class="c-str">"generate_queries"</span>: <span class="c-str">"generate_query"</span>,
+    <span class="c-str">"web_search"</span>:       <span class="c-str">"web_research"</span>,
+    <span class="c-str">"critique"</span>:         <span class="c-str">"reflection"</span>,
+}</pre>
+      </div>
+      <div class="explanation">
+        <h4>意义</h4>
+        <ul>
+          <li>穿透子图边界拿内部节点事件</li>
+          <li>前端不必关心节点来自哪一层</li>
+          <li><code>__</code> 开头的事件被过滤（LangGraph 内部）</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="row">
+      <div>
+        <h4 style="color:#2563eb;">④ 前端 useRef + setState 双缓冲</h4>
+        <pre><span class="c-com">// useResearchStream.ts:43-52</span>
+<span class="c-key">const</span> streamingNodeRef = <span class="c-fn">useRef</span>&lt;<span class="c-key">string</span> | <span class="c-key">null</span>&gt;(<span class="c-key">null</span>);
+<span class="c-key">const</span> streamingContentRef = <span class="c-fn">useRef</span>&lt;<span class="c-key">string</span>&gt;(<span class="c-str">""</span>);
+
+es.onmessage = (e) =&gt; {
+  <span class="c-key">if</span> (raw.token) {
+    <span class="c-key">if</span> (node !== streamingNodeRef.current) {
+      streamingNodeRef.current = node;          <span class="c-com">// ref 立刻更新</span>
+      <span class="c-fn">setStreamingNode</span>(node);            <span class="c-com">// state 异步更新</span>
+      <span class="c-fn">setStreamingContent</span>(text);
+    } <span class="c-key">else</span> {
+      streamingContentRef.current += text;
+      <span class="c-fn">setStreamingContent</span>(prev =&gt; prev + text);
+    }
+  }
+};</pre>
+      </div>
+      <div class="explanation">
+        <h4>为什么</h4>
+        <ul>
+          <li>token 来得太快（毫秒级）</li>
+          <li>仅靠 <code>setState</code> 可能丢更新</li>
+          <li>ref 保证读最新值，state 触发重渲染</li>
+          <li>节点切换时自动清空 buffer</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="row">
+      <div>
+        <h4 style="color:#2563eb;">⑤ X-Accel-Buffering 显式关闭</h4>
+        <pre><span class="c-com"># app.py:223</span>
+headers={
+    <span class="c-str">"Cache-Control"</span>: <span class="c-str">"no-cache"</span>,
+    <span class="c-str">"Connection"</span>: <span class="c-str">"keep-alive"</span>,
+    <span class="c-str">"X-Accel-Buffering"</span>: <span class="c-str">"no"</span>,  <span class="c-com"># ← 关键</span>
+}</pre>
+      </div>
+      <div class="explanation">
+        <h4>作用</h4>
+        <ul>
+          <li>Nginx 默认 <code>proxy_buffering on</code></li>
+          <li>会把响应攒起来再发 → <strong>流式失效</strong></li>
+          <li><code>X-Accel-Buffering: no</code> 强制透传</li>
+        </ul>
+      </div>
+    </div>
+
+    <h3>与 base_knowledge 的不同选择（值得注意）</h3>
+    <table>
+      <thead><tr><th>维度</th><th>base_knowledge 建议</th><th>本项目做法</th><th>原因</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>Redis 消息系统</td>
+          <td>Pub/Sub（第 24 节）</td>
+          <td><strong>Redis Stream</strong></td>
+          <td>需要断线重连 + 事件持久化</td>
+        </tr>
+        <tr>
+          <td>前端客户端</td>
+          <td>AI Chat 通常用 <code>fetch + ReadableStream</code></td>
+          <td><strong>原生 <code>EventSource</code></strong></td>
+          <td>提交与拉流分离 → GET 即可 → 享受自动重连</td>
+        </tr>
+        <tr>
+          <td>心跳注释</td>
+          <td>建议定期发 <code>: heartbeat\n\n</code></td>
+          <td><strong>目前没有</strong></td>
+          <td>任务分钟级完成，事件间隔小于代理 60s 超时（建议补上）</td>
+        </tr>
+        <tr>
+          <td>LangGraph 子图事件</td>
+          <td>未覆盖</td>
+          <td><code>subgraphs=True</code> + 节点名翻译</td>
+          <td>本项目采用主图 + ResearchAgent / WriterAgent 子图架构</td>
+        </tr>
+        <tr>
+          <td>容量控制</td>
+          <td>未强调</td>
+          <td><code>MAXLEN 500</code> + <code>EXPIRE 86400</code></td>
+          <td>防止 Redis 内存爆炸</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="callout callout-success">
+      <div class="callout-title">一句话总结本项目的 SSE 模式</div>
+      <p>LangGraph 节点的 token 回调通过 <strong>Redis Stream 解耦生产与消费</strong>，FastAPI 用 <code>StreamingResponse</code> + 原生 <code>text/event-stream</code> 把 Redis Stream 包装成 SSE 流，浏览器 <code>EventSource</code> 边收边渲染 —— 本质上是 <strong>"SSE 当作 Redis Stream 的实时出站视图"</strong>。</p>
+    </div>
+  </section>
+
+  <footer>
+    <p>SSE 详解 · ZhiPo DeepResearch 项目落地 · 基于 <code>base_knowledge.md</code> + 项目源码整理</p>
+  </footer>
+
+</div>
+</body>
+</html>

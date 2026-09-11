@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title>SSE Client Demo</title>
+  <style>
+    body { font-family: sans-serif; max-width: 720px; margin: 40px auto; padding: 0 16px; }
+    #log { background: #111; color: #0f0; padding: 16px; height: 360px; overflow-y: auto; border-radius: 6px; white-space: pre-wrap; font-family: monospace; font-size: 13px; }
+    button { margin: 4px; padding: 6px 12px; }
+    .row { margin: 12px 0; }
+  </style>
+</head>
+<body>
+  <h2>SSE (Server-Sent Events) Demo</h2>
+
+  <div class="row">
+    <button onclick="connect()">连接 /sse/hello</button>
+    <button onclick="connectHeartbeat()">连接 /heartbeat</button>
+    <button onclick="sendChat()">POST /chat</button>
+    <button onclick="closeAll()">关闭</button>
+  </div>
+
+  <div id="log"></div>
+
+<script>
+const log = (msg) => {
+  const el = document.getElementById('log');
+  el.textContent += msg + '\n';
+  el.scrollTop = el.scrollHeight;
+};
+
+const sources = [];
+
+function connect() {
+  const es = new EventSource('http://localhost:8000/sse/hello');
+  sources.push(es);
+
+  es.addEventListener('open',    () => log('[open] 连接已建立'));
+  es.addEventListener('message', (e) => log(`[message] id=${e.lastEventId} data=${e.data}`));
+  es.addEventListener('error',   (e) => log('[error] 连接异常或已断开'));
+}
+
+function connectHeartbeat() {
+  const es = new EventSource('http://localhost:8000/heartbeat');
+  sources.push(es);
+  es.addEventListener('ping', (e) => log(`[ping] ${e.data}`));
+}
+
+function sendChat() {
+  fetch('http://localhost:8000/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prompt: '你好 SSE' })
+  }).then(async (resp) => {
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = '';
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+      const parts = buf.split('\n\n');
+      buf = parts.pop();
+      for (const block of parts) {
+        const evt = {};
+        for (const line of block.split('\n')) {
+          const [k, v] = line.split(': ', 2);
+          evt[k] = v;
+        }
+        log(`[${evt.event || 'message'}] ${evt.data}`);
+      }
+    }
+  });
+}
+
+function closeAll() {
+  sources.forEach(es => es.close());
+  log('[closed] 所有连接已关闭');
+}
+</script>
+</body>
+</html>
