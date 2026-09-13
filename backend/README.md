@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🧠 ZhiPo DeepResearch
+# 🧠 DeepResearch
 
 **基于 LangGraph 的多智能体深度研究后端 · HITL 计划确认 · KB 长期记忆 · SSE 流式响应**
 
@@ -20,7 +20,7 @@
 
 ## 🌟 项目介绍
 
-**ZhiPo DeepResearch** 是一个面向企业级深度研究场景的多智能体后端系统。用户输入一个研究问题，系统会通过 **多智能体协作 + 人在回路（HITL）+ 长期知识库（KB）+ 流式响应**，在数分钟内产出结构化的、引用引用的研究报告。
+**DeepResearch** 是一个面向企业级深度研究场景的多智能体后端系统。用户输入一个研究问题，系统会通过 **多智能体协作 + 人在回路（HITL）+ 长期知识库（KB）+ 流式响应**，在数分钟内产出结构化的、引用引用的研究报告。
 
 整个流程无需用户等待冷启动，也无需在多次迭代中重复输入背景信息 —— KB 长期记忆 + Redis 断点续传让"研究"这件事真正连续可中断。
 
@@ -326,13 +326,13 @@ sequenceDiagram
 
 ## 📄 License
 
-[MIT](LICENSE) © 2026 ZhiPo
+[MIT](LICENSE) © 2026 
 
 ---
 
 ## 👤 Author
 
-**ZhiPo DeepResearch** 由 [Cai.He](https://github.com/hochoy18) 设计并实现。
+**DeepResearch** 由 [Cai.He](https://github.com/hochoy18) 设计并实现。
 
 - 📧 联系：项目内 Issue
 - 🌟 如果这个项目对你有帮助，欢迎 Star！
@@ -343,6 +343,6 @@ sequenceDiagram
 
 ### 🌐 English Summary
 
-**ZhiPo DeepResearch** is a multi-agent deep research backend built on LangGraph. It supports Human-in-the-Loop (HITL) plan confirmation, KB long-term memory (Milvus vector DB with read-old-write-new closed loop), and SSE streaming responses. Key design highlights: master graph + ResearchAgent / WriterAgent subgraphs, AsyncRedisSaver checkpoint (7-day TTL) for resume, Send API for O(N)→O(1) parallel fan-out, four-fold exit insurance defending against LLM self-review bias, and a side-channel LLM-as-Judge evaluation framework (5 e2e + 7 component dimensions). Tech stack: Python 3.11, LangGraph, FastAPI, Redis Stream, Milvus, DashScope MCP. See [`docs/html/docs-map.html`](docs/html/docs-map.html) for the complete 21-document architecture index.
+**DeepResearch** is a multi-agent deep research backend built on LangGraph. It supports Human-in-the-Loop (HITL) plan confirmation, KB long-term memory (Milvus vector DB with read-old-write-new closed loop), and SSE streaming responses. Key design highlights: master graph + ResearchAgent / WriterAgent subgraphs, AsyncRedisSaver checkpoint (7-day TTL) for resume, Send API for O(N)→O(1) parallel fan-out, four-fold exit insurance defending against LLM self-review bias, and a side-channel LLM-as-Judge evaluation framework (5 e2e + 7 component dimensions). Tech stack: Python 3.11, LangGraph, FastAPI, Redis Stream, Milvus, DashScope MCP. See [`docs/html/docs-map.html`](docs/html/docs-map.html) for the complete 21-document architecture index.
 
 </div>
