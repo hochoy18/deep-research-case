@@ -39,10 +39,14 @@ from agent.exceptions import (
 )
 from pymilvus.milvus_client.index import IndexParams
 
+from agent.kb.embeds import dashscope_embedded
+
 # ── constants ─────────────────────────────────────────────────────────
-COLLECTION_NAME = "research_facts"
+# COLLECTION_NAME = "research_facts"
+COLLECTION_NAME = "research_facts_v2"
 DEFAULT_EMBEDDING_DIM = 1024
 DEFAULT_EMBEDDING_MODEL = "text-embedding-v3"
+DEFAULT_EMBEDDING_MODEL_V2 = 'qwen3.7-text-embedding'
 
 
 class FactStore:
@@ -83,7 +87,7 @@ class FactStore:
             return 0
 
         texts = [f["fact"] for f in facts]
-        embeddings = self._embed(texts)
+        embeddings = self._embed_v2(texts)
 
         data = []
         now = int(time.time())
@@ -142,7 +146,7 @@ class FactStore:
         else:
             milvus_limit = top_k
 
-        embedding = self._embed([topic])
+        embedding = self._embed_v2([topic])
         results = self.client.search(
             collection_name=self.collection,
             data=[embedding[0]],
@@ -476,6 +480,22 @@ class FactStore:
             f"[KB] embedding failed after 3 attempts: {last_exc}"
         ) from last_exc
 
+
+
+    def _embed_v2(self,texts:list[str]) -> list[list[float|int]]:
+        for attempt in range(3):
+            try:
+                embedding_result = dashscope_embedded(input=texts,model=DEFAULT_EMBEDDING_MODEL_V2)
+                return embedding_result
+            except Exception as e:
+                logger.error(f"[KB] embedding v2 error: {e}")
+        raise KBEmbeddingError(
+            f"Embedding 未知错误重试耗尽 ({type(e).__name__}): {e}"
+        ) from e
+
     async def _aembed(self, texts: list[str]) -> list[list[float]]:
         """异步 embedding——用 asyncio.to_thread 包裹同步方法，不阻塞事件循环."""
-        return await asyncio.to_thread(self._embed, texts)
+
+        #return await asyncio.to_thread(self._embed, texts)
+        return await asyncio.to_thread(self._embed_v2, texts)
+

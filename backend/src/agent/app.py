@@ -20,10 +20,10 @@ from agent.auth.routes import router as auth_router
 @asynccontextmanager
 async def _app_lifespan(app: FastAPI):
     """应用级 lifespan：管理后台任务的启动和关闭."""
-    # try:
-    #     asyncio.create_task(start_worker())
-    # except Exception as exc:
-    #     logger.warning(f"[TaskQueue] worker 启动失败 ({type(exc).__name__}): {exc}")
+    try:
+        asyncio.create_task(start_worker())
+    except Exception as exc:
+        logger.warning(f"[TaskQueue] worker 启动失败 ({type(exc).__name__}): {exc}")
     yield
     # 关闭数据库引擎
     try:

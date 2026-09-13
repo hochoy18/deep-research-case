@@ -14,6 +14,7 @@ import json
 from typing import Optional
 
 from agent.base_agent import Agent
+from agent.configuration import get_default_model_id
 from agent.post import Post
 from loguru import logger
 
@@ -71,7 +72,9 @@ EXTRACTION_INSTRUCTIONS = """# 任务说明
 class FactExtractor:
     """从搜索结果摘要中提取结构化事实。"""
 
-    def __init__(self, model_id="deepseek-v4-pro"):
+    def __init__(self, model_id=None):
+        if not model_id:
+            model_id = get_default_model_id()
         self.model_id = model_id
 
     def extract(self, summary: str, research_topic: str = "") -> list[dict]:

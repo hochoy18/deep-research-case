@@ -70,6 +70,7 @@ class OpenAICompatibleLLM:
         client = OpenAI(
             api_key=os.getenv('APP_TOKEN'),
             base_url=os.getenv("LLM_BASE_URL"),
+            timeout=600
         )
         logger.debug(f"本次访问LLM模型为：{self.model_id}")
 
@@ -99,6 +100,7 @@ class OpenAICompatibleLLM:
         client = AsyncOpenAI(
             api_key=os.getenv('APP_TOKEN'),
             base_url=os.getenv("LLM_BASE_URL"),
+            timeout=600
         )
 
         try:
@@ -127,6 +129,7 @@ class OpenAICompatibleLLM:
         client = AsyncOpenAI(
             api_key=os.getenv('APP_TOKEN'),
             base_url=os.getenv("LLM_BASE_URL"),
+            timeout=600
         )
         logger.debug(f"本次流式访问LLM模型为：{self.model_id}")
 
